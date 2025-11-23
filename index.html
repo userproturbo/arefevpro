@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetShow — Твоя шоу-вселенная</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header__inner">
+      <div class="logo">Meet<span>Show</span></div>
+      <nav class="nav" aria-label="Главное меню">
+        <button class="nav__toggle" aria-expanded="false" aria-controls="nav-list">☰</button>
+        <ul class="nav__list" id="nav-list">
+          <li><a href="#about">О площадке</a></li>
+          <li><a href="#formats">Форматы</a></li>
+          <li><a href="#schedule">Расписание</a></li>
+          <li><a href="#partners">Партнёры</a></li>
+          <li><a href="#contacts">Контакты</a></li>
+        </ul>
+      </nav>
+      <a class="btn btn--ghost" href="#signup">Присоединиться</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="about">
+      <div class="container hero__grid">
+        <div class="hero__copy">
+          <p class="eyebrow">новая эра шоу</p>
+          <h1>Запускай встречи, концерты и форматы в одном месте</h1>
+          <p class="lead">MeetShow — это онлайн-площадка, где создатели шоу собирают аудиторию, проводят прямые эфиры, продают доступ и общаются с фанатами.</p>
+          <div class="hero__actions">
+            <a class="btn" href="#signup">Создать шоу</a>
+            <a class="btn btn--ghost" href="#formats">Посмотреть форматы</a>
+          </div>
+          <div class="hero__stats">
+            <div>
+              <strong>4.8/5</strong>
+              <span>Оценка зрителей</span>
+            </div>
+            <div>
+              <strong>120+</strong>
+              <span>Авторских проектов</span>
+            </div>
+            <div>
+              <strong>86k</strong>
+              <span>Билетов продано</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="glass-card">
+            <p class="tag">Прямой эфир</p>
+            <h3>Вечер «Цифровая сцена»</h3>
+            <p class="small">Зрителей в онлайне: 2 340</p>
+            <div class="avatars">
+              <span class="avatar">Ю</span>
+              <span class="avatar">Т</span>
+              <span class="avatar">М</span>
+              <span class="avatar avatar--more">+99</span>
+            </div>
+            <button class="btn btn--full">Подключиться</button>
+          </div>
+          <div class="floating-card">
+            <p>Продажи за вечер</p>
+            <strong>₽ 480 200</strong>
+            <span class="small">Средний чек: ₽1 600</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="formats">
+      <div class="container">
+        <div class="section__header">
+          <p class="eyebrow">форматы</p>
+          <h2>Платформа для любых шоу</h2>
+          <p class="lead">Запускайте стендап, образовательные эфиры, концерты, ток-шоу или частные встречи. Мы позаботились о стримах, биллинге и чате.</p>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <h3>Стрим-концерты</h3>
+            <p>HD-видео, низкая задержка и встроенный магазин мерча, чтобы поклонники были ближе к артисту.</p>
+          </article>
+          <article class="card">
+            <h3>Обучающие эфиры</h3>
+            <p>Платные подписки, пакеты уроков и домашние задания с обратной связью прямо в эфире.</p>
+          </article>
+          <article class="card">
+            <h3>Приватные клубы</h3>
+            <p>Закрытые встречи, распределение ролей модераторов, гибкие настройки доступа и календарь событий.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--grid" id="schedule">
+      <div class="container">
+        <div class="section__header">
+          <p class="eyebrow">как это работает</p>
+          <h2>Простой сценарий запуска</h2>
+          <p class="lead">Соберите шоу за 10 минут: загрузите афишу, настройте цены и откройте вход.</p>
+        </div>
+        <ol class="timeline">
+          <li>
+            <div class="timeline__dot"></div>
+            <div>
+              <h3>Создайте событие</h3>
+              <p>Задайте дату, описания, добавьте тизеры и настройте автоматические напоминания.</p>
+            </div>
+          </li>
+          <li>
+            <div class="timeline__dot"></div>
+            <div>
+              <h3>Откройте продажу</h3>
+              <p>Принимайте платежи картами и через СБП, выдавайте промокоды и пакеты доступа.</p>
+            </div>
+          </li>
+          <li>
+            <div class="timeline__dot"></div>
+            <div>
+              <h3>Выйдите в эфир</h3>
+              <p>Встроенный чат, реакции и вопросы помогут удержать внимание и собрать инсайты.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section section--accent" id="partners">
+      <div class="container partners">
+        <div>
+          <p class="eyebrow">для продюсеров</p>
+          <h2>Аналитика и доходы в одном кабинете</h2>
+          <p class="lead">Отслеживайте продажи, время просмотра и вовлечённость, управляйте командами и кастомизируйте витрину.</p>
+          <div class="stats-grid">
+            <div class="stat">
+              <strong>92%</strong>
+              <span>Досматриваемость VIP-эфиров</span>
+            </div>
+            <div class="stat">
+              <strong>+38%</strong>
+              <span>Рост повторных покупок</span>
+            </div>
+            <div class="stat">
+              <strong>24/7</strong>
+              <span>Поддержка продюсеров</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Дашборд доходов</h3>
+          <div class="panel__row"><span>Продажи билетов</span><strong>₽ 2 450 000</strong></div>
+          <div class="panel__row"><span>Подписки</span><strong>₽ 820 000</strong></div>
+          <div class="panel__row"><span>Мерч</span><strong>₽ 640 000</strong></div>
+          <p class="small">Данные за последние 30 дней</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="signup">
+      <div class="container cta">
+        <div>
+          <p class="eyebrow">начните бесплатно</p>
+          <h2>Дайте своему шоу место встречи</h2>
+          <p class="lead">Создайте аккаунт и запустите пилотный эфир без комиссии. Команда поможет перенести аудиторию и настроить монетизацию.</p>
+        </div>
+        <form class="cta__form">
+          <label for="email" class="sr-only">Email</label>
+          <input id="email" name="email" type="email" placeholder="Рабочий email" required />
+          <button class="btn" type="submit">Получить доступ</button>
+          <p class="small">Нажимая кнопку, вы соглашаетесь с условиями платформы.</p>
+        </form>
+      </div>
+    </section>
+
+    <section class="section section--muted" id="contacts">
+      <div class="container faq">
+        <div>
+          <p class="eyebrow">вопросы</p>
+          <h2>Частые вопросы</h2>
+          <p class="lead">Мы собрали ответы на самые популярные запросы от продюсеров и артистов.</p>
+        </div>
+        <div class="faq__items">
+          <details open>
+            <summary>Как монетизировать эфир?</summary>
+            <p>Выберите билеты, подписки или донаты. Можно сочетать несколько вариантов и выдавать промокоды для партнёров.</p>
+          </details>
+          <details>
+            <summary>Какие есть интеграции?</summary>
+            <p>Поддерживаем RTMP, Zoom, календарные ссылки, CRM через webhooks и экспорт отчётов в CSV.</p>
+          </details>
+          <details>
+            <summary>Поможете перенести аудиторию?</summary>
+            <p>Команда онбординга подключит ваши соцсети, настроит рассылки и тестовый эфир.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div>
+        <div class="logo">Meet<span>Show</span></div>
+        <p class="small">Платформа для тех, кто превращает встречи в событие.</p>
+      </div>
+      <div class="footer__links">
+        <a href="#about">О площадке</a>
+        <a href="#formats">Форматы</a>
+        <a href="#signup">Начать</a>
+      </div>
+      <div class="footer__contacts">
+        <a href="mailto:hello@meetshow.local">hello@meetshow.local</a>
+        <span>Телефон: +7 900 000-00-00</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
