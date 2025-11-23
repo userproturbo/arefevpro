@@ -12,15 +12,4 @@
 python -m http.server 8000
 ```
 
-Страница будет доступна по адресу http://localhost:8000.
-
-### Node/JetBrains запуск
-
-Для стабильной выдачи без 404 в JetBrains IDE используйте встроенный Node-сервер:
-
-```bash
-npm install
-npm start
-```
-
-По умолчанию сервер поднимется на http://localhost:8080 и отдаст `index.html`, `styles.css` и `script.js` из корня проекта.
+После этого страница будет доступна по адресу http://localhost:8000.
