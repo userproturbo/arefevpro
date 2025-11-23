@@ -1,0 +1,9 @@
+{
+  "name": "crazy-life",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static MeetShow-inspired landing page",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
