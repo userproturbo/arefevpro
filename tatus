@@ -1,0 +1,14 @@
+[0;1;32m●[0m fail2ban.service - Fail2Ban Service
+     Loaded: loaded (]8;;file://cv5471521.novalocal/usr/lib/systemd/system/fail2ban.service/usr/lib/systemd/system/fail2ban.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Mon 2025-11-24 17:42:11 MSK; 24s ago
+       Docs: ]8;;man:fail2ban(1)man:fail2ban(1)]8;;
+   Main PID: 177169 (fail2ban-server)
+      Tasks: 5 (limit: 1120)
+     Memory: 66.4M (peak: 69.3M)
+        CPU: 254ms
+     CGroup: /system.slice/fail2ban.service
+             └─[0;38;5;245m177169 /usr/bin/python3 /usr/bin/fail2ban-server -xf start[0m
+
+Nov 24 17:42:11 cv5471521.novalocal systemd[1]: Started fail2ban.service - Fail2Ban Service.
+Nov 24 17:42:13 cv5471521.novalocal fail2ban-server[177169]: 2025-11-24 17:42:13,448 fail2ban.configreader   [177169]: WARNING 'allowipv6' not defined in 'Definition'. Using default one: 'auto'
+Nov 24 17:42:16 cv5471521.novalocal fail2ban-server[177169]: Server ready
