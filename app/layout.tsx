@@ -1,5 +1,7 @@
 import "./globals.css";
 import Navbar from "./components/Navbar";
+import SecretAdmin from "./components/SecretAdmin";
+
 
 export const metadata = {
   title: "MyCrazyLife",
@@ -10,7 +12,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru">
       <body className="bg-black text-white">
-        <Navbar />   {/* Показывается только автору */}
+      <SecretAdmin />
+      <Navbar />   {/* Показывается только автору */}
         <main className="max-w-4xl mx-auto p-4">
           {children}
         </main>
