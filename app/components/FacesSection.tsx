@@ -12,13 +12,13 @@ const cards = [
 
 export default function FacesSection() {
     return (
-        <section className="w-full bg-zinc-50 pt-20 pb-20">
-            <div className="w-full px-4 md:px-10 mx-auto">
+        <section className="w-full bg-[url('/img/bg.jpg')] bg-cover bg-top bg-no-repeat pt-20 pb-20">
+            <div className="w-full px-6 md:px-12 mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                     {cards.map((card) => (
                         <div
                             key={card.title}
-                            className="flex flex-col h-full bg-white/70 backdrop-blur-sm overflow-hidden border border-neutral-200/60 shadow-sm"
+                            className="flex flex-col h-full bg-white/40 backdrop-blur-[1px] border border-gray-300/30 shadow-[0_0_3px_rgba(0,0,0,0.2)]"
                         >
                             <div className="relative w-full aspect-[2/3] bg-neutral-200">
                                 <Image
@@ -26,7 +26,7 @@ export default function FacesSection() {
                                     alt={card.alt}
                                     fill
                                     sizes="(min-width: 1024px) 220px, (min-width: 640px) 30vw, 100vw"
-                                    className="object-cover grayscale"
+                                    className="object-cover mix-blend-multiply opacity-90 transition-all duration-300 hover:brightness-75 hover:contrast-125"
                                     priority
                                 />
                             </div>
