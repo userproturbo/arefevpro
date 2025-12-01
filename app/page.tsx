@@ -5,9 +5,11 @@ import HeroText from "./components/HeroText";
 
 export default function HomePage() {
     return (
-        <section className="w-full bg-[url('/img/bg.jpg')] bg-top bg-cover bg-no-repeat px-8 py-20">
-            <HeroText />
-            <FacesSection />
+        <section className="w-full bg-[url('/img/bg.jpg')] bg-cover bg-fixed bg-top py-16">
+            <div className="max-w-[1500px] mx-auto px-8 space-y-12">
+                <HeroText />
+                <FacesSection />
+            </div>
         </section>
     );
 }
