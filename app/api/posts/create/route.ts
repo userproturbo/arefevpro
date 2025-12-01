@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 import { PostType } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_TYPES: PostType[] = ["photo", "video", "text", "music"];
 
 export async function POST(req: NextRequest) {

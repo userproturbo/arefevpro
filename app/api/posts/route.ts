@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // ?page=1&limit=10 (опционально)
 export async function GET(req: Request) {
   try {
