@@ -9,11 +9,11 @@ export default function Navbar() {
   useEffect(() => {
     async function check() {
       try {
-        const res = await fetch("/api/profile");
+        const res = await fetch("/api/me", { cache: "no-store" });
         const data = await res.json();
 
         // только твой аккаунт видит navbar
-        if (data?.user?.id === 1) setIsAuthor(true);
+        setIsAuthor(data?.user?.id === 1);
       } catch (err) {
         setIsAuthor(false);
       }
