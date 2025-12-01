@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 const cards = [
     { title: "ABOUT", src: "/img/face1.gif" },
     { title: "THE IMPACT", src: "/img/face2.gif" },
@@ -12,25 +10,29 @@ const cards = [
 
 export default function FacesSection() {
     return (
-        <div className="w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 w-full">
-                {cards.map((card) => (
-                    <div
-                        key={card.title}
-                        className="flex flex-col h-full bg-[#f4f4f4]/50 border border-[#d5d5d5] shadow-[0_0_3px_rgba(0,0,0,0.2)] overflow-hidden"
-                    >
+        <section
+            id="faces"
+            className="w-full bg-cover bg-center"
+            style={{ backgroundImage: "url('/img/bg.jpg')" }}
+        >
+            <div className="max-w-[1400px] mx-auto px-6 pt-12 pb-20">
+                <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                    {cards.map((card) => (
                         <div
-                            className="w-full h-[420px] bg-cover bg-top grayscale opacity-90 mix-blend-multiply transition-all duration-300 hover:grayscale-0 hover:brightness-75 hover:contrast-125"
-                            style={{ backgroundImage: `url('${card.src}')` }}
-                        />
-                        <div className="px-3 py-4 text-center">
-                            <p className="text-xs uppercase tracking-[0.2em] text-[#777]">
+                            key={card.title}
+                            className="group flex-1 min-w-[180px] flex flex-col items-center"
+                        >
+                            <div
+                                className="w-full h-[480px] bg-[#dcdcdc] bg-cover bg-top grayscale mix-blend-multiply opacity-90 transition-all duration-200 hover:grayscale-0 hover:brightness-50 hover:contrast-125"
+                                style={{ backgroundImage: `url('${card.src}')` }}
+                            />
+                            <h6 className="uppercase text-xs tracking-wide mt-2 opacity-60 transition-colors duration-200 group-hover:opacity-90 text-[#777]">
                                 {card.title}
-                            </p>
+                            </h6>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
-        </div>
+        </section>
     );
 }
