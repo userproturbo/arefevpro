@@ -1,9 +1,9 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const cookieStore = await cookies(); // Next.js 16 — cookies() is async
     const token = cookieStore.get("token")?.value;

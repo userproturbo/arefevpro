@@ -1,12 +1,13 @@
 "use client";
 
+import { FormEvent } from "react";
 import { useState } from "react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  async function handleLogin(e: any) {
+  async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     const res = await fetch("/api/auth/login", {

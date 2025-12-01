@@ -1,26 +1,49 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/* eslint-disable @next/next/no-img-element */
+import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
+type PostType = "photo" | "video" | "text" | "music";
+
+interface PostComment {
+  id: number;
+  authorName: string;
+  authorEmail?: string | null;
+  message: string;
+  createdAt: string;
+}
+
+interface Post {
+  id: number;
+  title?: string | null;
+  type: PostType;
+  content?: string | null;
+  mediaUrl?: string | null;
+  comments: PostComment[];
+  _count: { likes: number };
+}
+
 export default function PostPage() {
-  const { id } = useParams();
-  const [post, setPost] = useState<any>(null);
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
+  const [post, setPost] = useState<Post | null>(null);
   const [comment, setComment] = useState("");
   const [name, setName] = useState("");
 
   useEffect(() => {
     async function load() {
+      if (!id) return;
       const res = await fetch(`/api/posts/${id}`);
       const data = await res.json();
-      setPost(data.post);
+      setPost((data.post || null) as Post | null);
     }
     load();
   }, [id]);
 
   if (!post) return <p className="text-center p-6">Загрузка...</p>;
 
-  async function sendComment(e: any) {
+  async function sendComment(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     const res = await fetch(`/api/posts/${id}/comment`, {
@@ -36,7 +59,7 @@ export default function PostPage() {
       setComment("");
       setName("");
       const updated = await fetch(`/api/posts/${id}`).then((r) => r.json());
-      setPost(updated.post);
+      setPost((updated.post || null) as Post | null);
     } else {
       alert("Ошибка при отправке комментария");
     }
@@ -45,7 +68,7 @@ export default function PostPage() {
   async function likePost() {
     await fetch(`/api/posts/${id}/like`, { method: "POST" });
     const updated = await fetch(`/api/posts/${id}`).then((r) => r.json());
-    setPost(updated.post);
+    setPost((updated.post || null) as Post | null);
   }
 
   return (
@@ -54,7 +77,7 @@ export default function PostPage() {
 
       {/* --- Фото --- */}
       {post.type === "photo" && post.mediaUrl && (
-        <img src={post.mediaUrl} className="rounded-xl w-full" />
+        <img src={post.mediaUrl} alt={post.title ?? "Фото"} className="rounded-xl w-full" />
       )}
 
       {/* --- Видео --- */}
@@ -100,7 +123,7 @@ export default function PostPage() {
           <p className="text-gray-400">Комментариев пока нет.</p>
         )}
 
-        {post.comments.map((c: any) => (
+        {post.comments.map((c: PostComment) => (
           <div
             key={c.id}
             className="bg-gray-900 border border-gray-700 p-3 rounded-xl"

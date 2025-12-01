@@ -14,7 +14,7 @@ export default function Navbar() {
 
         // только твой аккаунт видит navbar
         setIsAuthor(data?.user?.id === 1);
-      } catch (err) {
+      } catch {
         setIsAuthor(false);
       }
     }

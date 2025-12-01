@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from "react";
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -11,8 +18,8 @@ export default function ProfilePage() {
       try {
         const res = await fetch("/api/me", { cache: "no-store" });
         const data = await res.json();
-        setUser(data.user ?? null);
-      } catch (error) {
+        setUser((data.user || null) as User | null);
+      } catch {
         setUser(null);
       } finally {
         setLoading(false);

@@ -1,4 +1,4 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +9,7 @@ interface JwtPayload {
   exp: number;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Next.js 16 — cookies() async!
     const cookieStore = await cookies();

@@ -1,5 +1,6 @@
 "use client";
 
+import { FormEvent } from "react";
 import { useState } from "react";
 
 export default function CreatePage() {
@@ -8,7 +9,7 @@ export default function CreatePage() {
   const [content, setContent] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
 
-  async function createPost(e: any) {
+  async function createPost(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     const res = await fetch("/api/posts/create", {
