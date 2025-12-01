@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
-      message: "logged_in",
+      success: true,
       user: {
         id: user.id,
         email: user.email,

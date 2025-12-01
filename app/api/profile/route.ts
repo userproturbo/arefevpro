@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
-
-interface JwtPayload {
-  id: number;
-  email: string;
-  exp: number;
-}
+import { verifyToken } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -22,7 +16,14 @@ export async function GET() {
       );
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    const decoded = verifyToken(token);
+
+    if (!decoded) {
+      return NextResponse.json(
+        { error: "Неверный или истёкший токен" },
+        { status: 401 }
+      );
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
@@ -45,8 +46,8 @@ export async function GET() {
   } catch (error) {
     console.error("Profile error:", error);
     return NextResponse.json(
-      { error: "Неверный или истёкший токен" },
-      { status: 401 }
+      { error: "Ошибка сервера" },
+      { status: 500 }
     );
   }
 }
