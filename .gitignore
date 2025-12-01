@@ -23,6 +23,11 @@
 # misc
 .DS_Store
 *.pem
+*.tmp
+.cursorignore
+.idea/
+test-codex.txt
+test2.txt
 
 # debug
 npm-debug.log*
