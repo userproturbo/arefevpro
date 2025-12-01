@@ -1,47 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
-  const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    async function fetchUser() {
+    async function loadUser() {
       try {
-        const res = await fetch("/api/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          router.push("/login");
-          return;
-        }
-
+        const res = await fetch("/api/me", { cache: "no-store" });
         const data = await res.json();
-        setUser(data.user);
+        setUser(data.user ?? null);
       } catch (error) {
-        router.push("/login");
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
     }
 
-    fetchUser();
+    loadUser();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black text-white">
+        <p className="text-xl">Загрузка...</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black text-white">
-        <p className="text-xl">Загрузка...</p>
+        <p className="text-xl">Вы не авторизованы</p>
       </div>
     );
   }
@@ -59,8 +51,7 @@ export default function ProfilePage() {
       <button
         className="mt-8 p-3 bg-red-600 hover:bg-red-700 rounded"
         onClick={() => {
-          localStorage.removeItem("token");
-          router.push("/login");
+          window.location.href = "/login";
         }}
       >
         Выйти
