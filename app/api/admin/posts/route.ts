@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from "next/server";
+import { PostType } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { generateUniqueSlug } from "@/lib/slug";
+
+export const dynamic = "force-dynamic";
+
+function resolveType(rawType: unknown): PostType | null {
+  const normalized =
+    typeof rawType === "string" ? (rawType.toUpperCase() as PostType) : null;
+  if (!normalized || !Object.values(PostType).includes(normalized)) {
+    return null;
+  }
+  return normalized;
+}
+
+function normalizeString(value: unknown) {
+  const str = typeof value === "string" ? value.trim() : "";
+  return str.length ? str : null;
+}
+
+export async function POST(req: NextRequest) {
+  const authUser = await getCurrentUser();
+  if (!authUser) {
+    return NextResponse.json(
+      { error: "Требуется авторизация" },
+      { status: 401 }
+    );
+  }
+  if (authUser.role !== "ADMIN") {
+    return NextResponse.json({ error: "Нет прав" }, { status: 403 });
+  }
+
+  try {
+    const body = await req.json();
+    const type = resolveType(body.type);
+    if (!type) {
+      return NextResponse.json(
+        { error: "Неверный тип поста" },
+        { status: 400 }
+      );
+    }
+
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    if (!title) {
+      return NextResponse.json(
+        { error: "Заголовок обязателен" },
+        { status: 400 }
+      );
+    }
+
+    const requestedSlug = typeof body.slug === "string" ? body.slug : "";
+    const slug = await generateUniqueSlug(title, requestedSlug);
+    const text = normalizeString(body.text);
+    const coverImage = normalizeString(body.coverImage);
+    const mediaUrl = normalizeString(body.mediaUrl);
+    const isPublished =
+      typeof body.isPublished === "boolean" ? body.isPublished : false;
+
+    const post = await prisma.post.create({
+      data: {
+        slug,
+        title,
+        type,
+        text,
+        coverImage,
+        mediaUrl,
+        isPublished,
+      },
+    });
+
+    return NextResponse.json({ post }, { status: 201 });
+  } catch (error) {
+    console.error("Admin create post error:", error);
+    return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
+  }
+}

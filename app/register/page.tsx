@@ -1,33 +1,39 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const [nickname, setNickname] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleRegister(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ nickname, login, password }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
       setError(data.error || "Ошибка регистрации");
+      setLoading(false);
       return;
     }
 
-    router.push("/login");
+    const next = searchParams.get("next");
+    router.push(next || "/");
+    setLoading(false);
   }
 
   return (
@@ -42,16 +48,17 @@ export default function RegisterPage() {
 
         <input
           className="p-3 rounded bg-zinc-800"
-          placeholder="Ваше имя"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Никнейм"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
         />
 
         <input
           className="p-3 rounded bg-zinc-800"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Логин"
+          value={login}
+          onChange={(e) => setLogin(e.target.value)}
+          autoComplete="username"
         />
 
         <input
@@ -60,13 +67,15 @@ export default function RegisterPage() {
           placeholder="Пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
         />
 
         <button
           type="submit"
-          className="p-3 rounded bg-purple-600 hover:bg-purple-700 transition"
+          disabled={loading}
+          className="p-3 rounded bg-purple-600 hover:bg-purple-700 transition disabled:opacity-60"
         >
-          Зарегистрироваться
+          {loading ? "Регистрируем..." : "Зарегистрироваться"}
         </button>
 
         <p className="text-sm text-center text-zinc-400">

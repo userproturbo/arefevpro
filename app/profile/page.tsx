@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 
 interface User {
   id: number;
-  name: string;
-  email: string;
+  login: string;
+  nickname: string;
+  role: "ADMIN" | "USER";
   createdAt: string;
 }
 
@@ -50,14 +51,16 @@ export default function ProfilePage() {
       <h1 className="text-4xl font-bold mb-6">Профиль</h1>
 
       <div className="bg-zinc-900 p-8 rounded-xl shadow-xl w-full max-w-md text-lg">
-        <p><span className="text-zinc-400">Имя:</span> {user.name}</p>
-        <p><span className="text-zinc-400">Email:</span> {user.email}</p>
+        <p><span className="text-zinc-400">Логин:</span> {user.login}</p>
+        <p><span className="text-zinc-400">Ник:</span> {user.nickname || user.login}</p>
+        <p><span className="text-zinc-400">Роль:</span> {user.role}</p>
         <p><span className="text-zinc-400">ID:</span> {user.id}</p>
       </div>
 
       <button
         className="mt-8 p-3 bg-red-600 hover:bg-red-700 rounded"
-        onClick={() => {
+        onClick={async () => {
+          await fetch("/api/auth/logout", { method: "POST" });
           window.location.href = "/login";
         }}
       >

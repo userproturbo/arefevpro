@@ -1,30 +1,28 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { UserRole } from "@prisma/client";
+import { setAuthCookie, signToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    // Регистрация разрешена, только если в .env ALLOW_REGISTRATION=true
-    if (process.env.ALLOW_REGISTRATION !== "true") {
-      return NextResponse.json(
-        { error: "Регистрация отключена" },
-        { status: 403 }
-      );
-    }
+    const { login, password, nickname, email } = await req.json();
+    const normalizedLogin = String(login || "").trim();
+    const normalizedNickname = String(nickname || "").trim();
+    const normalizedEmail = email ? String(email).trim() : null;
+    const passwordValue = String(password || "");
 
-    const { name, email, password } = await req.json();
-
-    if (!name || !email || !password) {
+    if (!normalizedLogin || !passwordValue) {
       return NextResponse.json(
-        { error: "Все поля обязательны" },
+        { error: "Логин и пароль обязательны" },
         { status: 400 }
       );
     }
 
     const existing = await prisma.user.findUnique({
-      where: { email },
+      where: { login: normalizedLogin },
     });
 
     if (existing) {
@@ -34,17 +32,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(passwordValue, 10);
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
-        password: hashedPassword,
+        login: normalizedLogin,
+        nickname: normalizedNickname || normalizedLogin,
+        email: normalizedEmail,
+        passwordHash: hashedPassword,
+        role: UserRole.USER,
       },
+      select: { id: true, nickname: true, role: true, login: true },
     });
 
-    return NextResponse.json({ success: true, user }, { status: 201 });
+    const payload = {
+      id: user.id,
+      login: user.login,
+      nickname: user.nickname,
+      role: user.role,
+    };
+    const token = signToken(payload);
+    await setAuthCookie(payload);
+
+    return NextResponse.json({ success: true, user, token }, { status: 201 });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

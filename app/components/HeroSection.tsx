@@ -3,34 +3,26 @@
 import { motion } from "framer-motion";
 
 const cards = [
-    {
-        key: "about",
-        title: "Обо мне",
-        description: "Кто я, откуда и почему это всё — CrazyLife.",
-        href: "#about",
-        image: null, // потом подставим реальное фото
-    },
-    {
-        key: "photo",
-        title: "Фото",
-        description: "Снимки из путешествий, улиц и повседневности.",
-        href: "#photo",
-        image: null,
-    },
-    {
-        key: "video",
-        title: "Видео",
-        description: "Короткие ролики, зарисовки и моменты жизни.",
-        href: "#video",
-        image: null,
-    },
-    {
-        key: "music",
-        title: "Музыка",
-        description: "Треки, которые сопровождают мой день.",
-        href: "#music",
-        image: null,
-    },
+  {
+    id: "about",
+    title: "Обо мне",
+  },
+  {
+    id: "photos",
+    title: "Фото",
+  },
+  {
+    id: "videos",
+    title: "Видео",
+  },
+  {
+    id: "music",
+    title: "Музыка",
+  },
+  {
+    id: "blog",
+    title: "Блог",
+  },
 ];
 
 export default function HeroSection() {
@@ -48,8 +40,8 @@ export default function HeroSection() {
                     className="flex flex-col md:flex-row md:items-start md:justify-between gap-10 md:gap-16 mb-14 md:mb-16"
                 >
                     <div className="flex-1">
-                        <h1 className="text-5xl sm:text-6xl lg:text-[80px] font-semibold tracking-[0.12em] leading-none uppercase text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.15)]">
-                            CrazyLife
+                        <h1 className="font-wiggly text-[120px] leading-none text-white">
+                            CRAZYLIFE
                         </h1>
                     </div>
 
@@ -77,12 +69,12 @@ export default function HeroSection() {
                             },
                         },
                     }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6"
                 >
                     {cards.map((card) => (
                         <motion.a
-                            key={card.key}
-                            href={card.href}
+                            key={card.id}
+                            href={`#${card.id}`}
                             variants={{
                                 hidden: { opacity: 0, y: 25 },
                                 visible: { opacity: 1, y: 0 },
@@ -95,15 +87,6 @@ export default function HeroSection() {
                             <div className="relative h-40 sm:h-44 overflow-hidden">
                                 <div
                                     className="absolute inset-0 bg-gradient-to-br from-zinc-300 via-zinc-500 to-zinc-800 group-hover:scale-105 transition-transform duration-500"
-                                    style={
-                                        card.image
-                                            ? {
-                                                backgroundImage: `url(${card.image})`,
-                                                backgroundSize: "cover",
-                                                backgroundPosition: "center",
-                                            }
-                                            : undefined
-                                    }
                                 />
                                 {/* Маска / шум */}
                                 <div className="absolute inset-0 mix-blend-soft-light opacity-50 bg-[radial-gradient(circle_at_0_0,_rgba(0,0,0,0.6)_0,_transparent_55%),radial-gradient(circle_at_100%_100%,_rgba(0,0,0,0.7)_0,_transparent_55%)]" />
@@ -111,17 +94,9 @@ export default function HeroSection() {
 
                             {/* Подпись и текст */}
                             <div className="px-4 sm:px-5 py-4 sm:py-5">
-                                <div className="flex items-center justify-between gap-2 mb-1">
-                                    <h2 className="text-base sm:text-lg font-semibold text-white">
-                                        {card.title}
-                                    </h2>
-                                    <span className="text-[10px] uppercase tracking-[0.16em] text-gray-400 group-hover:text-gray-200 transition-colors">
-                    раздел
-                  </span>
-                                </div>
-                                <p className="text-xs sm:text-sm text-gray-400">
-                                    {card.description}
-                                </p>
+                                <h2 className="text-base sm:text-lg font-semibold text-white">
+                                    {card.title}
+                                </h2>
                             </div>
 
                             {/* Нижняя полоска, как «progress / underline» */}

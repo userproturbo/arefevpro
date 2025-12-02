@@ -1,38 +1,23 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Next.js 16 — cookies() async!
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Не авторизован" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "Неверный или истёкший токен" },
-        { status: 401 }
-      );
+    const authUser = await getCurrentUser();
+    if (!authUser) {
+      return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
+      where: { id: authUser.id },
       select: {
         id: true,
-        email: true,
-        name: true,
+        login: true,
+        nickname: true,
+        role: true,
         createdAt: true,
       },
     });

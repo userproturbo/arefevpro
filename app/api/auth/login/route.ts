@@ -1,66 +1,56 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
+import { setAuthCookie, signToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { login, password } = await req.json();
+    const normalizedLogin = String(login || "").trim();
+    const passwordValue = String(password || "");
 
-    if (!email || !password) {
+    if (!normalizedLogin || !passwordValue) {
       return NextResponse.json(
-        { error: "Email и пароль обязательны" },
+        { error: "Логин и пароль обязательны" },
         { status: 400 }
       );
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { login: normalizedLogin },
     });
 
-    if (!user) {
+    if (!user || !user.passwordHash) {
       return NextResponse.json(
-        { error: "Неверный email или пароль" },
-        { status: 400 }
+        { error: "Неверные учётные данные" },
+        { status: 401 }
       );
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    const isValid = await bcrypt.compare(passwordValue, user.passwordHash);
 
     if (!isValid) {
       return NextResponse.json(
-        { error: "Неверный email или пароль" },
-        { status: 400 }
+        { error: "Неверные учётные данные" },
+        { status: 401 }
       );
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: "7d" }
-    );
+    const payload = {
+      id: user.id,
+      login: user.login,
+      nickname: user.nickname,
+      role: user.role,
+    };
 
-    // Next.js 16 — cookies() is async
-    const cookieStore = await cookies();
-
-    cookieStore.set("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
+    const token = signToken(payload);
+    await setAuthCookie(payload);
 
     return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
+      user: { id: user.id, login: user.login, nickname: user.nickname, role: user.role },
+      token,
     });
   } catch (error) {
     console.error("Login error:", error);

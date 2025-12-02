@@ -1,11 +1,11 @@
 "use client";
 
 const cards = [
-    { title: "ABOUT", src: "/img/face1.gif" },
-    { title: "THE IMPACT", src: "/img/face2.gif" },
-    { title: "STATISTICS", src: "/img/face3.gif" },
-    { title: "THE PEOPLE", src: "/img/face4.gif" },
-    { title: "SUPPORT", src: "/img/face5.gif" },
+    { title: "ОБО МНЕ", src: "/img/face1.gif" },
+    { title: "ФОТО", src: "/img/face2.gif" },
+    { title: "ВИДЕО", src: "/img/face3.gif" },
+    { title: "МУЗЫКА", src: "/img/face4.gif" },
+    { title: "СТАТЬИ", src: "/img/face5.gif" },
 ];
 
 export default function FacesSection() {

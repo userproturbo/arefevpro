@@ -1,49 +1,30 @@
-"use client";
+import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import LoginForm from "./LoginForm";
 
-import { FormEvent } from "react";
-import { useState } from "react";
-
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  async function handleLogin(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (res.ok) {
-      window.location.href = "/create";
-    } else {
-      alert("Неверный email или пароль");
-    }
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const user = await getCurrentUser();
+  if (user?.role === "ADMIN") {
+    redirect("/admin");
   }
 
+  const params = await searchParams;
+  const next = params?.next;
+
   return (
-    <div className="max-w-sm mx-auto space-y-6">
-      <h1 className="text-xl font-bold">Вход</h1>
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.02] p-8 shadow-2xl">
+        <h1 className="text-3xl font-bold mb-6">Вход для автора</h1>
+        <p className="text-sm text-white/60 mb-4">
+          Укажи логин и пароль, чтобы попасть в админку.
+        </p>
 
-      <form className="space-y-4" onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full p-2 bg-gray-900 border border-gray-700"
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Пароль"
-          className="w-full p-2 bg-gray-900 border border-gray-700"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button className="w-full bg-white text-black p-2 font-semibold">
-          Войти
-        </button>
-      </form>
+        <LoginForm next={next} />
+      </div>
     </div>
   );
 }
