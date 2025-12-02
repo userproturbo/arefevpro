@@ -3,11 +3,28 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getTypeLabel } from "@/lib/adminPostTypes";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import LikeButton from "../../components/buttons/LikeButton";
 import CommentsPanel from "../../components/comments/CommentsPanel";
 import { PostType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+function getBackHref(type: PostType) {
+  switch (type) {
+    case PostType.ABOUT:
+      return "/about";
+    case PostType.PHOTO:
+      return "/photos";
+    case PostType.VIDEO:
+      return "/videos";
+    case PostType.MUSIC:
+      return "/music";
+    case PostType.BLOG:
+    default:
+      return "/blog";
+  }
+}
 
 export default async function PostPage({
   params,
@@ -73,6 +90,15 @@ export default async function PostPage({
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-10 space-y-8">
+      <div>
+        <Link
+          href={getBackHref(post.type)}
+          className="text-sm text-white/60 hover:text-white transition"
+        >
+          ← Назад к разделу
+        </Link>
+      </div>
+
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.14em] text-white/60">
           {typeLabel}
