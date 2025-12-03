@@ -56,3 +56,11 @@ export async function getCurrentUser() {
 
   return user;
 }
+
+export async function requireAdmin() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== UserRole.ADMIN) {
+    return null;
+  }
+  return user;
+}

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { ADMIN_POST_TYPES, getAdminType, getTypeLabel } from "@/lib/adminPostTypes";
 import PostForm from "../PostForm";
@@ -24,6 +25,12 @@ export default async function NewPostPage({
 
   return (
     <main className="max-w-3xl mx-auto space-y-6">
+      <Link
+        href={`/admin/posts?type=${config.key}`}
+        className="text-sm text-white/60 hover:text-white inline-flex items-center gap-2"
+      >
+        ← Назад к списку постов
+      </Link>
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-white/60">
           {getTypeLabel(config.key)}

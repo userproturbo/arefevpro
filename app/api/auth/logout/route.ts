@@ -5,12 +5,14 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   const res = NextResponse.json({ success: true });
+
   res.cookies.set(AUTH_COOKIE, "", {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 0,
     path: "/",
+    maxAge: 0,
   });
+
   return res;
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -43,6 +44,12 @@ export default async function EditPostPage({
 
   return (
     <main className="max-w-3xl mx-auto space-y-6">
+      <Link
+        href={`/admin/posts?type=${typeKey}`}
+        className="text-sm text-white/60 hover:text-white inline-flex items-center gap-2"
+      >
+        ← Назад к списку постов
+      </Link>
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-white/60">
           {getTypeLabel(post.type)}

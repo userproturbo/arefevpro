@@ -1,30 +1,15 @@
-/* eslint-disable @next/next/no-img-element */
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getTypeLabel } from "@/lib/adminPostTypes";
+import { getSectionByType } from "@/lib/sections";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import LikeButton from "../../components/buttons/LikeButton";
 import CommentsPanel from "../../components/comments/CommentsPanel";
 import { PostType } from "@prisma/client";
+import PostMedia from "../PostMedia";
 
 export const dynamic = "force-dynamic";
-
-function getBackHref(type: PostType) {
-  switch (type) {
-    case PostType.ABOUT:
-      return "/about";
-    case PostType.PHOTO:
-      return "/photos";
-    case PostType.VIDEO:
-      return "/videos";
-    case PostType.MUSIC:
-      return "/music";
-    case PostType.BLOG:
-    default:
-      return "/blog";
-  }
-}
 
 export default async function PostPage({
   params,
@@ -36,7 +21,16 @@ export default async function PostPage({
 
   const post = await prisma.post.findUnique({
     where: { slug },
-    include: {
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      type: true,
+      text: true,
+      coverImage: true,
+      mediaUrl: true,
+      isPublished: true,
+      createdAt: true,
       comments: {
         where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
@@ -63,13 +57,16 @@ export default async function PostPage({
   }
 
   const hasText = !!post.text?.trim();
-  const hasPhoto = post.type === PostType.PHOTO && (post.mediaUrl || post.coverImage);
-  const hasVideo = post.type === PostType.VIDEO && !!post.mediaUrl;
-  const hasMusic = post.type === PostType.MUSIC && !!post.mediaUrl;
-  const hasCoverFallback =
-    !!post.coverImage && post.type !== PostType.PHOTO && !hasVideo && !hasMusic;
-  const hasAnyMedia = hasPhoto || hasVideo || hasMusic || hasCoverFallback;
+  const hasAnyMedia =
+    (post.type === PostType.PHOTO && !!(post.mediaUrl || post.coverImage)) ||
+    (post.type === PostType.VIDEO && !!post.mediaUrl) ||
+    (post.type === PostType.MUSIC && !!post.mediaUrl);
   const typeLabel = getTypeLabel(post.type);
+  const sectionInfo = getSectionByType(post.type);
+  const backHref = sectionInfo?.href ?? "/";
+  const backLabel = sectionInfo
+    ? `← К разделу "${sectionInfo.title}"`
+    : "← На главную";
 
   const liked = user
     ? !!(await prisma.like.findUnique({
@@ -92,10 +89,10 @@ export default async function PostPage({
     <main className="max-w-4xl mx-auto px-4 py-10 space-y-8">
       <div>
         <Link
-          href={getBackHref(post.type)}
+          href={backHref}
           className="text-sm text-white/60 hover:text-white transition"
         >
-          ← Назад к разделу
+          {backLabel}
         </Link>
       </div>
 
@@ -112,35 +109,12 @@ export default async function PostPage({
       </header>
 
       <article className="space-y-4 text-white/90">
-        {hasPhoto && (
-          <img
-            src={post.mediaUrl || post.coverImage || ""}
-            alt={post.title}
-            className="w-full rounded-xl border border-white/10"
-          />
-        )}
-
-        {hasVideo && (
-          <video
-            controls
-            className="w-full rounded-xl border border-white/10"
-            src={post.mediaUrl}
-          />
-        )}
-
-        {hasMusic && (
-          <audio controls className="w-full">
-            <source src={post.mediaUrl} />
-          </audio>
-        )}
-
-        {hasCoverFallback && (
-          <img
-            src={post.coverImage || ""}
-            alt={post.title}
-            className="w-full rounded-xl border border-white/10"
-          />
-        )}
+        <PostMedia
+          type={post.type}
+          mediaUrl={post.mediaUrl}
+          coverImage={post.coverImage}
+          title={post.title}
+        />
 
         {hasText && (
           <p className="whitespace-pre-wrap leading-relaxed">{post.text}</p>

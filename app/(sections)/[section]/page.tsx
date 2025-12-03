@@ -1,19 +1,7 @@
-import { prisma } from "@/lib/prisma";
-import { PostType } from "@prisma/client";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-
-const sections: Record<
-  string,
-  { title: string; type: PostType }
-> = {
-  about: { title: "Обо мне", type: PostType.ABOUT },
-  photo: { title: "Фото", type: PostType.PHOTO },
-  photos: { title: "Фото", type: PostType.PHOTO },
-  video: { title: "Видео", type: PostType.VIDEO },
-  videos: { title: "Видео", type: PostType.VIDEO },
-  music: { title: "Музыка", type: PostType.MUSIC },
-  blog: { title: "Блог", type: PostType.BLOG },
-};
+import { prisma } from "@/lib/prisma";
+import { getSectionConfig } from "@/lib/sections";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +11,7 @@ export default async function SectionPage({
   params: Promise<{ section: string }>;
 }) {
   const { section } = await params;
-  const config = sections[section];
+  const config = getSectionConfig(section);
 
   if (!config) {
     return notFound();
@@ -43,9 +31,17 @@ export default async function SectionPage({
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-10 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">{config.title}</h1>
-        <p className="text-white/60 text-sm">Список опубликованных постов</p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">{config.title}</h1>
+          <p className="text-white/60 text-sm">Список опубликованных постов</p>
+        </div>
+        <Link
+          href="/"
+          className="text-sm text-white/70 hover:text-white transition"
+        >
+          ← На главную
+        </Link>
       </div>
 
       {posts.length === 0 && (
@@ -66,18 +62,18 @@ export default async function SectionPage({
             ) : (
               <div className="h-16 w-24 rounded-lg border border-white/10 bg-white/5" />
             )}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="text-lg font-semibold">{post.title}</div>
               <div className="text-sm text-white/60">
                 {new Date(post.createdAt).toLocaleDateString("ru-RU")}
               </div>
             </div>
-            <a
+            <Link
               href={`/post/${post.slug}`}
               className="text-sm underline underline-offset-4"
             >
               Открыть
-            </a>
+            </Link>
           </div>
         ))}
       </div>
