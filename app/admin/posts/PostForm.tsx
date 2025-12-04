@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, FormEvent, useMemo } from "react";
+import { useState, FormEvent, useMemo, useRef, ChangeEvent } from "react";
 import { ADMIN_POST_TYPES, AdminPostTypeKey } from "@/lib/adminPostTypes";
 
 type FormValues = {
@@ -18,6 +18,61 @@ type Props = {
   postId?: number;
   initialValues?: FormValues;
 };
+
+type FileUploadButtonProps = {
+  label: string;
+  accept: string;
+  disabled?: boolean;
+  onSelect: (file: File) => void;
+};
+
+function FileUploadButton({ label, accept, disabled, onSelect }: FileUploadButtonProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState("");
+
+  const handleClick = () => {
+    if (disabled) return;
+    inputRef.current?.click();
+  };
+
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      onSelect(file);
+      event.target.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-2 text-sm text-white/70">
+      <label className="block">{label}</label>
+      <div className="relative inline-block">
+        <input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          onChange={handleChange}
+          disabled={disabled}
+          className="absolute left-0 top-0 h-0 w-0 opacity-0"
+          tabIndex={-1}
+          aria-hidden
+        />
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={disabled}
+          className="flex h-11 items-center rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {fileName ? "Файл выбран" : "Выберите файл"}
+        </button>
+      </div>
+      {fileName && (
+        <p className="text-xs text-white/60">Выбран файл: {fileName}</p>
+      )}
+    </div>
+  );
+}
 
 export default function PostForm({
   mode,
@@ -244,19 +299,12 @@ export default function PostForm({
           placeholder="https://... (превью в списке)"
           disabled={loading || deleting || uploading}
         />
-        <div className="space-y-2 text-sm text-white/70">
-          <label className="block">Или загрузите файл</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const newFile = e.target.files?.[0];
-              if (newFile) uploadFile("coverImage", newFile);
-            }}
-            disabled={loading || deleting || uploading}
-            className="text-sm text-white/80"
-          />
-        </div>
+        <FileUploadButton
+          label="Или загрузите файл"
+          accept="image/*"
+          disabled={loading || deleting || uploading}
+          onSelect={(file) => uploadFile("coverImage", file)}
+        />
       </div>
 
       {showMedia && (
@@ -275,22 +323,15 @@ export default function PostForm({
             placeholder={mediaPlaceholder[typeKey]}
             disabled={loading || deleting || uploading}
           />
-          <div className="space-y-2 text-sm text-white/70">
-            <label className="block">Или загрузите файл</label>
-            <input
-              type="file"
-              accept={acceptByType}
-              onChange={(e) => {
-                const newFile = e.target.files?.[0];
-                if (newFile) uploadFile("mediaUrl", newFile);
-              }}
-              disabled={loading || deleting || uploading}
-              className="text-sm text-white/80"
-            />
-            <p className="text-xs text-white/50">
-              Можно указать URL или загрузить файл. Если загрузите, он будет использован вместо URL.
-            </p>
-          </div>
+          <FileUploadButton
+            label="Или загрузите файл"
+            accept={acceptByType}
+            disabled={loading || deleting || uploading}
+            onSelect={(file) => uploadFile("mediaUrl", file)}
+          />
+          <p className="text-xs text-white/50">
+            Можно указать URL или загрузить файл. Если загрузите, он будет использован вместо URL.
+          </p>
         </div>
       )}
 
