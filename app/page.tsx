@@ -1,12 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
 
 const sections = [
-  { title: "Обо мне", label: "ОБО МНЕ", href: "/about", image: "/img/face1.gif" },
-  { title: "Фото", label: "ФОТО", href: "/photos", image: "/img/face2.gif" },
-  { title: "Видео", label: "ВИДЕО", href: "/videos", image: "/img/face3.gif" },
-  { title: "Музыка", label: "МУЗЫКА", href: "/music", image: "/img/face4.gif" },
-  { title: "Блог", label: "БЛОГ", href: "/blog", image: "/img/face5.gif" },
+  { title: "Обо мне", label: "ОБО МНЕ", href: "/about", accent: "from-sky-400/25 via-white/5 to-sky-900/30" },
+  { title: "Фото", label: "ФОТО", href: "/photos", accent: "from-amber-400/25 via-white/5 to-orange-900/30" },
+  { title: "Видео", label: "ВИДЕО", href: "/videos", accent: "from-indigo-400/25 via-white/5 to-indigo-900/30" },
+  { title: "Музыка", label: "МУЗЫКА", href: "/music", accent: "from-emerald-400/25 via-white/5 to-emerald-900/30" },
+  { title: "Блог", label: "БЛОГ", href: "/blog", accent: "from-pink-400/25 via-white/5 to-pink-900/30" },
 ];
 
 export default function HomePage() {
@@ -19,7 +18,7 @@ export default function HomePage() {
         </p>
       </div>
       <div className="mt-[60px] flex items-start justify-center gap-5">
-        {sections.map((section, index) => (
+        {sections.map((section) => (
           <Link
             key={section.href}
             href={section.href}
@@ -27,19 +26,20 @@ export default function HomePage() {
             aria-label={`Перейти в раздел ${section.title}`}
             style={{ width: 260 }}
           >
-            <div className="relative aspect-[3/5] overflow-hidden bg-black">
-              <Image
-                src={section.image}
-                alt={section.title}
-                fill
-                priority={index === 0}
-                sizes="(min-width: 1280px) 260px, (min-width: 1024px) 240px, (min-width: 768px) 220px, 50vw"
-                className="absolute inset-0 h-full w-full object-cover opacity-80 contrast-[1.6] brightness-[1.1] saturate-0 transition duration-300 ease-out group-hover:scale-[1.02] group-hover:opacity-100"
-                style={{ imageRendering: "pixelated" }}
+            <div className="relative aspect-[3/5] overflow-hidden bg-[#0b0d14]">
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${section.accent} transition duration-500 group-hover:scale-105`}
               />
-              <div className="pointer-events-none absolute inset-0 bg-black/25 mix-blend-multiply" />
-              <div className="absolute inset-x-0 bottom-3 left-1/2 z-[1] w-full -translate-x-1/2 px-3 text-center text-base font-mono font-semibold uppercase tracking-[0.12em] text-white">
-                {section.label}
+              <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.14),transparent_38%),radial-gradient(circle_at_80%_0,rgba(255,160,200,0.14),transparent_34%),radial-gradient(circle_at_50%_95%,rgba(56,189,248,0.16),transparent_34%)] transition duration-500 group-hover:opacity-80" />
+              <div className="absolute inset-0 border border-white/10" />
+              <div className="relative flex h-full flex-col justify-between p-4">
+                <div className="text-xs uppercase tracking-[0.14em] text-white/50">Раздел</div>
+                <div className="space-y-2">
+                  <p className="text-2xl font-semibold leading-tight text-white">{section.title}</p>
+                  <p className="text-sm font-mono uppercase tracking-[0.18em] text-white/70">
+                    {section.label}
+                  </p>
+                </div>
               </div>
             </div>
           </Link>
