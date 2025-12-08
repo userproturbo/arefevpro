@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
 @font-face {
   font-family: "Wiggly";
   src: url("/fonts/wiggly/UntitledBlackRegular.otf") format("opentype");
@@ -49,6 +60,10 @@ body {
 
 /* ===== CRAZYLIFE LOGO PREVIEW STYLES ===== */
 
+.card {
+  flex-shrink: 0;
+}
+
 .paper-bg {
     background-color: #f6f3ea;
     background-image:
@@ -63,4 +78,112 @@ body {
             radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.06) 0, transparent 55%),
             radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.04) 0, transparent 55%),
             radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.03) 0, transparent 60%);
+}
+
+/* ===== Meetshow-like Main Section ===== */
+.texture1 {
+  background-image: url("/img/texture1.jpg");
+}
+
+.main-section {
+  background-image: url("/img/texture1.jpg");
+  background-size: cover;
+  background-position: 0 0;
+  display: block;
+  padding-top: 8vw;
+  padding-bottom: 8vw;
+  color: black;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+.main-section .main-section__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 6vw, 96px);
+}
+
+.main-section .top-block {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: clamp(24px, 6vw, 120px);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.main-section .logo {
+  width: auto;
+  max-width: min(48vw, 600px);
+}
+
+.main-section .top-text {
+  font-size: 18px;
+  line-height: 1.4;
+  max-width: 460px;
+  color: black;
+}
+
+.main-section .faces-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(20px, 3vw, 36px);
+  width: 100%;
+  margin-top: clamp(32px, 6vw, 80px);
+}
+
+.main-section .face-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.4;
+  transition: opacity 1s;
+  flex: 1 1 220px;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.main-section .face-item:hover {
+  opacity: 1;
+}
+
+.main-section .face-image {
+  width: 100%;
+  min-width: 220px;
+  max-width: 320px;
+  aspect-ratio: 2 / 3;
+  max-height: 520px;
+  background-size: cover;
+  background-position: center;
+  display: block;
+  flex-shrink: 0;
+  filter: grayscale(100%) contrast(1.1);
+}
+
+.main-section .face-about {
+  background-image: url("/img/face1.gif");
+}
+
+.main-section .face-impact {
+  background-image: url("/img/face2.gif");
+}
+
+.main-section .face-statistics {
+  background-image: url("/img/face3.gif");
+}
+
+.main-section .face-people {
+  background-image: url("/img/face4.gif");
+}
+
+.main-section .face-support {
+  background-image: url("/img/face5.gif");
+}
+
+.main-section h6 {
+  margin-top: 10px;
+  font-size: 20px;
+  text-transform: uppercase;
+  color: black;
 }
