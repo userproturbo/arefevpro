@@ -1,16 +1,19 @@
 import PageContainer from "../components/PageContainer";
+import ProjectsGrid from "../components/ProjectsGrid";
 
 export default function ProjectsPage() {
   return (
     <PageContainer>
-      <h1 className="mb-6 text-4xl font-bold">Projects</h1>
-      <p className="mb-8 text-white/70 leading-relaxed">
-        Здесь появятся избранные проекты. Пока что раздел наполнен заглушками, но сетка уже готова
-        для будущих работ.
-      </p>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="h-48 rounded-xl border border-white/10 bg-white/[0.04]" />
-        <div className="h-48 rounded-xl border border-white/10 bg-white/[0.04]" />
+      <div className="space-y-4">
+        <h1 className="text-4xl font-bold">Projects</h1>
+        <p className="text-white/70 leading-relaxed">
+          Curated works and experiments will live here soon. For now — a clean grid of placeholders
+          to feel the layout and motion.
+        </p>
+      </div>
+
+      <div className="mt-10">
+        <ProjectsGrid />
       </div>
     </PageContainer>
   );
