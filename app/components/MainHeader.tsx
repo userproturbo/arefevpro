@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/projects", label: "My Projects" },
-  { href: "/photo", label: "Photo" },
-  { href: "/video", label: "Video" },
-  { href: "/music", label: "Music" },
-  { href: "/blog", label: "Blog" },
+  { href: "/", label: "HOME" },
+  { href: "/projects", label: "PROJECTS" },
+  { href: "/photo", label: "PHOTO" },
+  { href: "/video", label: "VIDEO" },
+  { href: "/music", label: "MUSIC" },
+  { href: "/blog", label: "BLOG" },
 ];
 
 export default function MainHeader() {
@@ -17,12 +17,9 @@ export default function MainHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-[#04050a]/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          CRAZYLIFE
-        </Link>
+      <div className="mx-auto flex max-w-5xl items-center justify-center px-6 py-5">
         <nav aria-label="Primary">
-          <ul className="flex flex-wrap items-center gap-4 text-sm uppercase tracking-[0.14em] sm:gap-6">
+          <ul className="flex flex-wrap items-center justify-center gap-4 text-sm uppercase tracking-[0.14em] sm:gap-6">
             {links.map(({ href, label }) => {
               const isActive = href === "/" ? pathname === "/" : pathname?.startsWith(href);
               return (
