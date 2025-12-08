@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(120,120,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0,rgba(255,120,200,0.16),transparent_30%),radial-gradient(circle_at_50%_80%,rgba(0,200,180,0.14),transparent_28%)] pointer-events-none" />
           <SidebarNav />
-          <div className="relative min-h-screen ml-48">
+          <div className="relative min-h-screen ml-28">
             <main className="w-full pb-12">{children}</main>
           </div>
         </Providers>
