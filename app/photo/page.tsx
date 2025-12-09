@@ -1,14 +1,12 @@
-import AlbumList from "./AlbumList";
+import AlbumPanel from "./AlbumPanel";
 import Gallery from "./Gallery";
 
 export default function PhotoPage() {
   return (
-    <div className="flex">
-      <div className="w-40 px-6 py-20">
-        <AlbumList />
-      </div>
+    <div className="relative">
+      <AlbumPanel />
 
-      <div className="flex-1 px-6 py-20">
+      <div className="ml-72 px-6 py-20">
         <Gallery />
       </div>
     </div>
