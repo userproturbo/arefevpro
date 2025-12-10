@@ -255,3 +255,24 @@ body {
 .album-item:hover {
   transform: translateX(4px);
 }
+
+.section-panel-enter {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.section-panel-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.5s ease;
+}
+
+.section-panel-exit {
+  opacity: 1;
+}
+
+.section-panel-exit-active {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: all 0.4s ease;
+}
