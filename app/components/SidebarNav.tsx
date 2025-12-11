@@ -14,7 +14,7 @@ export default function SidebarNav() {
   const { openPanel } = usePanel();
 
   return (
-    <aside className="fixed left-0 top-0 flex h-screen w-28 flex-col px-6 py-12">
+    <aside className="fixed left-0 top-0 z-60 flex h-screen w-28 flex-col px-6 py-12">
       <nav aria-label="Primary">
         <ul>
           {items.map(({ type, label }) => (

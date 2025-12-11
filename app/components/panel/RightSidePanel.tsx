@@ -22,7 +22,7 @@ export default function RightSidePanel() {
         <>
           {/* BACKDROP */}
           <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
             onClick={closePanel}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -31,7 +31,7 @@ export default function RightSidePanel() {
 
           {/* RIGHT PANEL */}
           <motion.div
-            className="fixed top-0 left-0 h-full w-1/2 bg-black/80 z-50 p-10 overflow-y-auto"
+            className="fixed top-0 left-0 z-40 h-full w-1/2 bg-black/80 p-10 overflow-y-auto"
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
