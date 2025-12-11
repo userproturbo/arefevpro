@@ -31,10 +31,10 @@ export default function RightSidePanel() {
 
           {/* RIGHT PANEL */}
           <motion.div
-            className="fixed top-0 right-0 h-full w-1/2 bg-black/80 z-50 p-10 overflow-y-auto"
-            initial={{ x: "100%" }}
+            className="fixed top-0 left-0 h-full w-1/2 bg-black/80 z-50 p-10 overflow-y-auto"
+            initial={{ x: "-100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+            exit={{ x: "-100%" }}
             transition={{ type: "tween", duration: 0.4 }}
           >
             <h2 className="text-3xl font-bold mb-6 uppercase">{panelType}</h2>
