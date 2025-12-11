@@ -31,7 +31,20 @@ export default function RightSidePanel() {
 
           {/* RIGHT PANEL */}
           <motion.div
-            className="fixed top-0 left-0 h-full w-1/2 bg-black/80 z-50 p-10 overflow-y-auto"
+            className="
+              fixed 
+              left-14 
+              top-0 
+              h-full 
+              w-1/2 
+              z-50 
+              flex 
+              flex-col 
+              bg-black/60 
+              backdrop-blur-2xl 
+              px-12 
+              py-20
+            "
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
@@ -39,9 +52,12 @@ export default function RightSidePanel() {
           >
             <h2 className="text-3xl font-bold mb-6 uppercase">{panelType}</h2>
 
-            <ul className="space-y-4 text-lg">
+            <ul>
               {panelContent.map((item, index) => (
-                <li key={index} className="hover:opacity-70 cursor-pointer">
+                <li
+                  key={index}
+                  className="text-3xl font-light tracking-wide mb-6 hover:opacity-70 transition-opacity"
+                >
                   {item}
                 </li>
               ))}

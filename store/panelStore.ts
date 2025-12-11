@@ -7,6 +7,7 @@ interface PanelState {
   panelType: PanelType;
   openPanel: (type: PanelType) => void;
   closePanel: () => void;
+  setActiveSection: (type: PanelType) => void;
 }
 
 export const usePanel = create<PanelState>((set) => ({
@@ -14,4 +15,5 @@ export const usePanel = create<PanelState>((set) => ({
   panelType: null,
   openPanel: (type) => set({ isOpen: true, panelType: type }),
   closePanel: () => set({ isOpen: false, panelType: null }),
+  setActiveSection: (type) => set({ panelType: type, isOpen: type !== null }),
 }));

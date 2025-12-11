@@ -15,7 +15,7 @@ const items: NavItem[] = [
 ];
 
 export default function SidebarNav() {
-  const { openPanel } = usePanel();
+  const { openPanel, setActiveSection } = usePanel();
 
   return (
     <aside className="fixed left-0 top-0 flex h-screen w-28 flex-col px-6 py-12">
@@ -39,7 +39,11 @@ export default function SidebarNav() {
             return (
               <li key={item.label}>
                 {"href" in item ? (
-                  <Link href={item.href} className="block">
+                  <Link
+                    href={item.href}
+                    onClick={() => setActiveSection(null)}
+                    className="hover:opacity-70 transition-opacity"
+                  >
                     {content}
                   </Link>
                 ) : (

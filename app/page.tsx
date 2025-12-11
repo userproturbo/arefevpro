@@ -1,9 +1,13 @@
+import HomeGallery from "@/components/HomeGallery";
 import SoftBackground from "./components/SoftBackground";
 
-export default function HomePage() {
+export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <SoftBackground />
-    </div>
+    <>
+      <main className="relative w-full h-full overflow-hidden">
+        <SoftBackground />
+      </main>
+      <HomeGallery />
+    </>
   );
 }
