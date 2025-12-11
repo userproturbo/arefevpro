@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import SidebarNav from "./components/SidebarNav";
 import Navbar from "./components/Navbar";
 import NavigationOverlay from "./components/navigation/NavigationOverlay";
+import RightSidePanel from "./components/panel/RightSidePanel";
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="w-full pb-12">{children}</main>
           </div>
           <NavigationOverlay />
+          <RightSidePanel />
         </Providers>
       </body>
     </html>
