@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePanel, type PanelType } from "@/store/panelStore";
+import { useHomeGallery } from "@/store/homeGalleryStore";
 
 type NavItem = { label: string; href: string } | { label: string; type: Exclude<PanelType, null> };
 
@@ -15,10 +16,11 @@ const items: NavItem[] = [
 ];
 
 export default function SidebarNav() {
-  const { openPanel } = usePanel();
+  const { openPanel, closePanel } = usePanel();
+  const setShowHomeGallery = useHomeGallery((state) => state.setShow);
 
   return (
-    <aside className="fixed left-0 top-0 flex h-screen w-28 flex-col px-6 py-12">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-28 flex-col px-6 py-12">
       <nav aria-label="Primary">
         <ul>
           {items.map((item) => {
@@ -39,14 +41,24 @@ export default function SidebarNav() {
             return (
               <li key={item.label}>
                 {"href" in item ? (
-                  <Link href={item.href} className="block">
+                  <Link
+                    href={item.href}
+                    className="block"
+                    onClick={() => {
+                      closePanel();
+                      setShowHomeGallery(true);
+                    }}
+                  >
                     {content}
                   </Link>
                 ) : (
                   <button
                     type="button"
                     className="block"
-                    onClick={() => openPanel(item.type)}
+                    onClick={() => {
+                      setShowHomeGallery(false);
+                      openPanel(item.type);
+                    }}
                   >
                     {content}
                   </button>
