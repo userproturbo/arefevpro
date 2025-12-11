@@ -8,8 +8,8 @@ export default function HomePhotoStrip() {
   ];
 
   return (
-    <div className="w-full flex-shrink-0 overflow-x-auto border-t border-white/10 py-4">
-      <div className="flex h-full items-center gap-6 px-10">
+    <div className="w-full h-full flex-shrink-0 overflow-x-auto border-t border-white/10 py-6 px-10">
+      <div className="flex gap-6">
         {images.map((src, i) => (
           <img
             key={i}
