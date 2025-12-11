@@ -22,7 +22,7 @@ export default function RightSidePanel() {
         <>
           {/* BACKDROP */}
           <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
             onClick={closePanel}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -31,15 +31,15 @@ export default function RightSidePanel() {
 
           {/* RIGHT PANEL */}
           <motion.div
-            className="fixed top-0 left-0 h-full w-1/2 bg-black/80 z-50 p-10 overflow-y-auto"
+            className="fixed top-0 left-0 z-40 h-full w-1/2 overflow-y-auto bg-black/80 pl-20 pr-12 pt-16 pb-12"
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "tween", duration: 0.4 }}
           >
-            <h2 className="text-3xl font-bold mb-6 uppercase">{panelType}</h2>
+            <h2 className="mb-6 text-4xl font-semibold uppercase tracking-wide">{panelType}</h2>
 
-            <ul className="space-y-4 text-lg">
+            <ul className="space-y-6 text-2xl leading-relaxed">
               {panelContent.map((item, index) => (
                 <li key={index} className="hover:opacity-70 cursor-pointer">
                   {item}
