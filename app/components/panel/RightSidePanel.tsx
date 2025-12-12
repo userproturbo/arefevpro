@@ -12,12 +12,7 @@ type PanelConfig = {
   renderRight: () => ReactNode;
 };
 
-const panelConfig: Record<Exclude<PanelType, null>, PanelConfig> = {
-  projects: {
-    title: "Projects",
-    items: ["Project 1", "Project 2", "Project 3"],
-    renderRight: () => <ProjectsContent />,
-  },
+const genericPanelConfig: Record<Exclude<PanelType, "projects" | null>, PanelConfig> = {
   photo: {
     title: "Photo",
     items: ["Album 1", "Album 2", "Album 3"],
@@ -55,6 +50,8 @@ const panelConfig: Record<Exclude<PanelType, null>, PanelConfig> = {
   },
 };
 
+const projectItems = ["Project 1", "Project 2", "Project 3"];
+
 export default function RightSidePanel() {
   const { isOpen, panelType, closePanel } = usePanel();
 
@@ -62,15 +59,38 @@ export default function RightSidePanel() {
     return null;
   }
 
-  const config = panelConfig[panelType];
+  if (panelType === "projects") {
+    return (
+      <div className="absolute inset-0 z-40 flex overflow-hidden bg-[#04050a]/95 backdrop-blur-sm">
+        <aside className="w-[36%] max-w-xl overflow-y-auto border-r border-white/10 bg-white/[0.04] px-8 py-10">
+          <ul className="space-y-3 text-xl text-white/80">
+            {projectItems.map((item) => (
+              <li
+                key={item}
+                className="rounded-lg border border-white/5 bg-white/5 px-4 py-3 shadow-inner shadow-black/40"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        <section className="flex-1 overflow-y-auto px-10 py-10">
+          <ProjectsContent />
+        </section>
+      </div>
+    );
+  }
+
+  const config = genericPanelConfig[panelType];
 
   if (!config) {
     return null;
   }
 
   return (
-    <div className="absolute inset-0 z-40 flex bg-[#04050a]/95 backdrop-blur-sm">
-      <aside className="w-[36%] max-w-xl border-r border-white/10 bg-white/[0.04] px-8 py-10">
+    <div className="absolute inset-0 z-40 flex overflow-hidden bg-[#04050a]/95 backdrop-blur-sm">
+      <aside className="w-[36%] max-w-xl overflow-y-auto border-r border-white/10 bg-white/[0.04] px-8 py-10">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-white/50">Section</p>
@@ -97,7 +117,7 @@ export default function RightSidePanel() {
         </ul>
       </aside>
 
-      <section className="flex-1 overflow-hidden px-10 py-10">
+      <section className="flex-1 overflow-y-auto px-10 py-10">
         {config.renderRight()}
       </section>
     </div>
