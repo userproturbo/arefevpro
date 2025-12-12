@@ -17,6 +17,6 @@ export const usePanel = create<PanelState>((set) => ({
   panelType: null,
   activeSection: "home",
   openPanel: (type) => set({ isOpen: true, panelType: type, activeSection: type }),
-  closePanel: () => set({ isOpen: false, panelType: null }),
+  closePanel: () => set({ isOpen: false, panelType: null, activeSection: "home" }),
   setActiveSection: (section) => set({ activeSection: section }),
 }));
