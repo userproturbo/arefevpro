@@ -1,56 +1,105 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { usePanel } from "../../../store/panelStore";
+import type { ReactNode } from "react";
+import ProjectsContent from "./content/ProjectsContent";
+import PhotoContent from "./content/PhotoContent";
+import PlaceholderContent from "./content/PlaceholderContent";
+import { usePanel, type PanelType } from "@/store/panelStore";
+
+type PanelConfig = {
+  title: string;
+  items: string[];
+  renderRight: () => ReactNode;
+};
+
+const panelConfig: Record<Exclude<PanelType, null>, PanelConfig> = {
+  projects: {
+    title: "Projects",
+    items: ["Project 1", "Project 2", "Project 3"],
+    renderRight: () => <ProjectsContent />,
+  },
+  photo: {
+    title: "Photo",
+    items: ["Album 1", "Album 2", "Album 3"],
+    renderRight: () => <PhotoContent />,
+  },
+  video: {
+    title: "Video",
+    items: ["Playlist 1", "Playlist 2", "Playlist 3"],
+    renderRight: () => (
+      <PlaceholderContent
+        label="Video content will be here"
+        description="Drop in thumbnails, playlists, or featured clips later."
+      />
+    ),
+  },
+  music: {
+    title: "Music",
+    items: ["Set 1", "Set 2", "Set 3"],
+    renderRight: () => (
+      <PlaceholderContent
+        label="Music content will be here"
+        description="Add tracks, albums, or streaming embeds in this space."
+      />
+    ),
+  },
+  blog: {
+    title: "Blog",
+    items: ["Draft 1", "Draft 2", "Draft 3"],
+    renderRight: () => (
+      <PlaceholderContent
+        label="Blog content will be here"
+        description="Show posts, excerpts, or writing tools once ready."
+      />
+    ),
+  },
+};
 
 export default function RightSidePanel() {
   const { isOpen, panelType, closePanel } = usePanel();
 
-  const contentMap = {
-    projects: ["Project 1", "Project 2", "Project 3"],
-    photo: ["Photo Set 1", "Photo Set 2"],
-    video: ["Video Clip 1", "Video Clip 2"],
-    music: ["Track 1", "Track 2"],
-    blog: ["Blog Post 1", "Blog Post 2"],
-  };
+  if (!isOpen || !panelType) {
+    return null;
+  }
 
-  const panelContent = panelType ? contentMap[panelType] : [];
+  const config = panelConfig[panelType];
+
+  if (!config) {
+    return null;
+  }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* BACKDROP */}
-          <motion.div
-            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+    <div className="absolute inset-0 z-40 flex bg-[#04050a]/95 backdrop-blur-sm">
+      <aside className="w-[36%] max-w-xl border-r border-white/10 bg-white/[0.04] px-8 py-10">
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-white/50">Section</p>
+            <h2 className="text-3xl font-semibold capitalize text-white">{config.title}</h2>
+          </div>
+          <button
+            type="button"
             onClick={closePanel}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
-
-          {/* RIGHT PANEL */}
-          <motion.div
-            className="fixed top-0 left-0 z-40 h-full w-1/2 bg-black/90 flex flex-col pt-16 pb-12 pl-20 pr-10"
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "tween", duration: 0.4 }}
+            className="rounded-md border border-white/20 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10"
           >
-            <h2 className="text-4xl font-semibold tracking-wide mb-10">
-              {panelType}
-            </h2>
+            Close
+          </button>
+        </div>
 
-            <ul className="space-y-6 text-2xl leading-relaxed">
-              {panelContent.map((item, index) => (
-                <li key={index} className="hover:opacity-70 cursor-pointer">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        <ul className="space-y-3 text-lg text-white/80">
+          {config.items.map((item) => (
+            <li
+              key={item}
+              className="rounded-lg border border-white/5 bg-white/5 px-4 py-3 shadow-inner shadow-black/40"
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+      </aside>
+
+      <section className="flex-1 overflow-hidden px-10 py-10">
+        {config.renderRight()}
+      </section>
+    </div>
   );
 }

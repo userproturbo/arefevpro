@@ -32,9 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SidebarNav />
           <div className="relative ml-28 h-screen overflow-hidden">
             <main className="h-full w-full overflow-hidden">{children}</main>
+            <RightSidePanel />
           </div>
           <NavigationOverlay />
-          <RightSidePanel />
         </Providers>
       </body>
     </html>
