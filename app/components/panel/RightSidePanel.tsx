@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import ProjectsContent from "./content/ProjectsContent";
-import PhotoContent from "./content/PhotoContent";
+import PhotoContent, { type PhotoAlbum } from "./content/PhotoContent";
 import PlaceholderContent from "./content/PlaceholderContent";
 import { usePanel, type PanelType } from "@/store/panelStore";
 
@@ -12,12 +13,7 @@ type PanelConfig = {
   renderRight: () => ReactNode;
 };
 
-const genericPanelConfig: Record<Exclude<PanelType, "projects" | null>, PanelConfig> = {
-  photo: {
-    title: "Photo",
-    items: ["Album 1", "Album 2", "Album 3"],
-    renderRight: () => <PhotoContent />,
-  },
+const genericPanelConfig: Record<Exclude<PanelType, "projects" | "photo" | null>, PanelConfig> = {
   video: {
     title: "Video",
     items: ["Playlist 1", "Playlist 2", "Playlist 3"],
@@ -51,9 +47,98 @@ const genericPanelConfig: Record<Exclude<PanelType, "projects" | null>, PanelCon
 };
 
 const projectItems = ["Project 1", "Project 2", "Project 3"];
+const photoAlbums: PhotoAlbum[] = [
+  {
+    id: "album-01",
+    title: "Album 01",
+    images: [
+      {
+        src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+        ratio: "4 / 5",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80&sat=-20",
+        ratio: "3 / 4",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1471357674240-e1a485acb3e1?auto=format&fit=crop&w=1200&q=80",
+        ratio: "16 / 9",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
+        ratio: "5 / 4",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80&sat=-50",
+        ratio: "3 / 5",
+      },
+    ],
+  },
+  {
+    id: "album-02",
+    title: "Album 02",
+    images: [
+      {
+        src: "https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=1200&q=80",
+        ratio: "5 / 4",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80",
+        ratio: "4 / 5",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80&sat=-30",
+        ratio: "16 / 10",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80&sat=-60",
+        ratio: "3 / 4",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1471357674240-e1a485acb3e1?auto=format&fit=crop&w=1200&q=80&sat=-20",
+        ratio: "4 / 3",
+      },
+    ],
+  },
+  {
+    id: "album-03",
+    title: "Album 03",
+    images: [
+      {
+        src: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80&sat=-35",
+        ratio: "3 / 4",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1471357674240-e1a485acb3e1?auto=format&fit=crop&w=1200&q=80&sat=-10",
+        ratio: "16 / 9",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80&sat=-20",
+        ratio: "5 / 7",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80&sat=-50",
+        ratio: "4 / 5",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=1200&q=80&sat=-5",
+        ratio: "5 / 4",
+      },
+    ],
+  },
+];
 
 export default function RightSidePanel() {
   const { isOpen, panelType, closePanel } = usePanel();
+  const [activeAlbumId, setActiveAlbumId] = useState<string>(photoAlbums[0]?.id ?? "");
+
+  useEffect(() => {
+    if (panelType !== "photo") return;
+    const exists = photoAlbums.some((album) => album.id === activeAlbumId);
+    if (!exists && photoAlbums[0]) {
+      setActiveAlbumId(photoAlbums[0].id);
+    }
+  }, [panelType, activeAlbumId]);
 
   if (!isOpen || !panelType) {
     return null;
@@ -77,6 +162,42 @@ export default function RightSidePanel() {
 
         <section className="flex-1 overflow-y-auto px-10 py-10">
           <ProjectsContent />
+        </section>
+      </div>
+    );
+  }
+
+  if (panelType === "photo") {
+    const activeAlbum =
+      photoAlbums.find((album) => album.id === activeAlbumId) ?? photoAlbums[0];
+
+    return (
+      <div className="absolute inset-0 z-40 flex overflow-hidden bg-[#04050a]/95 backdrop-blur-sm">
+        <aside className="w-[36%] max-w-xl overflow-y-auto border-r border-white/10 bg-white/[0.04] px-8 py-10">
+          <ul className="space-y-3 text-xl text-white/80">
+            {photoAlbums.map((album) => {
+              const isActive = album.id === activeAlbum?.id;
+              return (
+                <li key={album.id}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveAlbumId(album.id)}
+                    className={`w-full rounded-lg px-4 py-3 text-left font-semibold transition ${
+                      isActive
+                        ? "bg-white/[0.08] text-white shadow-inner shadow-black/40"
+                        : "text-white/70 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    {album.title}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
+
+        <section className="flex-1 overflow-y-auto px-10 py-10">
+          {activeAlbum ? <PhotoContent album={activeAlbum} /> : null}
         </section>
       </div>
     );
