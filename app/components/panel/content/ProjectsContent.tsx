@@ -9,14 +9,7 @@ const projects = [
 
 export default function ProjectsContent() {
   return (
-    <div className="flex h-full flex-col gap-6">
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6">
-        <h3 className="text-xl font-semibold text-white">Project previews</h3>
-        <p className="mt-2 text-sm text-white/60">
-          Swap these cards for real thumbnails, descriptions, or case studies.
-        </p>
-      </div>
-
+    <div className="flex h-full flex-col">
       <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
         {projects.map((project) => (
           <article
