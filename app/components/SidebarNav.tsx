@@ -18,9 +18,9 @@ export default function SidebarNav() {
   const { openPanel, closePanel, setActiveSection } = usePanel();
 
   return (
-    <aside className="fixed left-0 top-0 z-60 flex h-screen w-20 flex-col overflow-y-auto px-4 py-8">
-      <nav aria-label="Primary">
-        <ul>
+    <aside className="fixed left-0 top-0 z-60 flex h-screen w-20 flex-col overflow-y-auto border-r border-white/10">
+      <nav aria-label="Primary" className="flex h-full w-full">
+        <ul className="flex h-full w-full flex-col items-center justify-center gap-5 px-3 py-8 sm:gap-6 sm:py-10 md:gap-7 md:py-12 lg:gap-8">
           {navItems.map((item) => {
             const content = (
               <div className="menu-word">
@@ -28,7 +28,7 @@ export default function SidebarNav() {
                   <span
                     key={`${item.label}-${index}`}
                     style={{ transitionDelay: `${(item.label.length - index) * 60}ms` }}
-                    className="menu-letter"
+                    className="menu-letter text-[0.7rem] sm:text-xs md:text-sm lg:text-base"
                   >
                     {char}
                   </span>
@@ -37,11 +37,11 @@ export default function SidebarNav() {
             );
 
             return (
-              <li key={item.label}>
+              <li key={item.label} className="flex w-full justify-center">
                 {item.type === "home" ? (
                   <Link
                     href="/"
-                    className="block"
+                    className="flex w-full justify-center"
                     onClick={() => {
                       closePanel();
                       setActiveSection("home");
@@ -52,7 +52,7 @@ export default function SidebarNav() {
                 ) : (
                   <button
                     type="button"
-                    className="block"
+                    className="flex w-full justify-center"
                     onClick={() => openPanel(item.type)}
                   >
                     {content}
