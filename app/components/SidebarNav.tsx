@@ -14,6 +14,9 @@ const navItems: NavItem[] = [
   { label: "BLOG", type: "blog" },
 ];
 
+const isPanelType = (type: NavItem["type"]): type is Exclude<PanelType, null> =>
+  type !== "home";
+
 export default function SidebarNav() {
   const { openPanel, closePanel, setActiveSection } = usePanel();
 
@@ -21,6 +24,7 @@ export default function SidebarNav() {
     <aside className="fixed left-0 top-0 z-60 flex h-screen w-20 flex-col overflow-y-auto border-r border-white/10">
       <nav aria-label="Primary" className="flex h-full w-full">
         <ul className="flex h-full w-full flex-col items-center justify-center gap-5 px-3 py-8 sm:gap-6 sm:py-10 md:gap-7 md:py-12 lg:gap-8">
+
           {navItems.map((item) => {
             const content = (
               <div className="menu-word">
@@ -53,7 +57,11 @@ export default function SidebarNav() {
                   <button
                     type="button"
                     className="flex w-full justify-center"
-                    onClick={() => openPanel(item.type)}
+                    onClick={() => {
+                      if (isPanelType(item.type)) {
+                        openPanel(item.type);
+                      }
+                    }}
                   >
                     {content}
                   </button>
