@@ -21,10 +21,9 @@ export default function SidebarNav() {
   const { openPanel, closePanel, setActiveSection } = usePanel();
 
   return (
-    <aside className="fixed left-0 top-0 z-60 flex h-screen w-20 flex-col overflow-y-auto border-r border-white/10">
-      <nav aria-label="Primary" className="flex h-full w-full">
-        <ul className="flex h-full w-full flex-col items-center justify-center gap-5 px-3 py-8 sm:gap-6 sm:py-10 md:gap-7 md:py-12 lg:gap-8">
-
+    <aside className="fixed left-0 top-0 h-screen w-16 border-r border-white/10">
+      <nav className="h-full flex items-center justify-center">
+        <ul className="flex flex-col gap-6 items-center">
           {navItems.map((item) => {
             const content = (
               <div className="menu-word">
@@ -41,11 +40,11 @@ export default function SidebarNav() {
             );
 
             return (
-              <li key={item.label} className="flex w-full justify-center">
+              <li key={item.label} className="flex w-full">
                 {item.type === "home" ? (
                   <Link
                     href="/"
-                    className="flex w-full justify-center"
+                    className="flex w-full"
                     onClick={() => {
                       closePanel();
                       setActiveSection("home");
@@ -56,7 +55,7 @@ export default function SidebarNav() {
                 ) : (
                   <button
                     type="button"
-                    className="flex w-full justify-center"
+                    className="flex w-full"
                     onClick={() => {
                       if (isPanelType(item.type)) {
                         openPanel(item.type);

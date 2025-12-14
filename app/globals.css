@@ -234,3 +234,13 @@ body {
   color: rgba(255, 255, 255, 0.95);
   transform: translateY(-3px);
 }
+
+/* скрывает скроллбар, но сохраняет скролл */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

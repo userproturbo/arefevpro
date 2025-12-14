@@ -8,7 +8,7 @@ export default function HomePhotoStrip() {
   ];
 
   return (
-    <div className="w-full h-full flex-shrink-0 overflow-x-auto overflow-y-hidden border-t border-white/10 py-6 px-10">
+    <div className="w-full h-full flex-shrink-0 overflow-x-auto overflow-y-hidden border-t border-white/10 py-6 px-10 hide-scrollbar">
       <div className="flex h-full items-center gap-6">
         {images.map((src, i) => (
           <img

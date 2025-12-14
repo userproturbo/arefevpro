@@ -9,18 +9,21 @@ export type PhotoAlbum = {
 
 type PhotoContentProps = {
   album: PhotoAlbum;
+  showHeader?: boolean;
 };
 
-export default function PhotoContent({ album }: PhotoContentProps) {
+export default function PhotoContent({ album, showHeader = true }: PhotoContentProps) {
   const description =
     album.description ?? "Short description about this album. This text will be updated later.";
 
   return (
     <div className="flex h-full flex-col gap-5">
-      <header className="space-y-2 border-b border-white/10 pb-3">
-        <h3 className="text-2xl font-semibold text-white">{album.title}</h3>
-        <p className="text-sm leading-relaxed text-white/60">{description}</p>
-      </header>
+      {showHeader ? (
+        <header className="space-y-2 border-b border-white/10 pb-3">
+          <h3 className="text-2xl font-semibold text-white">{album.title}</h3>
+          <p className="text-sm leading-relaxed text-white/60">{description}</p>
+        </header>
+      ) : null}
 
       <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
         {album.images.map((image) => (
