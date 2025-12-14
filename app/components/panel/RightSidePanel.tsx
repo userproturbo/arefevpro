@@ -11,12 +11,14 @@ type PanelConfig = {
   title: string;
   items: string[];
   renderRight: () => ReactNode;
+  hideHeader?: boolean;
 };
 
 const genericPanelConfig: Record<Exclude<PanelType, "projects" | "photo" | null>, PanelConfig> = {
   video: {
     title: "Video",
     items: ["Playlist 1", "Playlist 2", "Playlist 3"],
+    hideHeader: true,
     renderRight: () => (
       <PlaceholderContent
         label="Video content will be here"
@@ -27,6 +29,7 @@ const genericPanelConfig: Record<Exclude<PanelType, "projects" | "photo" | null>
   music: {
     title: "Music",
     items: ["Set 1", "Set 2", "Set 3"],
+    hideHeader: true,
     renderRight: () => (
       <PlaceholderContent
         label="Music content will be here"
@@ -198,24 +201,28 @@ export default function RightSidePanel() {
     return null;
   }
 
+  const showHeader = !config.hideHeader;
+
   return (
     <div className="absolute inset-0 z-40 flex overflow-hidden bg-[#04050a]/95 backdrop-blur-sm">
       <aside className="w-[36%] max-w-xl overflow-y-auto border-r border-white/10 bg-white/[0.04] px-8 py-10">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-white/50">Section</p>
-            <h2 className="text-3xl font-semibold capitalize text-white">{config.title}</h2>
+        {showHeader ? (
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-white/50">Section</p>
+              <h2 className="text-3xl font-semibold capitalize text-white">{config.title}</h2>
+            </div>
+            <button
+              type="button"
+              onClick={closePanel}
+              className="rounded-md border border-white/20 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10"
+            >
+              Close
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={closePanel}
-            className="rounded-md border border-white/20 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10"
-          >
-            Close
-          </button>
-        </div>
+        ) : null}
 
-        <ul className="space-y-3 text-lg text-white/80">
+        <ul className={`space-y-3 text-lg text-white/80 ${showHeader ? "" : "mt-2"}`}>
           {config.items.map((item) => (
             <li
               key={item}

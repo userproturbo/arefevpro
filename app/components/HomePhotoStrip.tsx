@@ -4,6 +4,8 @@ export default function HomePhotoStrip() {
     "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1471357674240-e1a485acb3e1?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1471357674240-e1a485acb3e1?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1471357674240-e1a485acb3e1?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80&sat=-50",
   ];
 
@@ -15,7 +17,7 @@ export default function HomePhotoStrip() {
             key={i}
             src={src}
             alt={`Home strip ${i + 1}`}
-            className="h-32 w-64 flex-shrink-0 rounded-lg object-cover md:h-40 md:w-80"
+            className="h-32 w-64 flex-shrink-0 rounded-lg object-cover md:h-40 md:w-60"
           />
         ))}
       </div>
