@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SoftBackground from "./components/SoftBackground";
 import HomePhotoStrip from "./components/HomePhotoStrip";
+import Intro from "./components/Intro";
 import { usePanel } from "@/store/panelStore";
 
 export default function HomePage() {
@@ -10,13 +11,15 @@ export default function HomePage() {
   const showHome = activeSection === "home" && !isOpen;
 
   const [showIntro, setShowIntro] = useState(true);
+  const introStarted = useRef(false);
 
   useEffect(() => {
-    if (!showHome) return;
+    if (!showHome || introStarted.current) return;
+    introStarted.current = true;
 
     const timer = setTimeout(() => {
       setShowIntro(false);
-    }, 2000); // ← длительность показа текста
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, [showHome]);
@@ -29,19 +32,9 @@ export default function HomePage() {
 
       {showHome && (
         <div className="relative h-48 flex-shrink-0 overflow-hidden">
-          {showIntro ? <IntroText /> : <HomePhotoStrip />}
+          {showIntro ? <Intro /> : <HomePhotoStrip />}
         </div>
       )}
-    </div>
-  );
-}
-
-function IntroText() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <span className="text-[clamp(2rem,6vw,5rem)] font-bold tracking-widest text-white/90 animate-fade-in-out">
-        AREFEVPRO
-      </span>
     </div>
   );
 }

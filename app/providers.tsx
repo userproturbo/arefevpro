@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type CurrentUser = {
@@ -31,6 +31,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<CurrentUser>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const visitSent = useRef(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -51,6 +52,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refresh();
+  }, []);
+
+  useEffect(() => {
+    if (visitSent.current) return;
+    visitSent.current = true;
+
+    fetch("/api/visit", { method: "POST", cache: "no-store", keepalive: true }).catch(
+      () => {}
+    );
   }, []);
 
   const requireUser = async (action?: () => void | Promise<void>) => {

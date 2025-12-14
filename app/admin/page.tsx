@@ -4,12 +4,15 @@ import { getCurrentUser } from "@/lib/auth";
 import { getTypeLabel } from "@/lib/adminPostTypes";
 import { prisma } from "@/lib/prisma";
 import DeletePostButton from "./posts/DeletePostButton";
+import VisitorStats from "./VisitorStats";
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
     redirect("/admin/login?next=/admin");
   }
+
+  const isSuperAdmin = user.id === 1;
 
   const posts = await prisma.post.findMany({
     orderBy: { createdAt: "desc" },
@@ -39,6 +42,8 @@ export default async function AdminPage() {
           Создать пост
         </Link>
       </div>
+
+      {isSuperAdmin && <VisitorStats enabled />}
 
       {posts.length === 0 ? (
         <p className="text-white/70">Постов пока нет.</p>
