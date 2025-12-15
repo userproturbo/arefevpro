@@ -19,7 +19,7 @@ export default function HomePage() {
   
     const timer = setTimeout(() => {
       setShowIntro(false);
-    }, 2000);
+    }, 8000);
   
     return () => clearTimeout(timer);
   }, [showHome]);

@@ -1,31 +1,112 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+
+const BASE = "AREFEVPRO";
+const SUFFIX = "DUCTION";
+
+type Stage =
+  | "hidden"
+  | "base-dim"
+  | "base-glow"
+  | "base-static"
+  | "typing"
+  | "done";
 
 export default function IntroStrip() {
+  const [stage, setStage] = useState<Stage>("hidden");
+  const [typed, setTyped] = useState(0);
+
+  const [showCursor, setShowCursor] = useState(false);
+  const [cursorBlink, setCursorBlink] = useState(true);
+
+  /* 🎬 режиссура сцен */
+  useEffect(() => {
+    let t: NodeJS.Timeout;
+
+    if (stage === "hidden") {
+      t = setTimeout(() => setStage("base-dim"), 200);
+    }
+
+    if (stage === "base-dim") {
+      t = setTimeout(() => setStage("base-glow"), 900);
+    }
+
+    if (stage === "base-glow") {
+      t = setTimeout(() => setStage("base-static"), 2000);
+    }
+
+    if (stage === "base-static") {
+      t = setTimeout(() => {
+        setShowCursor(true);
+        setStage("typing");
+      }, 300);
+    }
+
+    return () => clearTimeout(t);
+  }, [stage]);
+
+  /* ⌨️ печать DUCTION */
+  useEffect(() => {
+    if (stage !== "typing") return;
+    if (typed >= SUFFIX.length) {
+      const t = setTimeout(() => setStage("done"), 300);
+      return () => clearTimeout(t);
+    }
+
+    const t = setTimeout(() => {
+      setTyped((v) => v + 1);
+    }, 180); // скорость печати
+
+    return () => clearTimeout(t);
+  }, [stage, typed]);
+
+  /* 💡 мигание курсора */
+  useEffect(() => {
+    if (!showCursor) return;
+
+    const blink = setInterval(() => {
+      setCursorBlink((v) => !v);
+    }, 500);
+
+    return () => clearInterval(blink);
+  }, [showCursor]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: [0, 1, 1, 0], y: [12, 0, 0, -8] }}
-      transition={{ duration: 2, times: [0, 0.2, 0.8, 1], ease: "easeInOut" }}
-      className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center"
-    >
-      <motion.span
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="text-[clamp(2rem,6vw,4.5rem)] font-bold tracking-[0.16em] text-white"
+    <div className="absolute inset-0 flex items-center justify-center bg-[#04050a]">
+      <div
+        className="font-mono font-bold tracking-wide whitespace-nowrap text-4xl sm:text-5xl md:text-6xl"
+        style={{ width: "22ch", textAlign: "left" }}
       >
-        AREFEVPRO
-      </motion.span>
-      <motion.span
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-        className="text-[clamp(1.4rem,4.5vw,2.5rem)] font-semibold uppercase tracking-[0.2em] text-emerald-300"
-      >
-        production
-      </motion.span>
-    </motion.div>
+        {/* AREFEVPRO */}
+        <span
+          className={`
+            inline-block transition-all
+            ${
+              stage === "base-dim"
+                ? "opacity-30 blur-[0.6px] duration-[3000ms]"
+                : stage === "base-glow"
+                ? "opacity-100 duration-[900ms] drop-shadow-[0_0_16px_rgba(255,255,255,0.9)] drop-shadow-[0_0_50px_rgba(255,255,255,0.5)]"
+                : stage === "base-static" || stage === "typing" || stage === "done"
+                ? "opacity-100 drop-shadow-none duration-[900ms]"
+                : "opacity-0"
+            }
+          `}
+        >
+          {BASE}
+        </span>
+
+        {/* DUCTION */}
+        <span className="text-red-500">
+          {(stage === "typing" || stage === "done") &&
+            SUFFIX.slice(0, typed)}
+        </span>
+
+        {/* Cursor */}
+        <span className="inline-block w-[1ch] text-white">
+          {showCursor && cursorBlink ? "|" : " "}
+        </span>
+      </div>
+    </div>
   );
 }
