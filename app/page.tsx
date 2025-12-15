@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import SoftBackground from "./components/SoftBackground";
 import HomePhotoStrip from "./components/HomePhotoStrip";
-import Intro from "./components/Intro";
+import IntroStrip from "./components/IntroStrip";
 import { usePanel } from "@/store/panelStore";
 
 export default function HomePage() {
@@ -11,18 +11,19 @@ export default function HomePage() {
   const showHome = activeSection === "home" && !isOpen;
 
   const [showIntro, setShowIntro] = useState(true);
-  const introStarted = useRef(false);
+  const introShown = useRef(false);
 
   useEffect(() => {
-    if (!showHome || introStarted.current) return;
-    introStarted.current = true;
-
+    if (!showHome || introShown.current) return;
+    introShown.current = true;
+  
     const timer = setTimeout(() => {
       setShowIntro(false);
     }, 2000);
-
+  
     return () => clearTimeout(timer);
   }, [showHome]);
+  
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -32,7 +33,7 @@ export default function HomePage() {
 
       {showHome && (
         <div className="relative h-48 flex-shrink-0 overflow-hidden">
-          {showIntro ? <Intro /> : <HomePhotoStrip />}
+          {showIntro ? <IntroStrip /> : <HomePhotoStrip />}
         </div>
       )}
     </div>

@@ -2,109 +2,61 @@
 
 import { useEffect, useState } from "react";
 
-type StatsResponse = {
+type Stats = {
   totalVisitors: number;
   totalVisits: number;
   todayVisitors: number;
 };
 
-export default function VisitorStats({ enabled }: { enabled: boolean }) {
-  const [stats, setStats] = useState<StatsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+export default function VisitorStats() {
+  const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled) return;
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
     fetch("/api/admin/stats", { cache: "no-store" })
       .then(async (res) => {
         if (!res.ok) {
-          const payload = await res.json().catch(() => null);
-          const apiError =
-            payload && typeof payload.error === "string" ? payload.error : null;
-          const message =
-            res.status === 403
-              ? "Нет доступа к аналитике"
-              : apiError || "Не удалось загрузить статистику";
-          throw new Error(message);
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || "Failed to load stats");
         }
-        return (await res.json()) as StatsResponse;
+        return res.json();
       })
-      .then((data) => {
-        if (!cancelled) {
-          setStats(data);
-        }
-      })
+      .then(setStats)
       .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Ошибка загрузки");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        console.error("Stats fetch error:", err);
+        setError(err.message);
       });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled]);
-
-  if (!enabled) return null;
-
-  const formatValue = (value?: number | null) => {
-    if (typeof value === "number") {
-      return value.toLocaleString("en-US");
-    }
-    return loading ? "..." : "—";
-  };
-
-  const cards = [
-    { label: "Total visitors", value: stats?.totalVisitors },
-    { label: "Total visits", value: stats?.totalVisits },
-    { label: "Visitors today", value: stats?.todayVisitors },
-  ];
+  }, []);
 
   return (
-    <section className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-white/60">
-            Visitor analytics
-          </p>
-          <h2 className="text-xl font-semibold">Site visitors</h2>
+    <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Site visitors</h2>
+        {error && <span className="text-xs text-red-400">Ошибка</span>}
+      </div>
+
+      {error ? (
+        <p className="text-sm text-white/60">{error}</p>
+      ) : !stats ? (
+        <p className="text-sm text-white/60">Загрузка…</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard label="Total visitors" value={stats.totalVisitors} />
+          <StatCard label="Total visits" value={stats.totalVisits} />
+          <StatCard label="Visitors today" value={stats.todayVisitors} />
         </div>
-        {loading ? (
-          <span className="text-xs text-white/60">Загрузка...</span>
-        ) : error ? (
-          <span className="text-xs text-red-300">Ошибка</span>
-        ) : null}
-      </div>
-
-      {error && !loading ? (
-        <p className="text-sm text-red-300">{error}</p>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {cards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-xl border border-white/10 bg-white/[0.03] p-4"
-          >
-            <p className="text-xs uppercase tracking-[0.12em] text-white/60">
-              {card.label}
-            </p>
-            <p className="mt-2 text-3xl font-semibold">
-              {formatValue(card.value)}
-            </p>
-          </div>
-        ))}
-      </div>
+      )}
     </section>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/40 px-4 py-5">
+      <div className="text-xs uppercase tracking-[0.14em] text-white/50">
+        {label}
+      </div>
+      <div className="mt-2 text-3xl font-bold">{value}</div>
+    </div>
   );
 }
