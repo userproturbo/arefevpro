@@ -14,7 +14,7 @@ export function withErrorHandling<TParams>(handler: Handler<TParams>) {
 
       if (error instanceof ZodError) {
         return Response.json(
-          { success: false, error: "Неверные данные", details: error.errors },
+          { success: false, error: "Неверные данные", details: error.issues },
           { status: 400 }
         );
       }

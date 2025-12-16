@@ -1,15 +1,9 @@
 import "./globals.css";
 import Providers from "./providers";
 import Script from "next/script";
-import { Inter } from "next/font/google";
 import SidebarNav from "./components/SidebarNav";
 import NavigationOverlay from "./components/navigation/NavigationOverlay";
 import RightSidePanel from "./components/panel/RightSidePanel";
-
-const inter = Inter({
-  subsets: ["latin", "cyrillic"],
-  display: "swap",
-});
 
 export const metadata = {
   title: "CRAZYLIFE",
@@ -19,7 +13,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} relative bg-[#04050a] text-white antialiased`}>
+      <body className="relative bg-[#04050a] text-white antialiased">
         <Script
           id="clear-dev-overlay"
           strategy="beforeInteractive"

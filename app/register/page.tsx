@@ -1,9 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [nickname, setNickname] = useState("");
@@ -80,11 +81,25 @@ export default function RegisterPage() {
 
         <p className="text-sm text-center text-zinc-400">
           Уже есть аккаунт?{" "}
-          <a href="/login" className="text-purple-400 hover:underline">
+          <Link href="/login" className="text-purple-400 hover:underline">
             Войти
-          </a>
+          </Link>
         </p>
       </form>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-black text-white">
+          <p className="text-xl">Загрузка...</p>
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

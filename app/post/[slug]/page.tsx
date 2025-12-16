@@ -145,9 +145,9 @@ export default async function PostPage({
       {!user && (
         <p className="text-white/70 text-sm">
           Чтобы ставить лайки и писать комментарии,{" "}
-          <a href="/login" className="underline underline-offset-4">
+          <Link href="/login" className="underline underline-offset-4">
             войдите
-          </a>
+          </Link>
           .
         </p>
       )}

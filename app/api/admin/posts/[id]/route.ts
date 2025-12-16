@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PostType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { PostType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-function normalizeId(raw: string) {
+function parseId(raw: string) {
   const id = Number(raw);
-  return Number.isInteger(id) ? id : null;
+  return Number.isFinite(id) && id > 0 ? id : null;
 }
 
 function resolveType(rawType: unknown): PostType | null {
   const normalized =
     typeof rawType === "string" ? (rawType.toUpperCase() as PostType) : null;
-  if (!normalized || !Object.values(PostType).includes(normalized)) {
-    return null;
-  }
+  if (!normalized || !Object.values(PostType).includes(normalized)) return null;
   return normalized;
 }
 
@@ -24,115 +22,85 @@ function normalizeString(value: unknown) {
   return str.length ? str : null;
 }
 
-async function requireAdmin() {
+async function requireAdminOrFail() {
   const user = await getCurrentUser();
   if (!user) {
-    return { error: "Требуется авторизация", status: 401 as const };
+    return { user: null, res: NextResponse.json({ error: "Требуется авторизация" }, { status: 401 }) };
   }
   if (user.role !== "ADMIN") {
-    return { error: "Нет прав", status: 403 as const };
+    return { user, res: NextResponse.json({ error: "Нет прав" }, { status: 403 }) };
   }
-  return null;
+  return { user, res: null as NextResponse | null };
 }
 
-export async function PUT(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const guard = await requireAdmin();
-  if (guard) {
-    return NextResponse.json({ error: guard.error }, { status: guard.status });
-  }
+export async function GET(_: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { res } = await requireAdminOrFail();
+  if (res) return res;
 
-  try {
-    const { id: idParam } = await context.params;
-    const postId = normalizeId(idParam);
-    if (!postId) {
-      return NextResponse.json(
-        { error: "Некорректный идентификатор" },
-        { status: 400 }
-      );
-    }
+  const { id: rawId } = await ctx.params;
+  const id = parseId(rawId);
+  if (!id) return NextResponse.json({ error: "Некорректный id" }, { status: 400 });
 
-    const existing = await prisma.post.findUnique({ where: { id: postId } });
-    if (!existing) {
-      return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
-    }
+  const post = await prisma.post.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      type: true,
+      text: true,
+      coverImage: true,
+      mediaUrl: true,
+      isPublished: true,
+    },
+  });
 
-    const body = await req.json();
-    const title = typeof body.title === "string" ? body.title.trim() : "";
-    if (!title) {
-      return NextResponse.json(
-        { error: "Заголовок обязателен" },
-        { status: 400 }
-      );
-    }
-
-    const nextType = resolveType(body.type) ?? existing.type;
-    const text = normalizeString(body.text);
-    const coverImage = normalizeString(body.coverImage);
-    const mediaUrl = normalizeString(body.mediaUrl);
-    const isPublished =
-      typeof body.isPublished === "boolean"
-        ? body.isPublished
-        : existing.isPublished;
-
-    const post = await prisma.post.update({
-      where: { id: existing.id },
-      data: {
-        title,
-        type: nextType,
-        text,
-        coverImage,
-        mediaUrl,
-        isPublished,
-      },
-    });
-
-    return NextResponse.json({ post });
-  } catch (error) {
-    console.error("Admin update post error:", error);
-    return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
-  }
+  if (!post) return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
+  return NextResponse.json({ post });
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const guard = await requireAdmin();
-  if (guard) {
-    return NextResponse.json({ error: guard.error }, { status: guard.status });
-  }
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { res } = await requireAdminOrFail();
+  if (res) return res;
 
-  try {
-    const { id: idParam } = await context.params;
-    const postId = normalizeId(idParam);
-    if (!postId) {
-      return NextResponse.json(
-        { error: "Некорректный идентификатор" },
-        { status: 400 }
-      );
-    }
+  const { id: rawId } = await ctx.params;
+  const id = parseId(rawId);
+  if (!id) return NextResponse.json({ error: "Некорректный id" }, { status: 400 });
 
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
-      select: { id: true },
-    });
+  const body = await req.json().catch(() => ({}));
 
-    if (!post) {
-      return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
-    }
+  const type = resolveType(body.type);
+  if (!type) return NextResponse.json({ error: "Неверный тип поста" }, { status: 400 });
 
-    await prisma.$transaction([
-      prisma.comment.deleteMany({ where: { postId: post.id } }),
-      prisma.like.deleteMany({ where: { postId: post.id } }),
-      prisma.post.delete({ where: { id: post.id } }),
-    ]);
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  if (!title) return NextResponse.json({ error: "Заголовок обязателен" }, { status: 400 });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Admin delete post error:", error);
-    return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
-  }
+  const text = normalizeString(body.text);
+  const coverImage = normalizeString(body.coverImage);
+  const mediaUrl = normalizeString(body.mediaUrl);
+  const isPublished = typeof body.isPublished === "boolean" ? body.isPublished : false;
+
+  const exists = await prisma.post.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
+
+  const post = await prisma.post.update({
+    where: { id },
+    data: { type, title, text, coverImage, mediaUrl, isPublished },
+  });
+
+  return NextResponse.json({ post });
+}
+
+export async function DELETE(_: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { res } = await requireAdminOrFail();
+  if (res) return res;
+
+  const { id: rawId } = await ctx.params;
+  const id = parseId(rawId);
+  if (!id) return NextResponse.json({ error: "Некорректный id" }, { status: 400 });
+
+  const exists = await prisma.post.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
+
+  await prisma.post.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
 }

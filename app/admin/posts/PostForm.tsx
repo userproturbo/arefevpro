@@ -146,7 +146,7 @@ export default function PostForm({
       const data = new FormData();
       data.append("file", file);
 
-      const res = await fetch("/api/upload", {
+      const res = await fetch("/api/admin/upload", {
         method: "POST",
         body: data,
       });
