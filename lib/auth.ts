@@ -7,7 +7,7 @@ export type AuthPayload = {
   id: number;
   login: string;
   role: UserRole;
-  nickname: string;
+  nickname: string | null;
 };
 
 const JWT_SECRET = process.env.JWT_SECRET;

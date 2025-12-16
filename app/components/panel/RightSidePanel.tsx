@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ProjectsContent from "./content/ProjectsContent";
 import PhotoContent, { type PhotoAlbum } from "./content/PhotoContent";
 import PlaceholderContent from "./content/PlaceholderContent";
@@ -123,14 +123,6 @@ const photoAlbums: PhotoAlbum[] = [
 export default function RightSidePanel() {
   const { isOpen, panelType, closePanel } = usePanel();
   const [activeAlbumId, setActiveAlbumId] = useState<string>(photoAlbums[0]?.id ?? "");
-
-  useEffect(() => {
-    if (panelType !== "photo") return;
-    const exists = photoAlbums.some((album) => album.id === activeAlbumId);
-    if (!exists && photoAlbums[0]) {
-      setActiveAlbumId(photoAlbums[0].id);
-    }
-  }, [panelType, activeAlbumId]);
 
   if (!isOpen || !panelType) {
     return null;

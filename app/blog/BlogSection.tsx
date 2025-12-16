@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import SectionLayout from "../components/section/SectionLayout";
 
 export type BlogListItem = {
@@ -18,14 +18,6 @@ type BlogSectionProps = {
 
 export default function BlogSection({ items, fallbackDescription }: BlogSectionProps) {
   const [activeId, setActiveId] = useState<string>(items[0]?.id ?? "");
-
-  useEffect(() => {
-    if (!items.length) return;
-    const exists = items.some((item) => item.id === activeId);
-    if (!exists && items[0]) {
-      setActiveId(items[0].id);
-    }
-  }, [items, activeId]);
 
   if (!items.length) {
     return null;

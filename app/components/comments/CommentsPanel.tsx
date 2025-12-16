@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../../providers";
 
 type Comment = {
   id: number;
   text: string;
   createdAt: string;
-  user: { id: number; nickname: string } | null;
+  user: { id: number; nickname: string | null } | null;
 };
 
 type Props = {
@@ -103,9 +104,9 @@ export default function CommentsPanel({
       ) : showLoginNotice ? (
         <p className="text-white/70 text-sm">
           Чтобы ставить лайки и писать комментарии,{" "}
-          <a href="/login" className="underline underline-offset-4">
+          <Link href="/login" className="underline underline-offset-4">
             войдите
-          </a>
+          </Link>
           .
         </p>
       ) : null}
