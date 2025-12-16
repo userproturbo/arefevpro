@@ -10,20 +10,14 @@ export default function HomePage() {
   const { activeSection, isOpen } = usePanel();
   const showHome = activeSection === "home" && !isOpen;
 
-  const [showIntro, setShowIntro] = useState(true);
-  const introShown = useRef(false);
+  const [introDone, setIntroDone] = useState(false);
+  const introStarted = useRef(false);
 
+  // запускаем интро ТОЛЬКО один раз
   useEffect(() => {
-    if (!showHome || introShown.current) return;
-    introShown.current = true;
-  
-    const timer = setTimeout(() => {
-      setShowIntro(false);
-    }, 8000);
-  
-    return () => clearTimeout(timer);
+    if (!showHome || introStarted.current) return;
+    introStarted.current = true;
   }, [showHome]);
-  
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -33,7 +27,25 @@ export default function HomePage() {
 
       {showHome && (
         <div className="relative h-48 flex-shrink-0 overflow-hidden">
-          {showIntro ? <IntroStrip /> : <HomePhotoStrip />}
+          {/* Интро (уходит само) */}
+          {!introDone && (
+            <IntroStrip onFinish={() => setIntroDone(true)} />
+          )}
+
+          {/* Фото — ВСЕГДА в DOM */}
+          <div
+            className={`
+              absolute inset-0
+              transition-all duration-[1200ms] ease-out
+              ${
+                introDone
+                  ? "opacity-100 translate-y-0 blur-0"
+                  : "opacity-0 translate-y-6 blur-sm"
+              }
+            `}
+          >
+            <HomePhotoStrip />
+          </div>
         </div>
       )}
     </div>

@@ -13,7 +13,11 @@ type Stage =
   | "typing"
   | "done";
 
-export default function IntroStrip() {
+export default function IntroStrip({
+  onFinish,
+}: {
+  onFinish?: () => void;
+}) {
   const [stage, setStage] = useState<Stage>("hidden");
   const [typed, setTyped] = useState(0);
 
@@ -43,12 +47,19 @@ export default function IntroStrip() {
       }, 300);
     }
 
+    if (stage === "done") {
+      t = setTimeout(() => {
+        onFinish?.();
+      }, 2000); // ⏱ сколько интро остаётся на экране
+    }
+
     return () => clearTimeout(t);
-  }, [stage]);
+  }, [stage, onFinish]);
 
   /* ⌨️ печать DUCTION */
   useEffect(() => {
     if (stage !== "typing") return;
+
     if (typed >= SUFFIX.length) {
       const t = setTimeout(() => setStage("done"), 300);
       return () => clearTimeout(t);
@@ -56,7 +67,7 @@ export default function IntroStrip() {
 
     const t = setTimeout(() => {
       setTyped((v) => v + 1);
-    }, 180); // скорость печати
+    }, 180); // ⌨️ скорость печати
 
     return () => clearTimeout(t);
   }, [stage, typed]);
@@ -80,21 +91,24 @@ export default function IntroStrip() {
       >
         {/* AREFEVPRO */}
         <span
-          className={`
-            inline-block transition-all
-            ${
-              stage === "base-dim"
-                ? "opacity-30 blur-[0.6px] duration-[3000ms]"
-                : stage === "base-glow"
-                ? "opacity-100 duration-[900ms] drop-shadow-[0_0_16px_rgba(255,255,255,0.9)] drop-shadow-[0_0_50px_rgba(255,255,255,0.5)]"
-                : stage === "base-static" || stage === "typing" || stage === "done"
-                ? "opacity-100 drop-shadow-none duration-[900ms]"
-                : "opacity-0"
-            }
-          `}
-        >
-          {BASE}
-        </span>
+  className={`
+    inline-block transition-all
+    ${
+      stage === "base-dim"
+        ? "opacity-30 blur-[0.6px] duration-[3000ms]"
+        : stage === "base-glow"
+        ? "opacity-100 duration-[900ms] drop-shadow-[0_0_16px_rgba(255,255,255,0.9)] drop-shadow-[0_0_50px_rgba(255,255,255,0.5)]"
+        : stage === "base-static" ||
+          stage === "typing" ||
+          stage === "done"
+        ? "opacity-100 drop-shadow-none duration-[900ms]"
+        : "opacity-0"
+    }
+  `}
+>
+  {BASE}
+</span>
+
 
         {/* DUCTION */}
         <span className="text-red-500">
