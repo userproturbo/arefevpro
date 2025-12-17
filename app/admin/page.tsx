@@ -10,10 +10,8 @@ export default async function AdminPage() {
   const user = await getCurrentUser();
 
   if (!user || user.role !== "ADMIN") {
-    redirect("/admin/login?next=/admin");
+    redirect("/login?next=/admin");
   }
-
-  const isSuperAdmin = user.id === 1;
 
   const posts = await prisma.post.findMany({
     orderBy: { createdAt: "desc" },
@@ -29,6 +27,8 @@ export default async function AdminPage() {
 
   return (
     <main className="max-w-5xl mx-auto space-y-8">
+      <VisitorStats />
+
       {/* Заголовок + кнопка */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -45,9 +45,6 @@ export default async function AdminPage() {
           Создать пост
         </Link>
       </div>
-
-      {/* ✅ Статистика посетителей — только суперадмин */}
-      {isSuperAdmin && <VisitorStats />}
 
       {/* Контент */}
       <section className="space-y-4">

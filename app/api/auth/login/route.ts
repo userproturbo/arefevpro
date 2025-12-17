@@ -1,7 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { setAuthCookie, signToken } from "@/lib/auth";
+import { setAuthCookie } from "@/lib/auth";
+import { signToken } from "@/lib/jwt";
 
 export const dynamic = "force-dynamic";
 

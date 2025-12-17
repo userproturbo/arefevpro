@@ -4,6 +4,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
@@ -26,12 +27,8 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const originalName = file.name || "file";
-    const ext = originalName.includes(".")
-      ? originalName.split(".").pop()
-      : "bin";
-
-    const filename = `${Date.now()}-${randomUUID()}.${ext}`;
+    const ext = path.extname(file.name || "") || ".bin";
+    const filename = `${Date.now()}-${randomUUID()}${ext}`;
     const uploadDir = path.join(process.cwd(), "public", "uploads");
     const filePath = path.join(uploadDir, filename);
 

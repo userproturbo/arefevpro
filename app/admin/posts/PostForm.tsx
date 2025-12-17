@@ -156,10 +156,17 @@ export default function PostForm({
         throw new Error(json.error || "Ошибка загрузки файла");
       }
 
+      const rawUrl = typeof json.url === "string" ? json.url : "";
+      if (!rawUrl) {
+        throw new Error("Ошибка загрузки файла");
+      }
+
+      const uploadedUrl = rawUrl;
+
       if (field === "coverImage") {
-        setCoverImage(json.url);
+        setCoverImage(uploadedUrl);
       } else {
-        setMediaUrl(json.url);
+        setMediaUrl(uploadedUrl);
       }
     } catch (err: unknown) {
       const message =
@@ -295,7 +302,7 @@ export default function PostForm({
           className="w-full rounded-lg border border-white/10 bg-black/40 p-3"
           value={coverImage}
           onChange={(e) => setCoverImage(e.target.value)}
-          type="url"
+          type={typeKey === "blog" || coverImage.startsWith("/") ? "text" : "url"}
           placeholder="https://... (превью в списке)"
           disabled={loading || deleting || uploading}
         />
@@ -319,7 +326,7 @@ export default function PostForm({
             className="w-full rounded-lg border border-white/10 bg-black/40 p-3"
             value={mediaUrl}
             onChange={(e) => setMediaUrl(e.target.value)}
-            type="url"
+            type={mediaUrl.startsWith("/") ? "text" : "url"}
             placeholder={mediaPlaceholder[typeKey]}
             disabled={loading || deleting || uploading}
           />

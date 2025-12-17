@@ -16,7 +16,7 @@ export default async function AdminPostsPage({
 
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
-    redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
+    redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
   }
 
   const config = getAdminType(typeParam);

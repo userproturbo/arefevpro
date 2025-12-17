@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AUTH_COOKIE } from "@/lib/authCookie";
 
 const ADMIN_LOGIN_PATH = "/admin/login";
-const AUTH_COOKIE = "token";
+const LOGIN_PATH = "/login";
 
 function clearAuthCookie(response: NextResponse) {
   response.cookies.set(AUTH_COOKIE, "", {
@@ -75,23 +76,14 @@ export default async function proxy(request: NextRequest) {
   const getNextParam = () =>
     pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
 
-  // /admin/login is always visible for guests or non-admins; clear broken tokens
-  if (isLoginPage) {
-    if (!payload || payload.role !== "ADMIN") {
-      const response = NextResponse.next();
-      if (token && !payload) {
-        clearAuthCookie(response);
-      }
-      return response;
-    }
+  const safeNext = (value: string | null) => {
+    if (!value) return null;
+    return value.startsWith("/") ? value : null;
+  };
 
-    const next = searchParams.get("next") || "/admin";
-    return NextResponse.redirect(new URL(next, request.url));
-  }
-
-  // Guest or invalid token on other /admin/* routes -> redirect to login with next
+  // Guest or invalid token on /admin/* routes -> redirect to /login with next
   if (!payload) {
-    const loginUrl = new URL(ADMIN_LOGIN_PATH, request.url);
+    const loginUrl = new URL(LOGIN_PATH, request.url);
     loginUrl.searchParams.set("next", getNextParam());
     const response = NextResponse.redirect(loginUrl);
     if (token) {
@@ -103,6 +95,12 @@ export default async function proxy(request: NextRequest) {
   // Logged in but not ADMIN -> reject with 403 (do not log the user out)
   if (payload.role !== "ADMIN") {
     return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  // ADMIN visiting legacy /admin/login -> bounce to next (or /admin)
+  if (isLoginPage) {
+    const next = safeNext(searchParams.get("next")) || "/admin";
+    return NextResponse.redirect(new URL(next, request.url));
   }
 
   // ADMIN on protected routes -> allow

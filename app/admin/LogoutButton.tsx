@@ -16,7 +16,7 @@ export default function LogoutButton() {
       if (!res.ok) {
         throw new Error("Не удалось завершить сессию");
       }
-      router.push("/admin/login");
+      router.push("/login?next=/admin");
       router.refresh();
     } catch (error) {
       console.error("Logout error:", error);
