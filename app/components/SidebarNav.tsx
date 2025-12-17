@@ -41,13 +41,13 @@ export default function SidebarNav() {
 
             return (
               <li key={item.label} className="flex w-full">
-                {item.type === "home" ? (
+                {item.type === "home" || item.type === "blog" ? (
                   <Link
-                    href="/"
+                    href={item.type === "home" ? "/" : "/blog"}
                     className="flex w-full"
                     onClick={() => {
                       closePanel();
-                      setActiveSection("home");
+                      setActiveSection(item.type === "home" ? "home" : "blog");
                     }}
                   >
                     {content}

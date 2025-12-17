@@ -1,5 +1,5 @@
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcryptjs");
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -25,14 +25,13 @@ async function main() {
     },
   });
 
-  console.log("✅ Admin ready:", { id: user.id, login: user.login, role: user.role });
+  console.log("✅ Admin ready:", {
+    id: user.id,
+    login: user.login,
+    role: user.role,
+  });
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());

@@ -1,63 +1,131 @@
-import BlogSection, { type BlogListItem } from "./BlogSection";
+import Link from "next/link";
+import { PostType } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import PageContainer from "../components/PageContainer";
 
 export const dynamic = "force-dynamic";
 
-type PostSummary = {
+type BlogPostListItem = {
   id: number;
   slug: string;
   title: string;
-  createdAt: string;
-  _count?: {
-    likes?: number;
-    comments?: number;
-  };
+  text: string | null;
+  coverImage: string | null;
+  createdAt: Date;
 };
 
-async function getBlogPosts(): Promise<PostSummary[]> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+function safePreview(rawText: string | null, maxLength: number) {
+  const normalized = (rawText ?? "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
 
-  try {
-    const res = await fetch(`${baseUrl}/api/posts?type=BLOG`, { cache: "no-store" });
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    if (!data?.posts || !Array.isArray(data.posts)) return [];
-    return data.posts as PostSummary[];
-  } catch {
-    return [];
-  }
+  const chars = Array.from(normalized);
+  if (chars.length <= maxLength) return normalized;
+  return `${chars.slice(0, maxLength).join("")}…`;
 }
 
-const draftDescription = "Short description about this draft. This text will be updated later.";
-const fallbackDrafts = ["Draft 1", "Draft 2", "Draft 3"];
-
 export default async function BlogPage() {
-  const posts = await getBlogPosts();
+  let posts: BlogPostListItem[] = [];
 
-  const items: BlogListItem[] =
-    posts.length > 0
-      ? posts.map((post) => {
-          const createdAtText = new Date(post.createdAt).toLocaleDateString("ru-RU", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          });
-          const comments = post._count?.comments ?? 0;
-          const likes = post._count?.likes ?? 0;
+  try {
+    posts = await prisma.post.findMany({
+      where: { isPublished: true, type: PostType.BLOG },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        text: true,
+        coverImage: true,
+        createdAt: true,
+      },
+    });
+  } catch (error) {
+    console.error("Public blog list error:", error);
+  }
 
-          return {
-            id: `post-${post.id}`,
-            title: post.title,
-            description: `${createdAtText} · ${comments} комм. · ${likes} отметок`,
-          };
-        })
-      : fallbackDrafts.map((title, index) => ({
-          id: `draft-${index + 1}`,
-          title,
-          description: draftDescription,
-        }));
+  return (
+    <PageContainer>
+      <div className="flex items-start justify-between gap-6">
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.14em] text-white/60">BLOG</p>
+          <h1 className="text-3xl font-bold leading-tight">Блог</h1>
+          <p className="text-white/60 text-sm">Опубликованные посты</p>
+        </div>
+        <Link href="/" className="text-sm text-white/70 hover:text-white transition">
+          ← На главную
+        </Link>
+      </div>
 
-  return <BlogSection items={items} fallbackDescription={draftDescription} />;
+      {posts.length === 0 ? (
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-white/70">
+          Пока нет опубликованных постов.
+        </div>
+      ) : (
+        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post) => {
+            const createdAtText = new Date(post.createdAt).toLocaleDateString("ru-RU", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            });
+            const preview = safePreview(post.text, 160);
+
+            return (
+              <article
+                key={post.id}
+                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] shadow-[0_18px_40px_-26px_rgba(0,0,0,0.8)] backdrop-blur transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.04]"
+              >
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100">
+                  <div className="h-full w-full bg-gradient-to-br from-white/8 via-white/3 to-white/0" />
+                </div>
+
+                <div
+                  className="relative w-full border-b border-white/10 bg-white/[0.02]"
+                  style={{ aspectRatio: "16 / 9" }}
+                >
+                  {post.coverImage ? (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url(${post.coverImage})` }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(120,120,255,0.10),transparent_55%),radial-gradient(circle_at_80%_10%,rgba(255,120,200,0.12),transparent_45%)]" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#04050a]/90 via-[#04050a]/20 to-transparent" />
+                </div>
+
+                <div className="relative flex h-full flex-col p-5">
+                  <h2 className="text-lg font-semibold leading-snug text-white">
+                    <Link
+                      href={`/post/${post.slug}`}
+                      className="hover:underline underline-offset-4"
+                    >
+                      {post.title}
+                    </Link>
+                  </h2>
+
+                  <div className="mt-2 text-xs uppercase tracking-[0.14em] text-white/50">
+                    {createdAtText}
+                  </div>
+
+                  <p className="mt-3 text-sm leading-relaxed text-white/70">
+                    {preview || "Без текста."}
+                  </p>
+
+                  <div className="mt-5">
+                    <Link
+                      href={`/post/${post.slug}`}
+                      className="inline-flex items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                    >
+                      Читать
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </PageContainer>
+  );
 }

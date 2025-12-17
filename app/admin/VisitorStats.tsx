@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 
 type Stats = {
   totalVisitors: number;
-  totalVisits: number;
-  todayVisitors: number;
 };
 
 export default function VisitorStats() {
@@ -40,11 +38,7 @@ export default function VisitorStats() {
       ) : !stats ? (
         <p className="text-sm text-white/60">Загрузка…</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard label="Total visitors" value={stats.totalVisitors} />
-          <StatCard label="Total visits" value={stats.totalVisits} />
-          <StatCard label="Visitors today" value={stats.todayVisitors} />
-        </div>
+        <StatCard label="Total visitors" value={stats.totalVisitors} />
       )}
     </section>
   );

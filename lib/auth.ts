@@ -1,38 +1,15 @@
+import "server-only";
+
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
-import { UserRole } from "@prisma/client";
-import { prisma } from "./prisma";
+import { prisma } from "@/lib/prisma";
+import { signToken, verifyToken } from "@/lib/jwt";
+import { AUTH_COOKIE } from "@/lib/authCookie";
 
-export type AuthPayload = {
-  id: number;
-  login: string;
-  role: UserRole;
-  nickname: string | null;
-};
+export { AUTH_COOKIE };
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = "30d";
-export const AUTH_COOKIE = "token";
-
-export function signToken(payload: AuthPayload) {
-  if (!JWT_SECRET) {
-    throw new Error("JWT_SECRET is not configured");
-  }
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-}
-
-export function verifyToken(token?: string): AuthPayload | null {
-  if (!token || !JWT_SECRET) return null;
-  try {
-    return jwt.verify(token, JWT_SECRET) as AuthPayload;
-  } catch {
-    return null;
-  }
-}
-
-export async function setAuthCookie(payload: AuthPayload) {
-  const token = signToken(payload);
+export async function setAuthCookie(payload: { id: number } & Record<string, unknown>) {
   const cookieStore = await cookies();
+  const token = signToken(payload);
 
   cookieStore.set(AUTH_COOKIE, token, {
     httpOnly: true,
@@ -46,26 +23,19 @@ export async function setAuthCookie(payload: AuthPayload) {
 export async function getCurrentUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get(AUTH_COOKIE)?.value;
+
+  if (!token) return null;
+
   const payload = verifyToken(token);
-  if (!payload) return null;
+  if (!payload?.id) return null;
 
   const user = await prisma.user.findUnique({
     where: { id: payload.id },
     select: {
       id: true,
-      nickname: true,
       role: true,
     },
   });
-  
 
-  return user;
-}
-
-export async function requireAdmin() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== UserRole.ADMIN) {
-    return null;
-  }
   return user;
 }
