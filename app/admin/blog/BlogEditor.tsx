@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StatusBadge from "@/app/admin/components/StatusBadge";
 
 type BlogEditorProps = {
   mode: "new" | "edit";
@@ -7,9 +8,11 @@ type BlogEditorProps = {
 
 export default function BlogEditor({ mode, postId }: BlogEditorProps) {
   const title = mode === "new" ? "New blog post" : "Edit blog post";
+  const isPublished = mode === "edit"; // пока считаем так, позже заменим на реальные данные
 
   return (
     <main className="max-w-4xl mx-auto space-y-6">
+      {/* Navigation */}
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <Link
           href="/admin/blog"
@@ -22,21 +25,39 @@ export default function BlogEditor({ mode, postId }: BlogEditorProps) {
         </Link>
       </div>
 
-      <div className="space-y-1">
+      {/* Header */}
+      <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.14em] text-white/60">
           Blog workspace
         </p>
-        <h1 className="text-3xl font-bold">
-          {title}
+
+        <div className="flex flex-wrap items-center gap-4">
+          <h1 className="text-3xl font-bold">
+            {title}
+            {mode === "edit" && postId ? (
+              <span className="text-white/60"> #{postId}</span>
+            ) : null}
+          </h1>
+
+          <StatusBadge published={isPublished} />
+
           {mode === "edit" && postId ? (
-            <span className="text-white/60"> #{postId}</span>
+            <Link
+              href={`/post/${postId}`}
+              target="_blank"
+              className="text-sm text-white/70 hover:text-white underline underline-offset-4"
+            >
+              Open on site
+            </Link>
           ) : null}
-        </h1>
+        </div>
+
         <p className="text-sm text-white/60">
-          Editor shell only — saving/publishing will be added later.
+          Draft editor — publishing will be enabled soon.
         </p>
       </div>
 
+      {/* Editor form (shell only) */}
       <form className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
         <div className="space-y-1">
           <label className="text-sm text-white/70">Title</label>
@@ -57,7 +78,10 @@ export default function BlogEditor({ mode, postId }: BlogEditorProps) {
           </div>
           <div className="space-y-1">
             <label className="text-sm text-white/70">Status</label>
-            <select className="w-full rounded-lg border border-white/10 bg-black/40 p-3 outline-none">
+            <select
+              disabled
+              className="w-full rounded-lg border border-white/10 bg-black/40 p-3 outline-none opacity-60"
+            >
               <option value="draft">Draft</option>
               <option value="published">Published</option>
             </select>
@@ -106,4 +130,3 @@ export default function BlogEditor({ mode, postId }: BlogEditorProps) {
     </main>
   );
 }
-
