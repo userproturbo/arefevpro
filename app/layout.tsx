@@ -5,10 +5,6 @@ import SidebarNav from "./components/SidebarNav";
 import NavigationOverlay from "./components/navigation/NavigationOverlay";
 import RightSidePanel from "./components/panel/RightSidePanel";
 
-export const metadata = {
-  title: "CRAZYLIFE",
-  description: "Фото, видео, музыка и истории в одном месте",
-};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

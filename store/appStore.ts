@@ -7,7 +7,13 @@ interface AppStore {
   enterSite: () => void;
 }
 
+// 🔧 флаг отключения интро (читается при инициализации)
+const disableIntro =
+  process.env.NEXT_PUBLIC_DISABLE_INTRO === "1";
+
 export const useAppStore = create<AppStore>((set) => ({
-  phase: "entrance",
+  // если интро отключено — сразу сайт
+  phase: disableIntro ? "site" : "entrance",
+
   enterSite: () => set({ phase: "site" }),
 }));
