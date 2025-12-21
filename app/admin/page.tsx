@@ -52,7 +52,7 @@ export default async function AdminPage() {
           <p className="text-xs uppercase tracking-[0.14em] text-white/60">
             Админка
           </p>
-          <h1 className="text-3xl font-bold">Управление CRAZYLIFE</h1>
+          <h1 className="text-3xl font-bold">Управление AREFEVPRODUCTION</h1>
         </div>
 
         <Link
