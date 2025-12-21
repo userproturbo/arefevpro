@@ -1,66 +1,68 @@
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
-const SAMPLE_POSTS = [
-  { id: "101", title: "Welcome post", status: "Draft" },
-  { id: "102", title: "Release notes", status: "Published" },
-  { id: "103", title: "Behind the scenes", status: "Draft" },
-] as const;
+export const dynamic = "force-dynamic";
 
-export default function AdminBlogPage() {
+export default async function AdminBlogPage() {
+  const posts = await prisma.post.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      isPublished: true,
+      createdAt: true,
+    },
+  });
+
   return (
-    <main className="max-w-5xl mx-auto space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.14em] text-white/60">
-            Admin
-          </p>
-          <h1 className="text-3xl font-bold">Blog</h1>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link href="/admin" className="text-sm text-white/70 hover:text-white">
-            ← Dashboard
-          </Link>
-          <Link
-            href="/admin/blog/new"
-            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black"
-          >
-            New post
-          </Link>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Blog</h1>
+        <Link
+          href="/admin/blog/new"
+          className="rounded-md bg-white px-4 py-2 text-black text-sm font-medium"
+        >
+          + New article
+        </Link>
       </div>
 
-      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold">Posts</h2>
-          <p className="text-sm text-white/60">No data fetching (stub list)</p>
+      {posts.length === 0 ? (
+        <div className="rounded-lg border border-white/10 p-6 text-white/60">
+          No articles yet.
+          <div className="mt-4">
+            <Link
+              href="/admin/blog/new"
+              className="underline underline-offset-4"
+            >
+              Create first article
+            </Link>
+          </div>
         </div>
-
-        <ul className="divide-y divide-white/10">
-          {SAMPLE_POSTS.map((post) => (
-            <li key={post.id} className="py-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate font-semibold">{post.title}</div>
-                  <div className="text-xs text-white/60">#{post.id}</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                    {post.status}
-                  </span>
-                  <Link
-                    href={`/admin/blog/${post.id}/edit`}
-                    className="text-sm text-white/70 hover:text-white"
-                  >
-                    Edit →
-                  </Link>
+      ) : (
+        <ul className="space-y-3">
+          {posts.map((post) => (
+            <li
+              key={post.id}
+              className="flex items-center justify-between rounded-lg border border-white/10 p-4"
+            >
+              <div>
+                <div className="font-medium">{post.title || "Untitled"}</div>
+                <div className="text-sm text-white/60">
+                  {post.isPublished ? "Published" : "Draft"} ·{" "}
+                  {post.createdAt.toLocaleDateString()}
                 </div>
               </div>
+
+              <Link
+                href={`/admin/blog/${post.id}/edit`}
+                className="text-sm underline underline-offset-4"
+              >
+                Edit
+              </Link>
             </li>
           ))}
         </ul>
-      </section>
-    </main>
+      )}
+    </div>
   );
 }
-
