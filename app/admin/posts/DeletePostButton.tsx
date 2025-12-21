@@ -9,22 +9,27 @@ export default function DeletePostButton({ postId }: { postId: number }) {
 
   async function handleDelete() {
     if (pending) return;
-    const confirmed = window.confirm("Удалить пост навсегда?");
+
+    const confirmed = confirm("Удалить пост навсегда?");
     if (!confirmed) return;
 
     setPending(true);
+
     try {
       const res = await fetch(`/api/admin/posts/${postId}`, {
         method: "DELETE",
       });
+
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         throw new Error(data.error || "Не удалось удалить пост");
       }
+
       router.refresh();
-    } catch (err: unknown) {
+    } catch (error) {
       const message =
-        err instanceof Error ? err.message : "Не удалось удалить пост";
+        error instanceof Error ? error.message : "Не удалось удалить пост";
       alert(message);
     } finally {
       setPending(false);
@@ -36,7 +41,7 @@ export default function DeletePostButton({ postId }: { postId: number }) {
       type="button"
       onClick={handleDelete}
       disabled={pending}
-      className="text-sm text-red-200 hover:text-red-100 disabled:opacity-60"
+      className="text-sm text-red-300 hover:text-red-200 disabled:opacity-50"
     >
       {pending ? "Удаляем..." : "Удалить"}
     </button>
