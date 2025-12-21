@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { postTypeToAdminKey, getTypeLabel } from "@/lib/adminPostTypes";
+import { logServerError } from "@/lib/db";
 import PostForm from "../../PostForm";
+
+export const runtime = "nodejs";
 
 function parseId(raw: string) {
   const id = Number(raw);
@@ -22,21 +25,26 @@ export default async function EditPostPage({
   const user = await getCurrentUser();
   const requestedPath = `/admin/posts/${id}/edit`;
   if (!user || user.role !== "ADMIN") {
-    redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
+    redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
   }
 
-  const post = await prisma.post.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      title: true,
-      type: true,
-      text: true,
-      coverImage: true,
-      mediaUrl: true,
-      isPublished: true,
-    },
-  });
+  const post = await prisma.post
+    .findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        text: true,
+        coverImage: true,
+        mediaUrl: true,
+        isPublished: true,
+      },
+    })
+    .catch((error) => {
+      logServerError("Admin post read error:", error);
+      return null;
+    });
 
   if (!post) redirect("/admin");
 

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  getDatabaseUnavailableMessage,
+  isDatabaseUnavailableError,
+  isExpectedDevDatabaseError,
+} from "@/lib/db";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -31,6 +37,15 @@ export async function GET() {
 
     return NextResponse.json({ user });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Profile error:", error);
+      }
+      return NextResponse.json(
+        { error: getDatabaseUnavailableMessage() },
+        { status: 503 }
+      );
+    }
     console.error("Profile error:", error);
     return NextResponse.json(
       { error: "Ошибка сервера" },

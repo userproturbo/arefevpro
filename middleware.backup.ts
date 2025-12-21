@@ -1,10 +1,8 @@
 import type { NextRequest } from "next/server";
-import proxy from "./adminProxy";
-
-export const config = {
-  matcher: ["/admin/:path*"],
-};
+import proxy, { config } from "./proxy";
 
 export function middleware(req: NextRequest) {
   return proxy(req);
 }
+
+export { config };

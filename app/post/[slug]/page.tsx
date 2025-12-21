@@ -10,8 +10,10 @@ import PostMedia from "../PostMedia";
 import { cache } from "react";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
+import { logServerError } from "@/lib/db";
 import PageContainer from "../../components/PageContainer";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const getPostBase = cache(async (slug: string) => {
@@ -31,7 +33,7 @@ const getPostBase = cache(async (slug: string) => {
       },
     });
   } catch (error) {
-    console.error("Public post read error:", error);
+    logServerError("Public post read error:", error);
     return null;
   }
 });
@@ -128,7 +130,7 @@ export default async function PostPage({
         },
       })
       .catch((error) => {
-        console.error("Public post meta read error:", error);
+        logServerError("Public post meta read error:", error);
         return null;
       });
 
@@ -138,7 +140,7 @@ export default async function PostPage({
             where: { postId_userId: { postId: post.id, userId: user.id } },
           })
           .catch((error) => {
-            console.error("Public like read error:", error);
+            logServerError("Public like read error:", error);
             return null;
           }))
       : false;

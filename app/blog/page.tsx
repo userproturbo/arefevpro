@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { PostType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { logServerError } from "@/lib/db";
 import PageContainer from "../components/PageContainer";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type BlogPostListItem = {
@@ -40,7 +42,7 @@ export default async function BlogPage() {
       },
     });
   } catch (error) {
-    console.error("Public blog list error:", error);
+    logServerError("Public blog list error:", error);
   }
 
   return (

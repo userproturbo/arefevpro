@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSectionConfig } from "@/lib/sections";
+import { logServerError } from "@/lib/db";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function SectionPage({
@@ -17,17 +19,29 @@ export default async function SectionPage({
     return notFound();
   }
 
-  const posts = await prisma.post.findMany({
-    where: { type: config.type, isPublished: true },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      createdAt: true,
-      coverImage: true,
-    },
-  });
+  let posts: Array<{
+    id: number;
+    slug: string;
+    title: string;
+    createdAt: Date;
+    coverImage: string | null;
+  }> = [];
+
+  try {
+    posts = await prisma.post.findMany({
+      where: { type: config.type, isPublished: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        createdAt: true,
+        coverImage: true,
+      },
+    });
+  } catch (error) {
+    logServerError("Section posts list error:", error);
+  }
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-10 space-y-6">

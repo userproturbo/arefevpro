@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  getDatabaseUnavailableMessage,
+  isDatabaseUnavailableError,
+  isExpectedDevDatabaseError,
+} from "@/lib/db";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(
@@ -39,6 +45,15 @@ export async function POST(
       likesCount,
     });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Toggle like error:", error);
+      }
+      return NextResponse.json(
+        { error: getDatabaseUnavailableMessage() },
+        { status: 503 }
+      );
+    }
     console.error("Toggle like error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }

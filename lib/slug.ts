@@ -1,4 +1,7 @@
+import "server-only";
+
 import { prisma } from "./prisma";
+import { logServerError } from "@/lib/db";
 
 const translitMap: Record<string, string> = {
   а: "a",
@@ -55,9 +58,15 @@ export async function generateUniqueSlug(title: string, desired?: string) {
   let candidate = base;
   let index = 1;
 
-  while (await prisma.post.findUnique({ where: { slug: candidate } })) {
-    candidate = `${base}-${index++}`;
-  }
+  try {
+    while (await prisma.post.findUnique({ where: { slug: candidate } })) {
+      candidate = `${base}-${index++}`;
+    }
 
-  return candidate;
+    return candidate;
+  } catch (error) {
+    logServerError("Unique slug generation error:", error);
+    const suffix = Math.random().toString(36).slice(2, 8);
+    return `${base}-${suffix}`;
+  }
 }
