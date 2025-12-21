@@ -3,7 +3,13 @@ import { PostType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { generateUniqueSlug } from "@/lib/slug";
+import {
+  getDatabaseUnavailableMessage,
+  isDatabaseUnavailableError,
+  isExpectedDevDatabaseError,
+} from "@/lib/db";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function resolveType(rawType: unknown): PostType | null {
@@ -72,6 +78,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ post }, { status: 201 });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Admin create post error:", error);
+      }
+      return NextResponse.json(
+        { error: getDatabaseUnavailableMessage() },
+        { status: 503 }
+      );
+    }
     console.error("Admin create post error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }

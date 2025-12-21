@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  getDatabaseUnavailableMessage,
+  isDatabaseUnavailableError,
+  isExpectedDevDatabaseError,
+} from "@/lib/db";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
@@ -39,6 +45,15 @@ export async function GET(
 
     return NextResponse.json({ post });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Single post error:", error);
+      }
+      return NextResponse.json(
+        { error: getDatabaseUnavailableMessage() },
+        { status: 503 }
+      );
+    }
     console.error("Single post error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
@@ -93,6 +108,15 @@ export async function PUT(
 
     return NextResponse.json({ post: updated });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Update post error:", error);
+      }
+      return NextResponse.json(
+        { error: getDatabaseUnavailableMessage() },
+        { status: 503 }
+      );
+    }
     console.error("Update post error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
@@ -130,6 +154,15 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Delete post error:", error);
+      }
+      return NextResponse.json(
+        { error: getDatabaseUnavailableMessage() },
+        { status: 503 }
+      );
+    }
     console.error("Delete post error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }

@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getAdminType, getTypeLabel } from "@/lib/adminPostTypes";
 import { prisma } from "@/lib/prisma";
+import { logServerError } from "@/lib/db";
+import type { PostType } from "@prisma/client";
 import DeletePostButton from "./DeletePostButton";
+
+export const runtime = "nodejs";
 
 export default async function AdminPostsPage({
   searchParams,
@@ -16,7 +20,7 @@ export default async function AdminPostsPage({
 
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
-    redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
+    redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
   }
 
   const config = getAdminType(typeParam);
@@ -25,18 +29,31 @@ export default async function AdminPostsPage({
     redirect("/admin");
   }
 
-  const posts = await prisma.post.findMany({
-    where: { type: config.postType },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      type: true,
-      createdAt: true,
-      isPublished: true,
-    },
-  });
+  let posts: Array<{
+    id: number;
+    slug: string;
+    title: string;
+    type: PostType;
+    createdAt: Date;
+    isPublished: boolean;
+  }> = [];
+
+  try {
+    posts = await prisma.post.findMany({
+      where: { type: config.postType },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        type: true,
+        createdAt: true,
+        isPublished: true,
+      },
+    });
+  } catch (error) {
+    logServerError("Admin posts by type list error:", error);
+  }
 
   return (
     <main className="max-w-4xl mx-auto space-y-6">

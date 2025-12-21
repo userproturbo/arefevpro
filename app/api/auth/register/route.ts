@@ -4,7 +4,13 @@ import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 import { setAuthCookie } from "@/lib/auth";
 import { signToken } from "@/lib/jwt";
+import {
+  getDatabaseUnavailableMessage,
+  isExpectedDevDatabaseError,
+  isDatabaseUnavailableError,
+} from "@/lib/db";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -46,18 +52,22 @@ export async function POST(req: Request) {
       select: { id: true, nickname: true, role: true, login: true },
     });
 
-    const payload = {
-      id: user.id,
-      login: user.login,
-      nickname: user.nickname,
-      role: user.role,
-    };
+    const payload = { id: user.id, role: user.role };
     const token = signToken(payload);
     await setAuthCookie(payload);
 
     return NextResponse.json({ success: true, user, token }, { status: 201 });
   } catch (error) {
-    console.error(error);
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Register error:", error);
+      }
+      return NextResponse.json(
+        { error: getDatabaseUnavailableMessage() },
+        { status: 503 }
+      );
+    }
+    console.error("Register error:", error);
     return NextResponse.json(
       { error: "Ошибка сервера" },
       { status: 500 }

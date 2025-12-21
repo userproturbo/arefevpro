@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isExpectedDevDatabaseError } from "@/lib/db";
 
 const VISITOR_COOKIE = "visitor_id";
 const VISIT_COOLDOWN_MINUTES = 15;
@@ -38,20 +39,32 @@ async function recordVisit(visitorId: string) {
       await prisma.visit.create({ data: { visitorId } });
     }
   } catch (error) {
+    if (isExpectedDevDatabaseError(error)) return;
     console.error("Visit tracking error:", error);
   }
 }
 
 export async function POST(req: NextRequest) {
-  const existingVisitorId = req.cookies.get(VISITOR_COOKIE)?.value || null;
-  const visitorId = existingVisitorId || crypto.randomUUID();
+  try {
+    if (process.env.DISABLE_VISIT_TRACKING === "1") {
+      return new NextResponse(null, { status: 204 });
+    }
 
-  const response = new NextResponse(null, { status: 200 });
-  if (!existingVisitorId) {
-    response.cookies.set(VISITOR_COOKIE, visitorId, VISITOR_COOKIE_OPTIONS);
+    const existingVisitorId = req.cookies.get(VISITOR_COOKIE)?.value || null;
+    const visitorId = existingVisitorId || crypto.randomUUID();
+
+    const response = new NextResponse(null, { status: 204 });
+    if (!existingVisitorId) {
+      response.cookies.set(VISITOR_COOKIE, visitorId, VISITOR_COOKIE_OPTIONS);
+    }
+
+    void recordVisit(visitorId);
+
+    return response;
+  } catch (error) {
+    if (!isExpectedDevDatabaseError(error)) {
+      console.error("Visit route error:", error);
+    }
+    return new NextResponse(null, { status: 204 });
   }
-
-  void recordVisit(visitorId);
-
-  return response;
 }

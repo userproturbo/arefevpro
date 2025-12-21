@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { ADMIN_POST_TYPES, getAdminType, getTypeLabel } from "@/lib/adminPostTypes";
 import PostForm from "../PostForm";
 
+export const runtime = "nodejs";
+
 export default async function NewPostPage({
   searchParams,
 }: {
@@ -15,7 +17,7 @@ export default async function NewPostPage({
 
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
-    redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
+    redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
   }
 
   const config = getAdminType(typeParam) ?? {

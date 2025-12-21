@@ -3,6 +3,18 @@ AREFEVPRODUCTION
 AREFEVPRODUCTION — это современный веб-проект студийного формата, объединяющий портфолио, блог и медиа-контент (фото, видео, проекты) в едином интерактивном пространстве.
 Проект развивается как личная студия AREFEVPRODUCTION, ориентированная на клиентов, заказчиков и творческое самовыражение.
 
+## Локальный запуск
+
+1. `cp .env.example .env` и укажи `DATABASE_URL` + `JWT_SECRET`.
+2. Если база ещё не создана (ошибка `database does not exist`), создай её и примени миграции:
+   - `createdb -h localhost -p 5433 -U postgres arefevpro`
+   - `npx prisma migrate deploy`
+3. Запуск:
+   - dev: `npm run dev`
+   - prod: `npm run build && npm run start`
+
+`npm run dev` и `npm run start` дополнительно делают best-effort `prisma migrate deploy` через `scripts/ensure-db.mjs` и не падают, если база недоступна.
+
 Идея проекта
 
 Сайт задуман как:
