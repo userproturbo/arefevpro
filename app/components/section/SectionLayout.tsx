@@ -3,12 +3,12 @@
 import type { ReactNode } from "react";
 import PageContainer from "../PageContainer";
 
-interface SectionLayoutProps {
+export type SectionLayoutProps = {
   title: string;
   description?: string;
-  sidebar: ReactNode;
+  sidebar?: ReactNode; // ✅ optional
   children: ReactNode;
-}
+};
 
 export default function SectionLayout({
   title,
@@ -17,23 +17,22 @@ export default function SectionLayout({
   children,
 }: SectionLayoutProps) {
   return (
-    <PageContainer>
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr] lg:gap-8">
-        <aside className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-6 sm:px-6 sm:py-8 shadow-inner shadow-black/30">
+    <section className="flex gap-8">
+      {sidebar ? (
+        <aside className="w-64 shrink-0">
           {sidebar}
         </aside>
+      ) : null}
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-6 sm:px-7 sm:py-8 shadow-inner shadow-black/20">
-          <header className="space-y-2 border-b border-white/10 pb-3">
-            <h1 className="text-2xl font-semibold text-white">{title}</h1>
-            {description ? (
-              <p className="text-sm leading-relaxed text-white/60">{description}</p>
-            ) : null}
-          </header>
+      <div className="flex-1">
+        <h1 className="text-3xl font-bold">{title}</h1>
+        {description ? (
+          <p className="mt-2 text-white/60">{description}</p>
+        ) : null}
 
-          <div className="mt-5">{children}</div>
-        </section>
+        <div className="mt-6">{children}</div>
       </div>
-    </PageContainer>
+    </section>
   );
 }
+
