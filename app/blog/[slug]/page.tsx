@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import SectionLayout from "@/app/components/section/SectionLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -28,32 +30,34 @@ export default async function BlogPostPage({
   }
 
   return (
-    <article className="mx-auto max-w-3xl px-4 py-12 space-y-10">
-      {/* Header */}
-      <header className="space-y-4">
-        <h1 className="text-4xl font-bold leading-tight">
-          {post.title}
-        </h1>
+    <SectionLayout
+      title={post.title}
+      description={post.createdAt.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}
+    >
+      <article className="space-y-8">
+        {/* Back link */}
+        <Link
+          href="/blog"
+          className="inline-block text-sm text-white/60 hover:text-white"
+        >
+          ← Back to blog
+        </Link>
 
-        <div className="text-sm text-white/50">
-          {post.createdAt.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+        {/* Content */}
+        <div className="prose prose-invert max-w-none">
+          {post.text ? (
+            post.text.split("\n").map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))
+          ) : (
+            <p className="text-white/60">No content.</p>
+          )}
         </div>
-      </header>
-
-      {/* Content */}
-      <section className="prose prose-invert max-w-none">
-        {post.text ? (
-          post.text.split("\n").map((line, i) => (
-            <p key={i}>{line}</p>
-          ))
-        ) : (
-          <p className="text-white/60">No content.</p>
-        )}
-      </section>
-    </article>
+      </article>
+    </SectionLayout>
   );
 }
