@@ -2,6 +2,43 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
+
+const listVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.05,
+    },
+  },
+  exit: {
+    transition: {
+      staggerChildren: 0.02,
+      staggerDirection: -1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.25,
+      ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: 8,
+    transition: {
+      duration: 0.2,
+      ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
+    },
+  },
+};
 
 type BlogSidebarProps = {
   posts: {
@@ -21,13 +58,24 @@ export default function BlogSidebar({ posts, onNavigate }: BlogSidebarProps) {
         Blog
       </div>
 
-      <ul className="space-y-1">
+      <motion.ul
+        className="space-y-1"
+        variants={listVariants}
+        initial="hidden"
+        animate="show"
+        exit="exit"
+      >
         {posts.map((post) => {
           const href = `/blog/${post.slug}`;
           const isActive = pathname === href;
 
           return (
-            <li key={post.id}>
+            <motion.li
+              key={post.id}
+              variants={itemVariants}
+              whileHover={{ x: 2, opacity: 1 }}
+              transition={{ duration: 0.15 }}
+            >
               <Link
                 href={href}
                 className={`block rounded-lg px-3 py-2 text-sm transition ${
@@ -39,10 +87,10 @@ export default function BlogSidebar({ posts, onNavigate }: BlogSidebarProps) {
               >
                 {post.title || "Untitled"}
               </Link>
-            </li>
+            </motion.li>
           );
         })}
-      </ul>
+      </motion.ul>
     </>
   );
 }
