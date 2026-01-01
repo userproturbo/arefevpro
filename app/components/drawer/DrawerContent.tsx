@@ -3,15 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import BlogSidebar from "@/app/blog/BlogSidebar";
 import { type SectionDrawerSection } from "@/store/useSectionDrawerStore";
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <div className="mb-6">
-      <p className="text-xs uppercase tracking-widest text-white/40">Section</p>
-      <h2 className="mt-2 text-2xl font-semibold text-white">{title}</h2>
-    </div>
-  );
-}
+import SectionDrawerShell from "./SectionDrawerShell";
 
 function PlaceholderList({ items }: { items: string[] }) {
   return (
@@ -76,32 +68,45 @@ function DrawerBlogContent() {
 
   if (status === "loading" || status === "idle") {
     return (
-      <>
-        <SectionHeader title="Blog" />
+      <SectionDrawerShell title="Blog">
         <div className="space-y-2">
           <div className="h-9 rounded-lg bg-white/[0.06]" />
           <div className="h-9 rounded-lg bg-white/[0.06]" />
           <div className="h-9 rounded-lg bg-white/[0.06]" />
           <div className="h-9 rounded-lg bg-white/[0.06]" />
+          <div className="h-9 rounded-lg bg-white/[0.06]" />
+          <div className="h-9 rounded-lg bg-white/[0.06]" />
         </div>
-      </>
+      </SectionDrawerShell>
     );
   }
 
   if (status === "error") {
     return (
-      <>
-        <SectionHeader title="Blog" />
+      <SectionDrawerShell title="Blog">
         <p className="text-sm text-white/60">Couldn’t load posts.</p>
-      </>
+      </SectionDrawerShell>
     );
   }
 
   return (
-    <>
-      <SectionHeader title="Blog" />
+    <SectionDrawerShell title="Blog">
       <BlogSidebar posts={posts} />
-    </>
+    </SectionDrawerShell>
+  );
+}
+
+function DrawerPlaceholderSection({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  return (
+    <SectionDrawerShell title={title}>
+      <PlaceholderList items={items} />
+    </SectionDrawerShell>
   );
 }
 
@@ -138,10 +143,5 @@ export default function DrawerContent({ section }: { section: SectionDrawerSecti
     }
   })();
 
-  return (
-    <>
-      <SectionHeader title={title} />
-      <PlaceholderList items={items} />
-    </>
-  );
+  return <DrawerPlaceholderSection title={title} items={items} />;
 }
