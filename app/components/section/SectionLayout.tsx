@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import PageContainer from "../PageContainer";
 
 export type SectionLayoutProps = {
   title: string;

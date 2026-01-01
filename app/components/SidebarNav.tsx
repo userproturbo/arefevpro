@@ -1,24 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { usePanel, type PanelType } from "@/store/panelStore";
+import { usePanel } from "@/store/panelStore";
+import {
+  type SectionDrawerSection,
+  useSectionDrawerStore,
+} from "@/store/useSectionDrawerStore";
 
-type NavItem = { label: string; type: Exclude<PanelType, null> | "home" };
+type NavItem = { label: string; href: string; drawerSection?: SectionDrawerSection };
 
 const navItems: NavItem[] = [
-  { label: "HOME", type: "home" },
-  { label: "PROJECTS", type: "projects" },
-  { label: "PHOTO", type: "photo" },
-  { label: "VIDEO", type: "video" },
-  { label: "MUSIC", type: "music" },
-  { label: "BLOG", type: "blog" },
+  { label: "HOME", href: "/" },
+  { label: "PROJECTS", href: "/projects", drawerSection: "projects" },
+  { label: "PHOTO", href: "/photo", drawerSection: "photo" },
+  { label: "VIDEO", href: "/video", drawerSection: "video" },
+  { label: "MUSIC", href: "/music", drawerSection: "music" },
+  { label: "BLOG", href: "/blog", drawerSection: "blog" },
 ];
 
-const isPanelType = (type: NavItem["type"]): type is Exclude<PanelType, null> =>
-  type !== "home";
-
 export default function SidebarNav() {
-  const { openPanel, closePanel, setActiveSection } = usePanel();
+  const { closePanel } = usePanel();
+  const toggleDrawer = useSectionDrawerStore((s) => s.toggle);
+  const closeDrawer = useSectionDrawerStore((s) => s.close);
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-16 border-r border-white/10">
@@ -41,30 +44,20 @@ export default function SidebarNav() {
 
             return (
               <li key={item.label} className="flex w-full">
-                {item.type === "home" || item.type === "blog" ? (
-                  <Link
-                    href={item.type === "home" ? "/" : "/blog"}
-                    className="flex w-full"
-                    onClick={() => {
-                      closePanel();
-                      setActiveSection(item.type === "home" ? "home" : "blog");
-                    }}
-                  >
-                    {content}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    className="flex w-full"
-                    onClick={() => {
-                      if (isPanelType(item.type)) {
-                        openPanel(item.type);
-                      }
-                    }}
-                  >
-                    {content}
-                  </button>
-                )}
+                <Link
+                  href={item.href}
+                  className="flex w-full"
+                  onClick={() => {
+                    closePanel();
+                    if (item.drawerSection) {
+                      toggleDrawer(item.drawerSection);
+                    } else {
+                      closeDrawer();
+                    }
+                  }}
+                >
+                  {content}
+                </Link>
               </li>
             );
           })}

@@ -9,9 +9,10 @@ type BlogSidebarProps = {
     title: string | null;
     slug: string;
   }[];
+  onNavigate?: () => void;
 };
 
-export default function BlogSidebar({ posts }: BlogSidebarProps) {
+export default function BlogSidebar({ posts, onNavigate }: BlogSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -34,6 +35,7 @@ export default function BlogSidebar({ posts }: BlogSidebarProps) {
                     ? "bg-white/[0.08] text-white shadow-inner shadow-black/40"
                     : "text-white/70 hover:bg-white/[0.04] hover:text-white"
                 }`}
+                onClick={onNavigate}
               >
                 {post.title || "Untitled"}
               </Link>
