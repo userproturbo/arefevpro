@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import BlogSidebar from "@/app/blog/BlogSidebar";
-import {
-  type SectionDrawerSection,
-  useSectionDrawerStore,
-} from "@/store/useSectionDrawerStore";
+import { type SectionDrawerSection } from "@/store/useSectionDrawerStore";
 
 function SectionHeader({ title }: { title: string }) {
   return (
@@ -32,7 +29,6 @@ function PlaceholderList({ items }: { items: string[] }) {
 }
 
 function DrawerBlogContent() {
-  const close = useSectionDrawerStore((s) => s.close);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">(
     "idle"
   );
@@ -104,7 +100,7 @@ function DrawerBlogContent() {
   return (
     <>
       <SectionHeader title="Blog" />
-      <BlogSidebar posts={posts} onNavigate={close} />
+      <BlogSidebar posts={posts} />
     </>
   );
 }

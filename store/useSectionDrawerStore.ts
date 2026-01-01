@@ -4,7 +4,6 @@ export type SectionDrawerSection = "projects" | "photo" | "video" | "music" | "b
 
 type SectionDrawerState = {
   activeSection: SectionDrawerSection | null;
-  isOpen: boolean;
   open: (section: SectionDrawerSection) => void;
   close: () => void;
   switchTo: (section: SectionDrawerSection) => void;
@@ -13,15 +12,13 @@ type SectionDrawerState = {
 
 export const useSectionDrawerStore = create<SectionDrawerState>((set) => ({
   activeSection: null,
-  isOpen: false,
-  open: (section) => set({ activeSection: section, isOpen: true }),
-  close: () => set({ activeSection: null, isOpen: false }),
-  switchTo: (section) => set({ activeSection: section, isOpen: true }),
+  open: (section) => set({ activeSection: section }),
+  close: () => set({ activeSection: null }),
+  switchTo: (section) => set({ activeSection: section }),
   toggle: (section) =>
     set((state) =>
-      state.isOpen && state.activeSection === section
-        ? { activeSection: null, isOpen: false }
-        : { activeSection: section, isOpen: true }
+      state.activeSection === section
+        ? { activeSection: null }
+        : { activeSection: section }
     ),
 }));
-

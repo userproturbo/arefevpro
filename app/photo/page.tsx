@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import SectionLayout from "../components/section/SectionLayout";
 import PhotoContent, { type PhotoAlbum } from "../components/panel/content/PhotoContent";
 
@@ -47,43 +46,12 @@ const photoAlbums: PhotoAlbum[] = [
 
 export default function PhotoPage() {
   const firstAlbum = photoAlbums[0];
-
-  const [activeAlbumId, setActiveAlbumId] = useState<string>(
-    firstAlbum?.id ?? ""
-  );
-
-  const activeAlbum =
-    photoAlbums.find((album) => album.id === activeAlbumId) ?? firstAlbum;
-
-  const sidebar = (
-    <ul className="space-y-3 text-xl text-white/80">
-      {photoAlbums.map((album) => {
-        const isActive = album.id === activeAlbum?.id;
-
-        return (
-          <li key={album.id}>
-            <button
-              type="button"
-              onClick={() => setActiveAlbumId(album.id)}
-              className={`w-full rounded-lg px-4 py-3 text-left font-semibold transition ${
-                isActive
-                  ? "bg-white/[0.08] text-white shadow-inner shadow-black/40"
-                  : "text-white/70 hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              {album.title}
-            </button>
-          </li>
-        );
-      })}
-    </ul>
-  );
+  const activeAlbum = firstAlbum;
 
   return (
     <SectionLayout
       title={activeAlbum?.title ?? "Album"}
       description={activeAlbum?.description ?? albumDescription}
-      sidebar={sidebar}
     >
       {activeAlbum && <PhotoContent album={activeAlbum} showHeader={false} />}
     </SectionLayout>

@@ -3,7 +3,6 @@ import Providers from "./providers";
 import Script from "next/script";
 import SidebarNav from "./components/SidebarNav";
 import NavigationOverlay from "./components/navigation/NavigationOverlay";
-import RightSidePanel from "./components/panel/RightSidePanel";
 import SectionDrawerMount from "./components/drawer/SectionDrawerMount";
 
 
@@ -20,11 +19,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <Providers>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(120,120,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0,rgba(255,120,200,0.16),transparent_30%),radial-gradient(circle_at_50%_80%,rgba(0,200,180,0.14),transparent_28%)] pointer-events-none" />
-          <SidebarNav />
-          <SectionDrawerMount />
-          <div className="relative ml-16 h-screen overflow-hidden hide-scrollbar">
-            <main className="h-full w-full overflow-hidden hide-scrollbar">{children}</main>
-            <RightSidePanel />
+          <div className="flex h-screen w-screen overflow-hidden">
+            <SidebarNav />
+            <div className="relative flex h-full flex-1 overflow-hidden">
+              <SectionDrawerMount />
+              <main className="flex-1 overflow-auto">{children}</main>
+            </div>
           </div>
           <NavigationOverlay />
         </Providers>  
