@@ -1,23 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import BlogSidebar from "@/app/blog/BlogSidebar";
 import { type SectionDrawerSection } from "@/store/useSectionDrawerStore";
 import SectionDrawerShell from "./SectionDrawerShell";
+import DrawerList, { type DrawerListItem } from "./DrawerList";
 
-function PlaceholderList({ items }: { items: string[] }) {
-  return (
-    <ul className="space-y-2 text-sm text-white/80">
-      {items.map((item) => (
-        <li
-          key={item}
-          className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 shadow-inner shadow-black/40"
-        >
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
+function slugifyId(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 function DrawerBlogContent() {
@@ -66,6 +59,16 @@ function DrawerBlogContent() {
     };
   }, []);
 
+  const items: DrawerListItem[] = useMemo(
+    () =>
+      posts.map((post) => ({
+        id: String(post.id),
+        title: post.title || "Untitled",
+        href: `/blog/${post.slug}`,
+      })),
+    [posts]
+  );
+
   if (status === "loading" || status === "idle") {
     return (
       <SectionDrawerShell title="Blog">
@@ -91,7 +94,7 @@ function DrawerBlogContent() {
 
   return (
     <SectionDrawerShell title="Blog">
-      <BlogSidebar posts={posts} />
+      <DrawerList items={items} />
     </SectionDrawerShell>
   );
 }
@@ -99,13 +102,21 @@ function DrawerBlogContent() {
 function DrawerPlaceholderSection({
   title,
   items,
+  hrefBase,
 }: {
   title: string;
   items: string[];
+  hrefBase: string;
 }) {
   return (
     <SectionDrawerShell title={title}>
-      <PlaceholderList items={items} />
+      <DrawerList
+        items={items.map((item) => ({
+          id: slugifyId(`${title}-${item}`),
+          title: item,
+          href: `${hrefBase}?item=${encodeURIComponent(slugifyId(item))}`,
+        }))}
+      />
     </SectionDrawerShell>
   );
 }
@@ -143,5 +154,5 @@ export default function DrawerContent({ section }: { section: SectionDrawerSecti
     }
   })();
 
-  return <DrawerPlaceholderSection title={title} items={items} />;
+  return <DrawerPlaceholderSection title={title} items={items} hrefBase={`/${section}`} />;
 }
