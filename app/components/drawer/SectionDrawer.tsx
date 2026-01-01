@@ -15,7 +15,7 @@ export default function SectionDrawer() {
       {activeSection ? (
         <motion.aside
           key={activeSection}
-          className="shrink-0 h-full overflow-y-auto border-r border-white/10 bg-[#04050a]/95 p-5 shadow-2xl shadow-black/60 backdrop-blur-md"
+          className="shrink-0 h-full overflow-hidden border-r border-white/10 bg-[#04050a]/95 shadow-2xl shadow-black/60 backdrop-blur-md"
           style={{ width: DRAWER_WIDTH }}
           initial={{ x: -DRAWER_WIDTH }}
           animate={{ x: 0, transition }}
