@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePanel } from "@/store/panelStore";
 import {
   type SectionDrawerSection,
   useSectionDrawerStore,
 } from "@/store/useSectionDrawerStore";
+
+const MENU_WIDTH = 72;
 
 type NavItem = { label: string; href: string; drawerSection?: SectionDrawerSection };
 
@@ -19,12 +20,14 @@ const navItems: NavItem[] = [
 ];
 
 export default function SidebarNav() {
-  const { closePanel } = usePanel();
   const toggleDrawer = useSectionDrawerStore((s) => s.toggle);
   const closeDrawer = useSectionDrawerStore((s) => s.close);
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-16 border-r border-white/10">
+    <aside
+      className="h-full shrink-0 border-r border-white/10"
+      style={{ width: MENU_WIDTH }}
+    >
       <nav className="h-full flex items-center justify-center">
         <ul className="flex flex-col gap-6 items-center">
           {navItems.map((item) => {
@@ -48,7 +51,6 @@ export default function SidebarNav() {
                   href={item.href}
                   className="flex w-full"
                   onClick={() => {
-                    closePanel();
                     if (item.drawerSection) {
                       toggleDrawer(item.drawerSection);
                     } else {

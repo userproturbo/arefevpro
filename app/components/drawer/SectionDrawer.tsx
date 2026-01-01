@@ -1,82 +1,29 @@
 "use client";
 
-import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import DrawerContent from "./DrawerContent";
 import { useSectionDrawerStore } from "@/store/useSectionDrawerStore";
 
-const transition = { duration: 0.35, ease: "easeInOut" as const };
+const transition = { duration: 0.3, ease: "easeInOut" as const };
+const DRAWER_WIDTH = 300;
 
 export default function SectionDrawer() {
   const activeSection = useSectionDrawerStore((s) => s.activeSection);
-  const isOpen = useSectionDrawerStore((s) => s.isOpen);
-  const close = useSectionDrawerStore((s) => s.close);
-
-  const open = isOpen && activeSection !== null;
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, close]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [open]);
 
   return (
-    <>
-      <AnimatePresence>
-        {open ? (
-          <motion.button
-            type="button"
-            aria-label="Close drawer"
-            className="fixed inset-0 left-16 z-40 cursor-default bg-black/60 backdrop-blur-[2px]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition }}
-            exit={{ opacity: 0, transition }}
-            onClick={close}
-          />
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence mode="wait">
-        {open && activeSection ? (
-          <motion.aside
-            key={activeSection}
-            className="fixed left-16 top-0 z-50 h-screen w-[320px] max-w-[calc(100vw-4rem)] overflow-y-auto border-r border-white/10 bg-[#04050a]/95 p-5 shadow-2xl shadow-black/60 backdrop-blur-md"
-            initial={{ x: "-100%" }}
-            animate={{ x: 0, transition }}
-            exit={{ x: "-100%", transition }}
-          >
-            <div className="flex items-center justify-end">
-              <button
-                type="button"
-                onClick={close}
-                className="rounded-md border border-white/20 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/90 transition hover:bg-white/10"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="mt-4">
-              <DrawerContent section={activeSection} />
-            </div>
-          </motion.aside>
-        ) : null}
-      </AnimatePresence>
-    </>
+    <AnimatePresence mode="wait">
+      {activeSection ? (
+        <motion.aside
+          key={activeSection}
+          className="shrink-0 h-full overflow-y-auto border-r border-white/10 bg-[#04050a]/95 p-5 shadow-2xl shadow-black/60 backdrop-blur-md"
+          style={{ width: DRAWER_WIDTH }}
+          initial={{ x: -DRAWER_WIDTH }}
+          animate={{ x: 0, transition }}
+          exit={{ x: -DRAWER_WIDTH, transition }}
+        >
+          <DrawerContent section={activeSection} />
+        </motion.aside>
+      ) : null}
+    </AnimatePresence>
   );
 }
-

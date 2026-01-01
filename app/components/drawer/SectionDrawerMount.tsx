@@ -5,11 +5,11 @@ import SectionDrawer from "./SectionDrawer";
 
 export default function SectionDrawerMount() {
   const pathname = usePathname();
+  const isAdmin = pathname.startsWith("/admin");
 
-  if (pathname.startsWith("/admin")) {
+  if (isAdmin) {
     return null;
   }
 
   return <SectionDrawer />;
 }
-
