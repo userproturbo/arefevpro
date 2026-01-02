@@ -253,3 +253,4 @@ Three.js-сцены и интерактив
        └─────────────►  MySQL / PostgreSQL  (только текстовые данные)
 
 
+# deploy trigger
