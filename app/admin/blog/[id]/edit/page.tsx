@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import BlogEditor from "../../BlogEditor";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,11 @@ export default async function AdminBlogEditPage({
   if (Number.isNaN(postId)) {
     notFound();
   }
+
+  const user = await getCurrentUser();
+  const requestedPath = `/admin/blog/${id}/edit`;
+  if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
+  if (user.role !== "ADMIN") redirect("/");
 
   const post = await prisma.post.findUnique({
     where: { id: postId },

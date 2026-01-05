@@ -3,10 +3,12 @@
 import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "../providers";
 
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { refresh } = useAuth();
   const [nickname, setNickname] = useState("");
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +22,7 @@ function RegisterForm() {
 
     const res = await fetch("/api/auth/register", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nickname, login, password }),
     });
@@ -32,8 +35,10 @@ function RegisterForm() {
       return;
     }
 
+    await refresh();
     const next = searchParams.get("next");
     router.push(next || "/");
+    router.refresh();
     setLoading(false);
   }
 

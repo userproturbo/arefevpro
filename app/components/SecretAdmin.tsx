@@ -56,7 +56,7 @@ export default function SecretAdmin() {
                     <Link href="/profile" className="hover:text-gray-300">
                         Профиль
                     </Link>
-                    <Link href="/login" className="hover:text-gray-300">
+                    <Link href="/admin/login" className="hover:text-gray-300">
                         Войти
                     </Link>
                 </div>

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import StatusBadge from "@/app/admin/components/StatusBadge";
 import DeletePostButton from "../../admin/posts/DeletePostButton";
@@ -6,6 +8,11 @@ import DeletePostButton from "../../admin/posts/DeletePostButton";
 export const dynamic = "force-dynamic";
 
 export default async function AdminBlogPage() {
+  const user = await getCurrentUser();
+  const requestedPath = "/admin/blog";
+  if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
+  if (user.role !== "ADMIN") redirect("/");
+
   const posts = await prisma.post.findMany({
     orderBy: { createdAt: "desc" },
     select: {

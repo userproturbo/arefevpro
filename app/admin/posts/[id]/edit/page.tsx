@@ -24,9 +24,8 @@ export default async function EditPostPage({
 
   const user = await getCurrentUser();
   const requestedPath = `/admin/posts/${id}/edit`;
-  if (!user || user.role !== "ADMIN") {
-    redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
-  }
+  if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
+  if (user.role !== "ADMIN") redirect("/");
 
   const post = await prisma.post
     .findUnique({

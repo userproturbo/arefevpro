@@ -32,10 +32,14 @@ export async function getCurrentUserResult(): Promise<CurrentUserResult> {
   const cookieStore = await cookies();
   const token = cookieStore.get(AUTH_COOKIE)?.value;
 
-  if (!token) return { user: null, error: "NO_TOKEN" };
+  if (!token) {
+    return { user: null, error: "NO_TOKEN" };
+  }
 
   const payload = verifyToken(token);
-  if (!payload) return { user: null, error: "INVALID_TOKEN" };
+  if (!payload) {
+    return { user: null, error: "INVALID_TOKEN" };
+  }
 
   try {
     const user = await prisma.user.findUnique({
@@ -46,9 +50,14 @@ export async function getCurrentUserResult(): Promise<CurrentUserResult> {
       },
     });
 
-    if (!user) return { user: null, error: "INVALID_TOKEN" };
+    if (!user) {
+      return { user: null, error: "INVALID_TOKEN" };
+    }
 
-    return { user: { id: user.id, role: user.role as AuthRole }, error: null };
+    return {
+      user: { id: user.id, role: user.role as AuthRole },
+      error: null,
+    };
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {

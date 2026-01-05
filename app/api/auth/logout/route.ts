@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE } from "@/lib/auth";
+import { AUTH_COOKIE } from "@/lib/authCookie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const res = NextResponse.json({ success: true });
+  const res = NextResponse.json({ ok: true });
 
   res.cookies.set(AUTH_COOKIE, "", {
     httpOnly: true,
