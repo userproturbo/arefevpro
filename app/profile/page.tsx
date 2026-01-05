@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../providers";
 
 interface User {
   id: number;
@@ -11,6 +13,8 @@ interface User {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { refresh } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,8 +64,10 @@ export default function ProfilePage() {
       <button
         className="mt-8 p-3 bg-red-600 hover:bg-red-700 rounded"
         onClick={async () => {
-          await fetch("/api/auth/logout", { method: "POST" });
-          window.location.href = "/login";
+          await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+          await refresh();
+          router.push("/");
+          router.refresh();
         }}
       >
         Выйти

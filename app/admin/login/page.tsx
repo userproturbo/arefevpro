@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import LoginForm from "../../login/LoginForm";
+import AdminLoginForm from "./AdminLoginForm";
 
 export default async function AdminLoginPage({
   searchParams,
@@ -12,7 +12,8 @@ export default async function AdminLoginPage({
   const next = rawNext && rawNext.startsWith("/admin") ? rawNext : "/admin";
 
   const user = await getCurrentUser();
-  if (user?.role === "ADMIN") redirect(next);
+  if (user?.role === "ADMIN") redirect("/admin");
+  if (user) redirect("/");
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -22,7 +23,7 @@ export default async function AdminLoginPage({
           Укажи логин и пароль, чтобы попасть в админку.
         </p>
 
-        <LoginForm next={next} />
+        <AdminLoginForm next={next} />
       </div>
     </div>
   );

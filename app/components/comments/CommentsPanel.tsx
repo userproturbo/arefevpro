@@ -107,6 +107,10 @@ export default function CommentsPanel({
           <Link href="/login" className="underline underline-offset-4">
             войдите
           </Link>
+          {" или "}
+          <Link href="/register" className="underline underline-offset-4">
+            зарегистрируйтесь
+          </Link>
           .
         </p>
       ) : null}

@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "../providers";
 
 export default function LogoutButton() {
   const router = useRouter();
+  const { refresh } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,11 +14,15 @@ export default function LogoutButton() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/logout", { method: "POST" });
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
       if (!res.ok) {
         throw new Error("Не удалось завершить сессию");
       }
-      router.push("/login?next=/admin");
+      await refresh();
+      router.push("/");
       router.refresh();
     } catch (error) {
       console.error("Logout error:", error);

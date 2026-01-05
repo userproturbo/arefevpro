@@ -13,9 +13,8 @@ export const runtime = "nodejs";
 export default async function AdminPage() {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "ADMIN") {
-    redirect("/admin/login?next=/admin");
-  }
+  if (!user) redirect("/admin/login?next=/admin");
+  if (user.role !== "ADMIN") redirect("/");
 
   let posts: Array<{
     id: number;

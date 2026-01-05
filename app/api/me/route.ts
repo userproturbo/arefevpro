@@ -17,10 +17,15 @@ export async function GET() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(AUTH_COOKIE)?.value;
-    if (!token) return NextResponse.json({ user: null }, { status: 401 });
+
+    if (!token) {
+      return NextResponse.json({ user: null }, { status: 401 });
+    }
 
     const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ user: null }, { status: 401 });
+    if (!payload) {
+      return NextResponse.json({ user: null }, { status: 401 });
+    }
 
     try {
       const user = await prisma.user.findUnique({
@@ -30,7 +35,6 @@ export async function GET() {
           login: true,
           nickname: true,
           role: true,
-          createdAt: true,
         },
       });
 
@@ -42,7 +46,9 @@ export async function GET() {
     } catch (error) {
       if (isDatabaseUnavailableError(error)) {
         warnDatabaseUnavailableOnce("[api/me]", error);
-        if (!isExpectedDevDatabaseError(error)) console.error("Me route DB error:", error);
+        if (!isExpectedDevDatabaseError(error)) {
+          console.error("Me route DB error:", error);
+        }
         return NextResponse.json(
           { user: null, error: getDatabaseUnavailableMessage() },
           { status: 503, headers: { "Retry-After": "1" } }

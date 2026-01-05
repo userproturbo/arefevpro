@@ -16,9 +16,8 @@ export default async function NewPostPage({
   const requestedPath = `/admin/posts/new${typeParam ? `?type=${typeParam}` : ""}`;
 
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
-  }
+  if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
+  if (user.role !== "ADMIN") redirect("/");
 
   const config = getAdminType(typeParam) ?? {
     key: "about" as const,

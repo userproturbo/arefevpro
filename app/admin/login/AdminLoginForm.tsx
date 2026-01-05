@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useAuth } from "../providers";
+import { useAuth } from "@/app/providers";
 
-export default function LoginForm({ next }: { next?: string }) {
+export default function AdminLoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const { refresh } = useAuth();
   const [login, setLogin] = useState("");
@@ -13,10 +13,7 @@ export default function LoginForm({ next }: { next?: string }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const safeNext =
-    typeof next === "string" && next.startsWith("/") && !next.startsWith("/admin")
-      ? next
-      : "/";
+  const safeNext = typeof next === "string" && next.startsWith("/admin") ? next : "/admin";
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,7 +33,7 @@ export default function LoginForm({ next }: { next?: string }) {
         throw new Error(data.error || "Неверный логин или пароль");
       }
 
-      if (data?.user?.role !== "USER") {
+      if (data?.user?.role !== "ADMIN") {
         await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
         await refresh();
         throw new Error("Access denied");
@@ -86,13 +83,13 @@ export default function LoginForm({ next }: { next?: string }) {
       {error && (
         <div className="space-y-2">
           <p className="text-sm text-red-200 bg-red-500/10 rounded-xl border border-red-500/30 px-3 py-2">
-            {error}
+            {error === "Access denied" ? "Access denied" : error}
           </p>
           {error === "Access denied" && (
             <p className="text-xs text-white/60">
-              Для админа используйте{" "}
-              <Link href="/admin/login" className="underline underline-offset-4">
-                /admin/login
+              Это страница входа в админку. Для обычного входа используйте{" "}
+              <Link href="/login" className="underline underline-offset-4">
+                /login
               </Link>
               .
             </p>
@@ -102,3 +99,4 @@ export default function LoginForm({ next }: { next?: string }) {
     </form>
   );
 }
+
