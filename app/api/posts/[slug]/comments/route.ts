@@ -16,7 +16,6 @@ export async function GET(
 ) {
   try {
     const authUser = await getCurrentUser();
-    const currentUserId = authUser?.id ?? -1;
     const { slug } = await context.params;
     const post = await prisma.post.findUnique({
       where: { slug },
@@ -36,8 +35,7 @@ export async function GET(
         parentId: true,
         createdAt: true,
         user: { select: { id: true, nickname: true } },
-        _count: { select: { likes: true } },
-        likes: { where: { userId: currentUserId }, select: { id: true } },
+        _count: { select: { likes: true, replies: true } },
         replies: {
           where: { deletedAt: null },
           orderBy: { createdAt: "asc" },
@@ -47,12 +45,30 @@ export async function GET(
             parentId: true,
             createdAt: true,
             user: { select: { id: true, nickname: true } },
-            _count: { select: { likes: true } },
-            likes: { where: { userId: currentUserId }, select: { id: true } },
+            _count: { select: { likes: true, replies: true } },
           },
         },
       },
     });
+
+    let likedByMeSet = new Set<number>();
+    if (authUser) {
+      const commentIds: number[] = [];
+      for (const comment of comments) {
+        commentIds.push(comment.id);
+        for (const reply of comment.replies) {
+          commentIds.push(reply.id);
+        }
+      }
+
+      if (commentIds.length > 0) {
+        const liked = await prisma.commentLike.findMany({
+          where: { userId: authUser.id, commentId: { in: commentIds } },
+          select: { commentId: true },
+        });
+        likedByMeSet = new Set(liked.map((row) => row.commentId));
+      }
+    }
 
     return NextResponse.json({
       comments: comments.map((comment) => ({
@@ -62,7 +78,8 @@ export async function GET(
         createdAt: comment.createdAt.toISOString(),
         user: comment.user,
         likeCount: comment._count.likes,
-        likedByMe: authUser ? comment.likes.length > 0 : false,
+        replyCount: comment._count.replies,
+        likedByMe: authUser ? likedByMeSet.has(comment.id) : false,
         replies: comment.replies.map((reply) => ({
           id: reply.id,
           text: reply.text,
@@ -70,7 +87,8 @@ export async function GET(
           createdAt: reply.createdAt.toISOString(),
           user: reply.user,
           likeCount: reply._count.likes,
-          likedByMe: authUser ? reply.likes.length > 0 : false,
+          replyCount: reply._count.replies,
+          likedByMe: authUser ? likedByMeSet.has(reply.id) : false,
         })),
       })),
     });
@@ -161,7 +179,7 @@ export async function POST(
         parentId: true,
         createdAt: true,
         user: { select: { id: true, nickname: true } },
-        _count: { select: { likes: true } },
+        _count: { select: { likes: true, replies: true } },
       },
     });
 
@@ -174,6 +192,7 @@ export async function POST(
           createdAt: comment.createdAt.toISOString(),
           user: comment.user,
           likeCount: comment._count.likes,
+          replyCount: comment._count.replies,
           likedByMe: false,
         },
       },

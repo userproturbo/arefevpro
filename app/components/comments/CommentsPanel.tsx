@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../providers";
+import CommentLikeButton from "./CommentLikeButton";
 
 type CommentUser = { id: number; nickname: string | null } | null;
 
@@ -13,6 +14,7 @@ type CommentItem = {
   createdAt: string;
   user: CommentUser;
   likeCount: number;
+  replyCount: number;
   likedByMe: boolean;
 };
 
@@ -36,7 +38,6 @@ export default function CommentsPanel({
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState("");
-  const [likeLoading, setLikeLoading] = useState<Record<number, boolean>>({});
   const [deleteLoading, setDeleteLoading] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
@@ -111,7 +112,11 @@ export default function CommentsPanel({
         setComments((prev) =>
           prev.map((root) =>
             root.id === parentId
-              ? { ...root, replies: [...root.replies, data.comment] }
+              ? {
+                  ...root,
+                  replies: [...root.replies, data.comment],
+                  replyCount: root.replyCount + 1,
+                }
               : root
           )
         );
@@ -123,45 +128,6 @@ export default function CommentsPanel({
         alert("Не удалось отправить ответ");
       } finally {
         setSubmitting(false);
-      }
-    });
-  };
-
-  const setCommentPatch = (id: number, patch: Partial<CommentItem>) => {
-    setComments((prev) =>
-      prev.map((root) => {
-        if (root.id === id) return { ...root, ...patch };
-        return {
-          ...root,
-          replies: root.replies.map((reply) =>
-            reply.id === id ? { ...reply, ...patch } : reply
-          ),
-        };
-      })
-    );
-  };
-
-  const toggleLike = async (comment: CommentItem) => {
-    if (likeLoading[comment.id]) return;
-
-    await requireUser(async () => {
-      setLikeLoading((prev) => ({ ...prev, [comment.id]: true }));
-      try {
-        const res = await fetch(`/api/comments/${comment.id}/like`, {
-          method: comment.likedByMe ? "DELETE" : "POST",
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("failed");
-        const data = await res.json();
-        setCommentPatch(comment.id, {
-          likeCount: data.likeCount,
-          likedByMe: data.likedByMe,
-        });
-      } catch (error) {
-        console.error(error);
-        alert("Не удалось обновить лайк");
-      } finally {
-        setLikeLoading((prev) => ({ ...prev, [comment.id]: false }));
       }
     });
   };
@@ -178,10 +144,16 @@ export default function CommentsPanel({
       setComments((prev) =>
         prev
           .filter((root) => root.id !== id)
-          .map((root) => ({
-            ...root,
-            replies: root.replies.filter((reply) => reply.id !== id),
-          }))
+          .map((root) => {
+            const nextReplies = root.replies.filter((reply) => reply.id !== id);
+            const removed = root.replies.length - nextReplies.length;
+            if (removed === 0) return { ...root, replies: nextReplies };
+            return {
+              ...root,
+              replies: nextReplies,
+              replyCount: Math.max(0, root.replyCount - removed),
+            };
+          })
       );
     } catch (error) {
       console.error(error);
@@ -259,21 +231,11 @@ export default function CommentsPanel({
               </p>
 
               <div className="mt-3 flex items-center justify-between gap-3">
-                <button
-                  onClick={() => toggleLike(comment)}
-                  disabled={likeLoading[comment.id]}
-                  className={[
-                    "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition",
-                    comment.likedByMe
-                      ? "bg-white text-black border-white"
-                      : "bg-white/5 text-white border-white/10 hover:border-white/30",
-                    !user ? "cursor-not-allowed opacity-70" : "",
-                    likeLoading[comment.id] ? "opacity-70 cursor-wait" : "",
-                  ].join(" ")}
-                >
-                  <span>{comment.likedByMe ? "♥" : "♡"}</span>
-                  <span>{comment.likeCount}</span>
-                </button>
+                <CommentLikeButton
+                  commentId={comment.id}
+                  initialLiked={comment.likedByMe}
+                  initialCount={comment.likeCount}
+                />
 
                 <div className="flex items-center gap-4">
                   <button
@@ -359,21 +321,11 @@ export default function CommentsPanel({
                     </p>
 
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      <button
-                        onClick={() => toggleLike(reply)}
-                        disabled={likeLoading[reply.id]}
-                        className={[
-                          "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition",
-                          reply.likedByMe
-                            ? "bg-white text-black border-white"
-                            : "bg-white/5 text-white border-white/10 hover:border-white/30",
-                          !user ? "cursor-not-allowed opacity-70" : "",
-                          likeLoading[reply.id] ? "opacity-70 cursor-wait" : "",
-                        ].join(" ")}
-                      >
-                        <span>{reply.likedByMe ? "♥" : "♡"}</span>
-                        <span>{reply.likeCount}</span>
-                      </button>
+                      <CommentLikeButton
+                        commentId={reply.id}
+                        initialLiked={reply.likedByMe}
+                        initialCount={reply.likeCount}
+                      />
 
                       {canDelete(reply) && (
                         <button
