@@ -1,19 +1,22 @@
 # Node
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Build output
 .next/
 out/
 
-# Environment
+# Environment variables (never commit secrets)
 .env
 .env.local
 .env.development
 .env.production
 
 # Prisma
-prisma/migrations/
+# ❗ migrations НЕ игнорируем
+prisma/dev.db
 
 # Cursor / Codex temp
 .cursor/
@@ -22,7 +25,7 @@ prisma/migrations/
 test-codex.txt
 test2.txt
 
-# Editor settings
+# Editor / OS
 .idea/
 .DS_Store
 
@@ -35,7 +38,6 @@ test2.txt
 # Logs
 *.log
 logs/
-node_modules
 
-# Uploads
+# Uploads (user-generated content)
 public/uploads/
