@@ -11,12 +11,24 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ slug: string }> }
 ) {
   try {
     const authUser = await getCurrentUser();
     const { slug } = await context.params;
+    const { searchParams } = new URL(req.url);
+
+    const pageParam = Number(searchParams.get("page") ?? "1");
+    const limitParam = Number(searchParams.get("limit") ?? "10");
+
+    const page =
+      Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
+    const limitUncapped =
+      Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : 10;
+    const limit = Math.min(50, Math.max(1, limitUncapped));
+    const skip = (page - 1) * limit;
+
     const post = await prisma.post.findUnique({
       where: { slug },
       select: { id: true, isPublished: true },
@@ -26,40 +38,34 @@ export async function GET(
       return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
     }
 
-    const comments = await prisma.comment.findMany({
-      where: { postId: post.id, parentId: null, deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        text: true,
-        parentId: true,
-        createdAt: true,
-        user: { select: { id: true, nickname: true } },
-        _count: { select: { likes: true, replies: true } },
-        replies: {
-          where: { deletedAt: null },
-          orderBy: { createdAt: "asc" },
-          select: {
-            id: true,
-            text: true,
-            parentId: true,
-            createdAt: true,
-            user: { select: { id: true, nickname: true } },
-            _count: { select: { likes: true, replies: true } },
+    const whereRoot = { postId: post.id, parentId: null, deletedAt: null };
+
+    const [totalRootComments, comments] = await prisma.$transaction([
+      prisma.comment.count({ where: whereRoot }),
+      prisma.comment.findMany({
+        where: whereRoot,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          text: true,
+          parentId: true,
+          createdAt: true,
+          user: { select: { id: true, nickname: true } },
+          _count: {
+            select: {
+              likes: true,
+              replies: { where: { deletedAt: null } },
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
     let likedByMeSet = new Set<number>();
     if (authUser) {
-      const commentIds: number[] = [];
-      for (const comment of comments) {
-        commentIds.push(comment.id);
-        for (const reply of comment.replies) {
-          commentIds.push(reply.id);
-        }
-      }
+      const commentIds = comments.map((comment) => comment.id);
 
       if (commentIds.length > 0) {
         const liked = await prisma.commentLike.findMany({
@@ -69,6 +75,8 @@ export async function GET(
         likedByMeSet = new Set(liked.map((row) => row.commentId));
       }
     }
+
+    const totalPages = Math.ceil(totalRootComments / limit);
 
     return NextResponse.json({
       comments: comments.map((comment) => ({
@@ -80,17 +88,14 @@ export async function GET(
         likeCount: comment._count.likes,
         replyCount: comment._count.replies,
         likedByMe: authUser ? likedByMeSet.has(comment.id) : false,
-        replies: comment.replies.map((reply) => ({
-          id: reply.id,
-          text: reply.text,
-          parentId: reply.parentId,
-          createdAt: reply.createdAt.toISOString(),
-          user: reply.user,
-          likeCount: reply._count.likes,
-          replyCount: reply._count.replies,
-          likedByMe: authUser ? likedByMeSet.has(reply.id) : false,
-        })),
       })),
+      pagination: {
+        page,
+        limit,
+        totalRootComments,
+        totalPages,
+        hasNextPage: page < totalPages,
+      },
     });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {

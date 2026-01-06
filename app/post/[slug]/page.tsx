@@ -107,46 +107,55 @@ export default async function PostPage({
     const paragraphs = hasText ? splitIntoParagraphs(post.text ?? "") : [];
 
     const user = await getCurrentUser();
-    const postMeta = await prisma.post
-      .findUnique({
-        where: { id: post.id },
-        select: {
-          comments: {
-            where: { deletedAt: null, parentId: null },
-            orderBy: { createdAt: "desc" },
-            select: {
-              id: true,
-              text: true,
-              parentId: true,
-              createdAt: true,
-              user: { select: { id: true, nickname: true } },
-              _count: { select: { likes: true, replies: true } },
-              replies: {
-                where: { deletedAt: null },
-                orderBy: { createdAt: "asc" },
-                select: {
-                  id: true,
-                  text: true,
-                  parentId: true,
-                  createdAt: true,
-                  user: { select: { id: true, nickname: true } },
-                  _count: { select: { likes: true, replies: true } },
-                },
+
+    const COMMENTS_LIMIT = 10;
+    const whereRoot = { postId: post.id, deletedAt: null, parentId: null };
+
+    const [postMeta, totalRootComments, rootComments] = await Promise.all([
+      prisma.post
+        .findUnique({
+          where: { id: post.id },
+          select: {
+            _count: {
+              select: {
+                likes: true,
+                comments: { where: { deletedAt: null } },
               },
             },
           },
-          _count: {
-            select: {
-              likes: true,
-              comments: { where: { deletedAt: null } },
+        })
+        .catch((error) => {
+          logServerError("Public post meta read error:", error);
+          return null;
+        }),
+      prisma.comment.count({ where: whereRoot }).catch((error) => {
+        logServerError("Public root comments count error:", error);
+        return 0;
+      }),
+      prisma.comment
+        .findMany({
+          where: whereRoot,
+          orderBy: { createdAt: "desc" },
+          take: COMMENTS_LIMIT,
+          select: {
+            id: true,
+            text: true,
+            parentId: true,
+            createdAt: true,
+            user: { select: { id: true, nickname: true } },
+            _count: {
+              select: {
+                likes: true,
+                replies: { where: { deletedAt: null } },
+              },
             },
           },
-        },
-      })
-      .catch((error) => {
-        logServerError("Public post meta read error:", error);
-        return null;
-      });
+        })
+        .catch((error) => {
+          logServerError("Public root comments read error:", error);
+          return [];
+        }),
+    ]);
 
     const liked = user
       ? !!(await prisma.like
@@ -161,18 +170,12 @@ export default async function PostPage({
 
     let likedByMeSet = new Set<number>();
     if (user) {
-      const commentIds: number[] = [];
-      for (const comment of postMeta?.comments ?? []) {
-        commentIds.push(comment.id);
-        for (const reply of comment.replies) {
-          commentIds.push(reply.id);
-        }
-      }
+      const rootCommentIds = rootComments.map((comment) => comment.id);
 
-      if (commentIds.length > 0) {
+      if (rootCommentIds.length > 0) {
         const likedComments = await prisma.commentLike
           .findMany({
-            where: { userId: user.id, commentId: { in: commentIds } },
+            where: { userId: user.id, commentId: { in: rootCommentIds } },
             select: { commentId: true },
           })
           .catch((error) => {
@@ -184,7 +187,7 @@ export default async function PostPage({
       }
     }
 
-    const comments = (postMeta?.comments ?? []).map((comment) => ({
+    const comments = rootComments.map((comment) => ({
       id: comment.id,
       text: comment.text,
       parentId: comment.parentId,
@@ -193,20 +196,19 @@ export default async function PostPage({
       likeCount: comment._count.likes,
       replyCount: comment._count.replies,
       likedByMe: user ? likedByMeSet.has(comment.id) : false,
-      replies: comment.replies.map((reply) => ({
-        id: reply.id,
-        text: reply.text,
-        parentId: reply.parentId,
-        createdAt: reply.createdAt.toISOString(),
-        user: reply.user,
-        likeCount: reply._count.likes,
-        replyCount: reply._count.replies,
-        likedByMe: user ? likedByMeSet.has(reply.id) : false,
-      })),
     }));
 
     const likeCount = postMeta?._count?.likes ?? 0;
     const commentCount = postMeta?._count?.comments ?? 0;
+
+    const totalPages = Math.ceil(totalRootComments / COMMENTS_LIMIT);
+    const initialPagination = {
+      page: 1,
+      limit: COMMENTS_LIMIT,
+      totalRootComments,
+      totalPages,
+      hasNextPage: 1 < totalPages,
+    };
 
     return (
       <PageContainer>
@@ -284,6 +286,7 @@ export default async function PostPage({
           <CommentsPanel
             postSlug={post.slug}
             initialComments={comments}
+            initialPagination={initialPagination}
             showLoginNotice={false}
           />
         </div>
