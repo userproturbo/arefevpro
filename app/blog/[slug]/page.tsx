@@ -28,30 +28,6 @@ export default async function BlogPostPage({
       title: true,
       text: true,
       createdAt: true,
-      comments: {
-        where: { deletedAt: null, parentId: null },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          text: true,
-          parentId: true,
-          createdAt: true,
-          user: { select: { id: true, nickname: true } },
-          _count: { select: { likes: true, replies: true } },
-          replies: {
-            where: { deletedAt: null },
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              text: true,
-              parentId: true,
-              createdAt: true,
-              user: { select: { id: true, nickname: true } },
-              _count: { select: { likes: true, replies: true } },
-            },
-          },
-        },
-      },
       _count: {
         select: {
           likes: true,
@@ -63,6 +39,30 @@ export default async function BlogPostPage({
 
   if (!post) notFound();
 
+  const COMMENTS_LIMIT = 10;
+  const whereRoot = { postId: post.id, deletedAt: null, parentId: null };
+  const [totalRootComments, rootComments] = await Promise.all([
+    prisma.comment.count({ where: whereRoot }),
+    prisma.comment.findMany({
+      where: whereRoot,
+      orderBy: { createdAt: "desc" },
+      take: COMMENTS_LIMIT,
+      select: {
+        id: true,
+        text: true,
+        parentId: true,
+        createdAt: true,
+        user: { select: { id: true, nickname: true } },
+        _count: {
+          select: {
+            likes: true,
+            replies: { where: { deletedAt: null } },
+          },
+        },
+      },
+    }),
+  ]);
+
   const liked = user
     ? !!(await prisma.like.findUnique({
         where: { postId_userId: { postId: post.id, userId: user.id } },
@@ -71,24 +71,17 @@ export default async function BlogPostPage({
 
   let likedByMeSet = new Set<number>();
   if (user) {
-    const commentIds: number[] = [];
-    for (const comment of post.comments) {
-      commentIds.push(comment.id);
-      for (const reply of comment.replies) {
-        commentIds.push(reply.id);
-      }
-    }
-
-    if (commentIds.length > 0) {
+    const rootCommentIds = rootComments.map((comment) => comment.id);
+    if (rootCommentIds.length > 0) {
       const likedComments = await prisma.commentLike.findMany({
-        where: { userId: user.id, commentId: { in: commentIds } },
+        where: { userId: user.id, commentId: { in: rootCommentIds } },
         select: { commentId: true },
       });
       likedByMeSet = new Set(likedComments.map((row) => row.commentId));
     }
   }
 
-  const comments = post.comments.map((comment) => ({
+  const comments = rootComments.map((comment) => ({
     id: comment.id,
     text: comment.text,
     parentId: comment.parentId,
@@ -97,17 +90,16 @@ export default async function BlogPostPage({
     likeCount: comment._count.likes,
     replyCount: comment._count.replies,
     likedByMe: user ? likedByMeSet.has(comment.id) : false,
-    replies: comment.replies.map((reply) => ({
-      id: reply.id,
-      text: reply.text,
-      parentId: reply.parentId,
-      createdAt: reply.createdAt.toISOString(),
-      user: reply.user,
-      likeCount: reply._count.likes,
-      replyCount: reply._count.replies,
-      likedByMe: user ? likedByMeSet.has(reply.id) : false,
-    })),
   }));
+
+  const totalPages = Math.ceil(totalRootComments / COMMENTS_LIMIT);
+  const initialPagination = {
+    page: 1,
+    limit: COMMENTS_LIMIT,
+    totalRootComments,
+    totalPages,
+    hasNextPage: 1 < totalPages,
+  };
 
   return (
     <article className="max-w-3xl space-y-6">
@@ -139,7 +131,11 @@ export default async function BlogPostPage({
         </span>
       </div>
 
-      <CommentsPanel postSlug={post.slug} initialComments={comments} />
+      <CommentsPanel
+        postSlug={post.slug}
+        initialComments={comments}
+        initialPagination={initialPagination}
+      />
     </article>
   );
 }

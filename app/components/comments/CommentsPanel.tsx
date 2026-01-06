@@ -18,48 +18,152 @@ type CommentItem = {
   likedByMe: boolean;
 };
 
-type RootComment = CommentItem & { replies: CommentItem[] };
+type Pagination = {
+  page: number;
+  limit: number;
+  totalRootComments: number;
+  totalPages: number;
+  hasNextPage: boolean;
+};
 
 type Props = {
   postSlug: string;
-  initialComments?: RootComment[];
+  initialComments?: CommentItem[];
+  initialPagination?: Pagination;
   showLoginNotice?: boolean;
 };
 
 export default function CommentsPanel({
   postSlug,
   initialComments,
+  initialPagination,
   showLoginNotice = true,
 }: Props) {
   const { user, requireUser } = useAuth();
-  const [comments, setComments] = useState<RootComment[]>(initialComments || []);
+  const [comments, setComments] = useState<CommentItem[]>(initialComments || []);
+  const [pagination, setPagination] = useState<Pagination | null>(
+    initialPagination || null
+  );
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState("");
   const [deleteLoading, setDeleteLoading] = useState<Record<number, boolean>>({});
 
+  const [repliesByRootId, setRepliesByRootId] = useState<
+    Record<number, CommentItem[]>
+  >({});
+  const [repliesVisible, setRepliesVisible] = useState<Record<number, boolean>>(
+    {}
+  );
+  const [repliesLoading, setRepliesLoading] = useState<Record<number, boolean>>(
+    {}
+  );
+  const [repliesError, setRepliesError] = useState<Record<number, string | null>>(
+    {}
+  );
+
   useEffect(() => {
-    if (!initialComments || initialComments.length === 0) {
-      fetchComments();
+    setComments(initialComments || []);
+    setPagination(initialPagination || null);
+    setRepliesByRootId({});
+    setRepliesVisible({});
+    setRepliesLoading({});
+    setRepliesError({});
+    setReplyTo(null);
+    setReplyText("");
+    setText("");
+
+    if (
+      !initialComments ||
+      initialComments.length === 0 ||
+      !initialPagination
+    ) {
+      fetchRootComments({ page: 1, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postSlug]);
 
-  const fetchComments = async () => {
+  const fetchRootComments = async ({
+    page,
+    replace,
+  }: {
+    page: number;
+    replace: boolean;
+  }) => {
     try {
-      setLoading(true);
-      const res = await fetch(`/api/posts/${postSlug}/comments`, {
+      if (replace) setLoading(true);
+      else setLoadingMore(true);
+
+      const limit =
+        pagination?.limit || initialPagination?.limit || 10;
+      const res = await fetch(
+        `/api/posts/${postSlug}/comments?page=${page}&limit=${limit}`,
+        {
         credentials: "include",
-      });
+        }
+      );
       if (!res.ok) throw new Error("failed");
       const data = await res.json();
-      setComments(data.comments ?? []);
+      const nextComments = (data.comments ?? []) as CommentItem[];
+      const nextPagination = (data.pagination ?? null) as Pagination | null;
+
+      setComments((prev) =>
+        replace ? nextComments : [...prev, ...nextComments]
+      );
+      setPagination(nextPagination);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!pagination?.hasNextPage || loadingMore) return;
+    await fetchRootComments({ page: pagination.page + 1, replace: false });
+  };
+
+  const fetchReplies = async (
+    rootCommentId: number,
+    opts?: { force?: boolean }
+  ) => {
+    const force = !!opts?.force;
+    if (!force && repliesByRootId[rootCommentId]) return;
+    if (repliesLoading[rootCommentId]) return;
+
+    try {
+      setRepliesLoading((prev) => ({ ...prev, [rootCommentId]: true }));
+      setRepliesError((prev) => ({ ...prev, [rootCommentId]: null }));
+
+      const res = await fetch(`/api/comments/${rootCommentId}/replies`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("failed");
+      const data = await res.json();
+      setRepliesByRootId((prev) => ({
+        ...prev,
+        [rootCommentId]: (data.replies ?? []) as CommentItem[],
+      }));
+    } catch (error) {
+      console.error(error);
+      setRepliesError((prev) => ({
+        ...prev,
+        [rootCommentId]: "Не удалось загрузить ответы",
+      }));
+    } finally {
+      setRepliesLoading((prev) => ({ ...prev, [rootCommentId]: false }));
+    }
+  };
+
+  const toggleReplies = async (rootCommentId: number) => {
+    const nextVisible = !repliesVisible[rootCommentId];
+    setRepliesVisible((prev) => ({ ...prev, [rootCommentId]: nextVisible }));
+    if (nextVisible) {
+      await fetchReplies(rootCommentId);
     }
   };
 
@@ -79,10 +183,19 @@ export default function CommentsPanel({
         if (!res.ok) throw new Error("failed");
         const data = await res.json();
 
-        setComments((prev) => [
-          { ...data.comment, replies: [] } as RootComment,
-          ...prev,
-        ]);
+        const comment = data.comment as CommentItem;
+        setComments((prev) => [comment, ...prev]);
+        setPagination((prev) => {
+          if (!prev) return prev;
+          const totalRootComments = prev.totalRootComments + 1;
+          const totalPages = Math.ceil(totalRootComments / prev.limit);
+          return {
+            ...prev,
+            totalRootComments,
+            totalPages,
+            hasNextPage: prev.page < totalPages,
+          };
+        });
         setText("");
       } catch (error) {
         console.error(error);
@@ -108,18 +221,26 @@ export default function CommentsPanel({
         });
         if (!res.ok) throw new Error("failed");
         const data = await res.json();
+        const reply = data.comment as CommentItem;
 
         setComments((prev) =>
           prev.map((root) =>
             root.id === parentId
               ? {
                   ...root,
-                  replies: [...root.replies, data.comment],
                   replyCount: root.replyCount + 1,
                 }
               : root
           )
         );
+
+        setRepliesVisible((prev) => ({ ...prev, [parentId]: true }));
+        setRepliesByRootId((prev) =>
+          prev[parentId] ? { ...prev, [parentId]: [...prev[parentId], reply] } : prev
+        );
+        if (!repliesByRootId[parentId]) {
+          void fetchReplies(parentId, { force: true });
+        }
 
         setReplyText("");
         setReplyTo(null);
@@ -141,20 +262,56 @@ export default function CommentsPanel({
         credentials: "include",
       });
       if (!res.ok) throw new Error("failed");
+
+      const isRoot = comments.some((comment) => comment.id === id);
+      const parentRootId = Object.entries(repliesByRootId).reduce<number | null>(
+        (found, [rootId, replies]) => {
+          if (found !== null) return found;
+          return replies.some((reply) => reply.id === id) ? Number(rootId) : null;
+        },
+        null
+      );
+
+      if (parentRootId !== null) {
+        setRepliesByRootId((prev) => ({
+          ...prev,
+          [parentRootId]: prev[parentRootId].filter((reply) => reply.id !== id),
+        }));
+      }
+      if (isRoot) {
+        setRepliesByRootId((prev) => {
+          if (!prev[id]) return prev;
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+        setRepliesVisible((prev) => ({ ...prev, [id]: false }));
+        setRepliesError((prev) => ({ ...prev, [id]: null }));
+        setRepliesLoading((prev) => ({ ...prev, [id]: false }));
+      }
+
       setComments((prev) =>
         prev
           .filter((root) => root.id !== id)
-          .map((root) => {
-            const nextReplies = root.replies.filter((reply) => reply.id !== id);
-            const removed = root.replies.length - nextReplies.length;
-            if (removed === 0) return { ...root, replies: nextReplies };
-            return {
-              ...root,
-              replies: nextReplies,
-              replyCount: Math.max(0, root.replyCount - removed),
-            };
-          })
+          .map((root) =>
+            parentRootId !== null && root.id === parentRootId
+              ? { ...root, replyCount: Math.max(0, root.replyCount - 1) }
+              : root
+          )
       );
+
+      setPagination((prev) => {
+        if (!prev) return prev;
+        if (!isRoot) return prev;
+        const totalRootComments = Math.max(0, prev.totalRootComments - 1);
+        const totalPages = Math.ceil(totalRootComments / prev.limit);
+        return {
+          ...prev,
+          totalRootComments,
+          totalPages,
+          hasNextPage: prev.page < totalPages,
+        };
+      });
     } catch (error) {
       console.error(error);
       alert("Не удалось удалить комментарий");
@@ -238,6 +395,17 @@ export default function CommentsPanel({
                 />
 
                 <div className="flex items-center gap-4">
+                  {comment.replyCount > 0 && (
+                    <button
+                      onClick={() => toggleReplies(comment.id)}
+                      className="text-xs text-white/70 hover:text-white transition"
+                    >
+                      {repliesVisible[comment.id]
+                        ? "Скрыть ответы"
+                        : `Показать ответы (${comment.replyCount})`}
+                    </button>
+                  )}
+
                   <button
                     onClick={() =>
                       requireUser(() => {
@@ -274,38 +442,31 @@ export default function CommentsPanel({
               </div>
             </div>
 
-            {replyTo === comment.id && (
-              <div className="ml-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <textarea
-                  placeholder="Ответить..."
-                  className="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                />
-                <div className="mt-2 flex items-center justify-end gap-3">
-                  <button
-                    onClick={() => {
-                      setReplyTo(null);
-                      setReplyText("");
-                    }}
-                    className="text-xs text-white/70 hover:text-white transition"
-                  >
-                    Отмена
-                  </button>
-                  <button
-                    onClick={() => submitReply(comment.id)}
-                    disabled={submitting}
-                    className="rounded-full bg-white text-black px-4 py-2 text-sm font-semibold hover:bg-white/90 disabled:opacity-60"
-                  >
-                    Отправить
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {comment.replies.length > 0 && (
+            {repliesVisible[comment.id] && (
               <div className="space-y-2">
-                {comment.replies.map((reply) => (
+                {repliesLoading[comment.id] && (
+                  <p className="ml-6 text-white/60 text-sm">Загружаем ответы...</p>
+                )}
+
+                {!repliesLoading[comment.id] && repliesError[comment.id] && (
+                  <div className="ml-6 flex items-center gap-3 text-sm text-white/70">
+                    <span>{repliesError[comment.id]}</span>
+                    <button
+                      onClick={() => fetchReplies(comment.id, { force: true })}
+                      className="text-xs underline underline-offset-4 hover:text-white transition"
+                    >
+                      Повторить
+                    </button>
+                  </div>
+                )}
+
+                {!repliesLoading[comment.id] &&
+                  !repliesError[comment.id] &&
+                  (repliesByRootId[comment.id]?.length ?? 0) === 0 && (
+                    <p className="ml-6 text-white/60 text-sm">Ответов пока нет.</p>
+                  )}
+
+                {(repliesByRootId[comment.id] ?? []).map((reply) => (
                   <div
                     key={reply.id}
                     className="ml-6 rounded-2xl border border-white/10 bg-white/[0.015] p-4"
@@ -346,9 +507,50 @@ export default function CommentsPanel({
                 ))}
               </div>
             )}
+
+            {replyTo === comment.id && (
+              <div className="ml-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <textarea
+                  placeholder="Ответить..."
+                  className="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                />
+                <div className="mt-2 flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setReplyTo(null);
+                      setReplyText("");
+                    }}
+                    className="text-xs text-white/70 hover:text-white transition"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={() => submitReply(comment.id)}
+                    disabled={submitting}
+                    className="rounded-full bg-white text-black px-4 py-2 text-sm font-semibold hover:bg-white/90 disabled:opacity-60"
+                  >
+                    Отправить
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      {pagination?.hasNextPage && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/80 hover:bg-white/[0.06] disabled:opacity-60"
+          >
+            {loadingMore ? "Загружаем..." : "Загрузить ещё комментарии"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
