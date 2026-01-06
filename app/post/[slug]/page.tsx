@@ -107,18 +107,35 @@ export default async function PostPage({
     const paragraphs = hasText ? splitIntoParagraphs(post.text ?? "") : [];
 
     const user = await getCurrentUser();
+    const currentUserId = user?.id ?? -1;
     const postMeta = await prisma.post
       .findUnique({
         where: { id: post.id },
         select: {
           comments: {
-            where: { deletedAt: null },
+            where: { deletedAt: null, parentId: null },
             orderBy: { createdAt: "desc" },
             select: {
               id: true,
               text: true,
+              parentId: true,
               createdAt: true,
               user: { select: { id: true, nickname: true } },
+              _count: { select: { likes: true } },
+              likes: { where: { userId: currentUserId }, select: { id: true } },
+              replies: {
+                where: { deletedAt: null },
+                orderBy: { createdAt: "asc" },
+                select: {
+                  id: true,
+                  text: true,
+                  parentId: true,
+                  createdAt: true,
+                  user: { select: { id: true, nickname: true } },
+                  _count: { select: { likes: true } },
+                  likes: { where: { userId: currentUserId }, select: { id: true } },
+                },
+              },
             },
           },
           _count: {
@@ -145,9 +162,23 @@ export default async function PostPage({
           }))
       : false;
 
-    const comments = (postMeta?.comments ?? []).map((c) => ({
-      ...c,
-      createdAt: c.createdAt.toISOString(),
+    const comments = (postMeta?.comments ?? []).map((comment) => ({
+      id: comment.id,
+      text: comment.text,
+      parentId: comment.parentId,
+      createdAt: comment.createdAt.toISOString(),
+      user: comment.user,
+      likeCount: comment._count.likes,
+      likedByMe: user ? comment.likes.length > 0 : false,
+      replies: comment.replies.map((reply) => ({
+        id: reply.id,
+        text: reply.text,
+        parentId: reply.parentId,
+        createdAt: reply.createdAt.toISOString(),
+        user: reply.user,
+        likeCount: reply._count.likes,
+        likedByMe: user ? reply.likes.length > 0 : false,
+      })),
     }));
 
     const likeCount = postMeta?._count?.likes ?? 0;

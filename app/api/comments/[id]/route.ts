@@ -28,6 +28,7 @@ export async function DELETE(
 
     const comment = await prisma.comment.findUnique({
       where: { id: commentId },
+      select: { id: true, userId: true, deletedAt: true, parentId: true },
     });
 
     if (!comment || comment.deletedAt) {
@@ -38,10 +39,22 @@ export async function DELETE(
       return NextResponse.json({ error: "Нет прав" }, { status: 403 });
     }
 
-    await prisma.comment.update({
-      where: { id: commentId },
-      data: { deletedAt: new Date() },
-    });
+    const deletedAt = new Date();
+
+    await prisma.$transaction([
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { deletedAt },
+      }),
+      ...(comment.parentId === null
+        ? [
+            prisma.comment.updateMany({
+              where: { parentId: commentId, deletedAt: null },
+              data: { deletedAt },
+            }),
+          ]
+        : []),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -15,6 +15,8 @@ export async function GET(
   context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const authUser = await getCurrentUser();
+    const currentUserId = authUser?.id ?? -1;
     const { slug } = await context.params;
     const post = await prisma.post.findUnique({
       where: { slug },
@@ -26,17 +28,52 @@ export async function GET(
     }
 
     const comments = await prisma.comment.findMany({
-      where: { postId: post.id, deletedAt: null },
+      where: { postId: post.id, parentId: null, deletedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         text: true,
+        parentId: true,
         createdAt: true,
         user: { select: { id: true, nickname: true } },
+        _count: { select: { likes: true } },
+        likes: { where: { userId: currentUserId }, select: { id: true } },
+        replies: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            text: true,
+            parentId: true,
+            createdAt: true,
+            user: { select: { id: true, nickname: true } },
+            _count: { select: { likes: true } },
+            likes: { where: { userId: currentUserId }, select: { id: true } },
+          },
+        },
       },
     });
 
-    return NextResponse.json({ comments });
+    return NextResponse.json({
+      comments: comments.map((comment) => ({
+        id: comment.id,
+        text: comment.text,
+        parentId: comment.parentId,
+        createdAt: comment.createdAt.toISOString(),
+        user: comment.user,
+        likeCount: comment._count.likes,
+        likedByMe: authUser ? comment.likes.length > 0 : false,
+        replies: comment.replies.map((reply) => ({
+          id: reply.id,
+          text: reply.text,
+          parentId: reply.parentId,
+          createdAt: reply.createdAt.toISOString(),
+          user: reply.user,
+          likeCount: reply._count.likes,
+          likedByMe: authUser ? reply.likes.length > 0 : false,
+        })),
+      })),
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
@@ -68,7 +105,7 @@ export async function POST(
       return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
     }
 
-    const { text } = await req.json();
+    const { text, parentId } = await req.json();
     const content = String(text || "").trim();
     if (!content) {
       return NextResponse.json(
@@ -77,21 +114,71 @@ export async function POST(
       );
     }
 
+    const parsedParentId =
+      parentId === null || parentId === undefined ? null : Number(parentId);
+    if (parsedParentId !== null && Number.isNaN(parsedParentId)) {
+      return NextResponse.json({ error: "Неверный parentId" }, { status: 400 });
+    }
+
+    if (parsedParentId !== null) {
+      const parent = await prisma.comment.findUnique({
+        where: { id: parsedParentId },
+        select: { id: true, postId: true, parentId: true, deletedAt: true },
+      });
+
+      if (!parent || parent.deletedAt) {
+        return NextResponse.json(
+          { error: "Родительский комментарий не найден" },
+          { status: 404 }
+        );
+      }
+
+      if (parent.postId !== post.id) {
+        return NextResponse.json(
+          { error: "Родительский комментарий не относится к посту" },
+          { status: 400 }
+        );
+      }
+
+      if (parent.parentId !== null) {
+        return NextResponse.json(
+          { error: "Можно отвечать только на корневые комментарии" },
+          { status: 400 }
+        );
+      }
+    }
+
     const comment = await prisma.comment.create({
       data: {
         text: content,
         postId: post.id,
         userId: authUser.id,
+        parentId: parsedParentId,
       },
       select: {
         id: true,
         text: true,
+        parentId: true,
         createdAt: true,
         user: { select: { id: true, nickname: true } },
+        _count: { select: { likes: true } },
       },
     });
 
-    return NextResponse.json({ comment }, { status: 201 });
+    return NextResponse.json(
+      {
+        comment: {
+          id: comment.id,
+          text: comment.text,
+          parentId: comment.parentId,
+          createdAt: comment.createdAt.toISOString(),
+          user: comment.user,
+          likeCount: comment._count.likes,
+          likedByMe: false,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {

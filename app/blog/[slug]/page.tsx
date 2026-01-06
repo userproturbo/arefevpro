@@ -14,6 +14,9 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params;
 
+  const user = await getCurrentUser();
+  const currentUserId = user?.id ?? -1;
+
   const post = await prisma.post.findFirst({
     where: {
       slug,
@@ -27,13 +30,29 @@ export default async function BlogPostPage({
       text: true,
       createdAt: true,
       comments: {
-        where: { deletedAt: null },
+        where: { deletedAt: null, parentId: null },
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
           text: true,
+          parentId: true,
           createdAt: true,
           user: { select: { id: true, nickname: true } },
+          _count: { select: { likes: true } },
+          likes: { where: { userId: currentUserId }, select: { id: true } },
+          replies: {
+            where: { deletedAt: null },
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              text: true,
+              parentId: true,
+              createdAt: true,
+              user: { select: { id: true, nickname: true } },
+              _count: { select: { likes: true } },
+              likes: { where: { userId: currentUserId }, select: { id: true } },
+            },
+          },
         },
       },
       _count: {
@@ -47,16 +66,29 @@ export default async function BlogPostPage({
 
   if (!post) notFound();
 
-  const user = await getCurrentUser();
   const liked = user
     ? !!(await prisma.like.findUnique({
         where: { postId_userId: { postId: post.id, userId: user.id } },
       }))
     : false;
 
-  const comments = post.comments.map((c) => ({
-    ...c,
-    createdAt: c.createdAt.toISOString(),
+  const comments = post.comments.map((comment) => ({
+    id: comment.id,
+    text: comment.text,
+    parentId: comment.parentId,
+    createdAt: comment.createdAt.toISOString(),
+    user: comment.user,
+    likeCount: comment._count.likes,
+    likedByMe: user ? comment.likes.length > 0 : false,
+    replies: comment.replies.map((reply) => ({
+      id: reply.id,
+      text: reply.text,
+      parentId: reply.parentId,
+      createdAt: reply.createdAt.toISOString(),
+      user: reply.user,
+      likeCount: reply._count.likes,
+      likedByMe: user ? reply.likes.length > 0 : false,
+    })),
   }));
 
   return (
