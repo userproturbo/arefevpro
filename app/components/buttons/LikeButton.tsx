@@ -28,6 +28,7 @@ export default function LikeButton({
       try {
         const res = await fetch(`/api/posts/${postSlug}/like`, {
           method: "POST",
+          credentials: "include",
         });
         if (!res.ok) throw new Error("like failed");
         const data = await res.json();

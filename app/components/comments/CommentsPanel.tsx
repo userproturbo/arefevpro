@@ -4,16 +4,23 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../providers";
 
-type Comment = {
+type CommentUser = { id: number; nickname: string | null } | null;
+
+type CommentItem = {
   id: number;
   text: string;
+  parentId: number | null;
   createdAt: string;
-  user: { id: number; nickname: string | null } | null;
+  user: CommentUser;
+  likeCount: number;
+  likedByMe: boolean;
 };
+
+type RootComment = CommentItem & { replies: CommentItem[] };
 
 type Props = {
   postSlug: string;
-  initialComments?: Comment[];
+  initialComments?: RootComment[];
   showLoginNotice?: boolean;
 };
 
@@ -22,10 +29,15 @@ export default function CommentsPanel({
   initialComments,
   showLoginNotice = true,
 }: Props) {
-  const { user } = useAuth();
-  const [comments, setComments] = useState<Comment[]>(initialComments || []);
+  const { user, requireUser } = useAuth();
+  const [comments, setComments] = useState<RootComment[]>(initialComments || []);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [likeLoading, setLikeLoading] = useState<Record<number, boolean>>({});
+  const [deleteLoading, setDeleteLoading] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     if (!initialComments || initialComments.length === 0) {
@@ -37,7 +49,9 @@ export default function CommentsPanel({
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/posts/${postSlug}/comments`);
+      const res = await fetch(`/api/posts/${postSlug}/comments`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("failed");
       const data = await res.json();
       setComments(data.comments ?? []);
@@ -49,37 +63,145 @@ export default function CommentsPanel({
   };
 
   const submitComment = async () => {
-    if (!text.trim() || !user) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/posts/${postSlug}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) throw new Error("failed");
-      const data = await res.json();
-      setComments((prev) => [data.comment, ...prev]);
-      setText("");
-    } catch (error) {
-      console.error(error);
-      alert("Не удалось отправить комментарий");
-    } finally {
-      setLoading(false);
-    }
+    const content = text.trim();
+    if (!content) return;
+
+    await requireUser(async () => {
+      try {
+        setSubmitting(true);
+        const res = await fetch(`/api/posts/${postSlug}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ text: content }),
+        });
+        if (!res.ok) throw new Error("failed");
+        const data = await res.json();
+
+        setComments((prev) => [
+          { ...data.comment, replies: [] } as RootComment,
+          ...prev,
+        ]);
+        setText("");
+      } catch (error) {
+        console.error(error);
+        alert("Не удалось отправить комментарий");
+      } finally {
+        setSubmitting(false);
+      }
+    });
+  };
+
+  const submitReply = async (parentId: number) => {
+    const content = replyText.trim();
+    if (!content) return;
+
+    await requireUser(async () => {
+      try {
+        setSubmitting(true);
+        const res = await fetch(`/api/posts/${postSlug}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ text: content, parentId }),
+        });
+        if (!res.ok) throw new Error("failed");
+        const data = await res.json();
+
+        setComments((prev) =>
+          prev.map((root) =>
+            root.id === parentId
+              ? { ...root, replies: [...root.replies, data.comment] }
+              : root
+          )
+        );
+
+        setReplyText("");
+        setReplyTo(null);
+      } catch (error) {
+        console.error(error);
+        alert("Не удалось отправить ответ");
+      } finally {
+        setSubmitting(false);
+      }
+    });
+  };
+
+  const setCommentPatch = (id: number, patch: Partial<CommentItem>) => {
+    setComments((prev) =>
+      prev.map((root) => {
+        if (root.id === id) return { ...root, ...patch };
+        return {
+          ...root,
+          replies: root.replies.map((reply) =>
+            reply.id === id ? { ...reply, ...patch } : reply
+          ),
+        };
+      })
+    );
+  };
+
+  const toggleLike = async (comment: CommentItem) => {
+    if (likeLoading[comment.id]) return;
+
+    await requireUser(async () => {
+      setLikeLoading((prev) => ({ ...prev, [comment.id]: true }));
+      try {
+        const res = await fetch(`/api/comments/${comment.id}/like`, {
+          method: comment.likedByMe ? "DELETE" : "POST",
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("failed");
+        const data = await res.json();
+        setCommentPatch(comment.id, {
+          likeCount: data.likeCount,
+          likedByMe: data.likedByMe,
+        });
+      } catch (error) {
+        console.error(error);
+        alert("Не удалось обновить лайк");
+      } finally {
+        setLikeLoading((prev) => ({ ...prev, [comment.id]: false }));
+      }
+    });
   };
 
   const deleteComment = async (id: number) => {
-    if (!user) return;
+    if (deleteLoading[id]) return;
     try {
-      const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
+      setDeleteLoading((prev) => ({ ...prev, [id]: true }));
+      const res = await fetch(`/api/comments/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("failed");
-      setComments((prev) => prev.filter((c) => c.id !== id));
+      setComments((prev) =>
+        prev
+          .filter((root) => root.id !== id)
+          .map((root) => ({
+            ...root,
+            replies: root.replies.filter((reply) => reply.id !== id),
+          }))
+      );
     } catch (error) {
       console.error(error);
       alert("Не удалось удалить комментарий");
+    } finally {
+      setDeleteLoading((prev) => ({ ...prev, [id]: false }));
     }
   };
+
+  const canDelete = (comment: CommentItem) =>
+    !!user &&
+    (user.role === "ADMIN" || (comment.user?.id && comment.user.id === user.id));
+
+  const formatDate = (createdAt: string) =>
+    new Date(createdAt).toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   return (
     <div className="space-y-4">
@@ -94,7 +216,7 @@ export default function CommentsPanel({
           <div className="flex justify-end">
             <button
               onClick={submitComment}
-              disabled={loading}
+              disabled={submitting}
               className="mt-2 rounded-full bg-white text-black px-4 py-2 text-sm font-semibold hover:bg-white/90 disabled:opacity-60"
             >
               Отправить
@@ -124,34 +246,152 @@ export default function CommentsPanel({
         )}
 
         {comments.map((comment) => (
-          <div
-            key={comment.id}
-            className="rounded-2xl border border-white/10 bg-white/[0.02] p-4"
-          >
-            <div className="flex items-center justify-between text-xs text-white/60">
-              <div className="font-semibold text-white">
-                {comment.user?.nickname || "Без имени"}
+          <div key={comment.id} className="space-y-2">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="flex items-center justify-between text-xs text-white/60">
+                <div className="font-semibold text-white">
+                  {comment.user?.nickname || "Без имени"}
+                </div>
+                <span>{formatDate(comment.createdAt)}</span>
               </div>
-              <span>
-                {new Date(comment.createdAt).toLocaleString("ru-RU", {
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-white/90 whitespace-pre-wrap">
-              {comment.text}
-            </p>
-            {user?.role === "ADMIN" && (
-              <div className="mt-2 flex justify-end">
+              <p className="mt-2 text-sm text-white/90 whitespace-pre-wrap">
+                {comment.text}
+              </p>
+
+              <div className="mt-3 flex items-center justify-between gap-3">
                 <button
-                  onClick={() => deleteComment(comment.id)}
-                  className="text-xs text-red-400 hover:text-red-300"
+                  onClick={() => toggleLike(comment)}
+                  disabled={likeLoading[comment.id]}
+                  className={[
+                    "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition",
+                    comment.likedByMe
+                      ? "bg-white text-black border-white"
+                      : "bg-white/5 text-white border-white/10 hover:border-white/30",
+                    !user ? "cursor-not-allowed opacity-70" : "",
+                    likeLoading[comment.id] ? "opacity-70 cursor-wait" : "",
+                  ].join(" ")}
                 >
-                  Удалить
+                  <span>{comment.likedByMe ? "♥" : "♡"}</span>
+                  <span>{comment.likeCount}</span>
                 </button>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() =>
+                      requireUser(() => {
+                        if (replyTo === comment.id) {
+                          setReplyTo(null);
+                          setReplyText("");
+                        } else {
+                          setReplyTo(comment.id);
+                          setReplyText("");
+                        }
+                      })
+                    }
+                    className={[
+                      "text-xs text-white/70 hover:text-white transition",
+                      !user ? "cursor-not-allowed opacity-70" : "",
+                    ].join(" ")}
+                  >
+                    Ответить
+                  </button>
+
+                  {canDelete(comment) && (
+                    <button
+                      onClick={() => deleteComment(comment.id)}
+                      disabled={deleteLoading[comment.id]}
+                      className={[
+                        "text-xs text-red-400 hover:text-red-300",
+                        deleteLoading[comment.id] ? "opacity-70 cursor-wait" : "",
+                      ].join(" ")}
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {replyTo === comment.id && (
+              <div className="ml-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <textarea
+                  placeholder="Ответить..."
+                  className="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                />
+                <div className="mt-2 flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setReplyTo(null);
+                      setReplyText("");
+                    }}
+                    className="text-xs text-white/70 hover:text-white transition"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={() => submitReply(comment.id)}
+                    disabled={submitting}
+                    className="rounded-full bg-white text-black px-4 py-2 text-sm font-semibold hover:bg-white/90 disabled:opacity-60"
+                  >
+                    Отправить
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {comment.replies.length > 0 && (
+              <div className="space-y-2">
+                {comment.replies.map((reply) => (
+                  <div
+                    key={reply.id}
+                    className="ml-6 rounded-2xl border border-white/10 bg-white/[0.015] p-4"
+                  >
+                    <div className="flex items-center justify-between text-xs text-white/60">
+                      <div className="font-semibold text-white">
+                        {reply.user?.nickname || "Без имени"}
+                      </div>
+                      <span>{formatDate(reply.createdAt)}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-white/90 whitespace-pre-wrap">
+                      {reply.text}
+                    </p>
+
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <button
+                        onClick={() => toggleLike(reply)}
+                        disabled={likeLoading[reply.id]}
+                        className={[
+                          "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition",
+                          reply.likedByMe
+                            ? "bg-white text-black border-white"
+                            : "bg-white/5 text-white border-white/10 hover:border-white/30",
+                          !user ? "cursor-not-allowed opacity-70" : "",
+                          likeLoading[reply.id] ? "opacity-70 cursor-wait" : "",
+                        ].join(" ")}
+                      >
+                        <span>{reply.likedByMe ? "♥" : "♡"}</span>
+                        <span>{reply.likeCount}</span>
+                      </button>
+
+                      {canDelete(reply) && (
+                        <button
+                          onClick={() => deleteComment(reply.id)}
+                          disabled={deleteLoading[reply.id]}
+                          className={[
+                            "text-xs text-red-400 hover:text-red-300",
+                            deleteLoading[reply.id]
+                              ? "opacity-70 cursor-wait"
+                              : "",
+                          ].join(" ")}
+                        >
+                          Удалить
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -19,6 +19,7 @@ model User {
 
   comments     Comment[]
   likes        Like[]
+  commentLikes CommentLike[]
 }
 
 model Post {
@@ -43,12 +44,19 @@ model Comment {
   text      String
   postId    Int
   userId    Int
+  parentId  Int?
 
   post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id])
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  likes     CommentLike[]
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
+
+  @@index([postId, parentId])
+  @@index([parentId])
 }
 
 model Like {
@@ -62,6 +70,21 @@ model Like {
   createdAt DateTime @default(now())
 
   @@unique([postId, userId])
+}
+
+model CommentLike {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  userId    Int
+
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
 }
 
 enum PostType {
