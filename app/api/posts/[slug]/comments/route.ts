@@ -38,7 +38,13 @@ export async function GET(
       return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
     }
 
-    const whereRoot = { postId: post.id, parentId: null, deletedAt: null };
+    const isAdmin = authUser?.role === "ADMIN";
+    const whereRoot = {
+      postId: post.id,
+      parentId: null,
+      ...(isAdmin ? {} : { deletedAt: null }),
+    };
+    const repliesCountSelect = isAdmin ? true : { where: { deletedAt: null } };
 
     const [totalRootComments, comments] = await prisma.$transaction([
       prisma.comment.count({ where: whereRoot }),
@@ -52,11 +58,12 @@ export async function GET(
           text: true,
           parentId: true,
           createdAt: true,
+          deletedAt: true,
           user: { select: { id: true, nickname: true } },
           _count: {
             select: {
               likes: true,
-              replies: { where: { deletedAt: null } },
+              replies: repliesCountSelect,
             },
           },
         },
@@ -84,6 +91,7 @@ export async function GET(
         text: comment.text,
         parentId: comment.parentId,
         createdAt: comment.createdAt.toISOString(),
+        deletedAt: comment.deletedAt ? comment.deletedAt.toISOString() : null,
         user: comment.user,
         likeCount: comment._count.likes,
         replyCount: comment._count.replies,
@@ -183,6 +191,7 @@ export async function POST(
         text: true,
         parentId: true,
         createdAt: true,
+        deletedAt: true,
         user: { select: { id: true, nickname: true } },
         _count: { select: { likes: true, replies: true } },
       },
@@ -195,6 +204,7 @@ export async function POST(
           text: comment.text,
           parentId: comment.parentId,
           createdAt: comment.createdAt.toISOString(),
+          deletedAt: comment.deletedAt ? comment.deletedAt.toISOString() : null,
           user: comment.user,
           likeCount: comment._count.likes,
           replyCount: comment._count.replies,

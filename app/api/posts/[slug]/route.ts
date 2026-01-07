@@ -22,7 +22,10 @@ export async function GET(
       _count: {
         select: {
           likes: true,
-          comments: { where: { deletedAt: null } },
+          comments:
+            authUser?.role === "ADMIN"
+              ? true
+              : { where: { deletedAt: null } },
         },
       },
     };

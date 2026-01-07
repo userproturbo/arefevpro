@@ -41,20 +41,10 @@ export async function DELETE(
 
     const deletedAt = new Date();
 
-    await prisma.$transaction([
-      prisma.comment.update({
-        where: { id: commentId },
-        data: { deletedAt },
-      }),
-      ...(comment.parentId === null
-        ? [
-            prisma.comment.updateMany({
-              where: { parentId: commentId, deletedAt: null },
-              data: { deletedAt },
-            }),
-          ]
-        : []),
-    ]);
+    await prisma.comment.update({
+      where: { id: commentId },
+      data: { deletedAt },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
