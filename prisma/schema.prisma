@@ -20,6 +20,7 @@ model User {
   comments     Comment[]
   likes        Like[]
   commentLikes CommentLike[]
+  notifications Notification[]
 }
 
 model Post {
@@ -57,6 +58,19 @@ model Comment {
 
   @@index([postId, parentId])
   @@index([parentId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  data      Json
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 model Like {
@@ -98,6 +112,10 @@ enum PostType {
 enum UserRole {
   USER
   ADMIN
+}
+
+enum NotificationType {
+  COMMENT_REPLY
 }
 
 model Visitor {

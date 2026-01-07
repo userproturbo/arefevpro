@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { NotificationType } from "@prisma/client";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -151,10 +152,24 @@ export async function POST(
       return NextResponse.json({ error: "Неверный parentId" }, { status: 400 });
     }
 
+    let parent: {
+      id: number;
+      postId: number;
+      parentId: number | null;
+      deletedAt: Date | null;
+      user: { id: number } | null;
+    } | null = null;
+
     if (parsedParentId !== null) {
-      const parent = await prisma.comment.findUnique({
+      parent = await prisma.comment.findUnique({
         where: { id: parsedParentId },
-        select: { id: true, postId: true, parentId: true, deletedAt: true },
+        select: {
+          id: true,
+          postId: true,
+          parentId: true,
+          deletedAt: true,
+          user: { select: { id: true } },
+        },
       });
 
       if (!parent || parent.deletedAt) {
@@ -196,6 +211,24 @@ export async function POST(
         _count: { select: { likes: true, replies: true } },
       },
     });
+
+    if (
+      parsedParentId !== null &&
+      parent?.user?.id &&
+      parent.user.id !== authUser.id
+    ) {
+      await prisma.notification.create({
+        data: {
+          userId: parent.user.id,
+          type: NotificationType.COMMENT_REPLY,
+          data: {
+            postSlug: post.slug,
+            commentId: parent.id,
+            replyId: comment.id,
+          },
+        },
+      });
+    }
 
     return NextResponse.json(
       {
