@@ -87,6 +87,19 @@ export default function CommentsPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postSlug]);
 
+  const readErrorMessage = async (res: Response, fallback: string) => {
+    try {
+      const data = await res.json();
+      if (data && typeof data === "object") {
+        const error = (data as { error?: unknown }).error;
+        if (typeof error === "string") return error;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+    return fallback;
+  };
+
   const fetchRootComments = async ({
     page,
     replace,
@@ -181,7 +194,14 @@ export default function CommentsPanel({
           credentials: "include",
           body: JSON.stringify({ text: content }),
         });
-        if (!res.ok) throw new Error("failed");
+        if (!res.ok) {
+          const message = await readErrorMessage(
+            res,
+            "Не удалось отправить комментарий"
+          );
+          alert(message);
+          return;
+        }
         const data = await res.json();
 
         const comment = data.comment as CommentItem;
@@ -224,7 +244,14 @@ export default function CommentsPanel({
           credentials: "include",
           body: JSON.stringify({ text: content, parentId }),
         });
-        if (!res.ok) throw new Error("failed");
+        if (!res.ok) {
+          const message = await readErrorMessage(
+            res,
+            "Не удалось отправить ответ"
+          );
+          alert(message);
+          return;
+        }
         const data = await res.json();
         const reply = data.comment as CommentItem;
         const normalizedReply = {

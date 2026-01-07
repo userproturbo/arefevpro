@@ -22,6 +22,19 @@ export default function CommentLikeButton({
 
   const disabled = authLoading || !user || submitting;
 
+  const readRateLimitMessage = async (res: Response) => {
+    try {
+      const data = await res.json();
+      if (data && typeof data === "object") {
+        const error = (data as { error?: unknown }).error;
+        if (typeof error === "string") return error;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
   const toggle = async () => {
     if (disabled) return;
 
@@ -44,6 +57,10 @@ export default function CommentLikeButton({
         credentials: "include",
       });
       if (!res.ok) {
+        if (res.status === 429) {
+          const message = await readRateLimitMessage(res);
+          if (message) alert(message);
+        }
         rollback();
         return;
       }

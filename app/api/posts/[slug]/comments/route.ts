@@ -7,9 +7,13 @@ import {
   isDatabaseUnavailableError,
   isExpectedDevDatabaseError,
 } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const COMMENT_COOLDOWN_MS = 5000;
+const RATE_LIMIT_MESSAGE = "Слишком часто. Попробуйте позже.";
 
 export async function GET(
   req: NextRequest,
@@ -131,6 +135,12 @@ export async function POST(
   }
 
   try {
+    const rateKey = `comment:create:user:${authUser.id}`;
+    const rateLimit = checkRateLimit(rateKey, COMMENT_COOLDOWN_MS);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
+
     const { slug } = await context.params;
     const post = await prisma.post.findUnique({ where: { slug } });
     if (!post || !post.isPublished) {
