@@ -8,20 +8,25 @@ generator client {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  login        String    @unique
-  nickname     String?
-  email        String?   @unique
-  passwordHash String
-  role         UserRole  @default(USER)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id            Int       @id @default(autoincrement())
+  login         String    @unique
+  nickname      String?
+  email         String?   @unique
+  passwordHash  String
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  comments     Comment[]
-  likes        Like[]
-  commentLikes CommentLike[]
-  notifications Notification[]
+  comments       Comment[]
+  likes          Like[]
+  commentLikes   CommentLike[]
+  notifications  Notification[]
+
+  // 🔽 ДОБАВЛЕНО ДЛЯ PHOTO-РАЗДЕЛА
+  albums         Album[]
+  photos         Photo[]
 }
+
 
 model Post {
   id          Int       @id @default(autoincrement())
@@ -98,6 +103,37 @@ model CommentLike {
 
   @@unique([commentId, userId])
   @@index([commentId])
+  @@index([userId])
+}
+
+model Album {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id])
+  photos Photo[]
+
+  @@index([userId])
+}
+
+model Photo {
+  id         Int      @id @default(autoincrement())
+  albumId    Int
+  userId     Int
+  storageKey String
+  mimeType   String
+  size       Int
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+
+  album Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([albumId])
   @@index([userId])
 }
 
