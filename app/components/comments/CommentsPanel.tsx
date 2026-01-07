@@ -417,7 +417,7 @@ export default function CommentsPanel({
         )}
 
         {comments.map((comment) => (
-          <div key={comment.id} className="space-y-2">
+          <div key={comment.id} id={`comment-${comment.id}`} className="space-y-2">
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
               <div className="flex items-center justify-between text-xs text-white/60">
                 <div className="font-semibold text-white">
@@ -524,6 +524,7 @@ export default function CommentsPanel({
                 {(repliesByRootId[comment.id] ?? []).map((reply) => (
                   <div
                     key={reply.id}
+                    id={`comment-${reply.id}`}
                     className="ml-6 rounded-2xl border border-white/10 bg-white/[0.015] p-4"
                   >
                     <div className="flex items-center justify-between text-xs text-white/60">

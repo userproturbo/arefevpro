@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   type SectionDrawerSection,
   useSectionDrawerStore,
@@ -28,6 +28,35 @@ export default function SidebarNav() {
   const toggleDrawer = useSectionDrawerStore((s) => s.toggle);
   const closeDrawer = useSectionDrawerStore((s) => s.close);
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setUnreadCount(null);
+      return;
+    }
+    let mounted = true;
+    const loadUnread = async () => {
+      try {
+        const res = await fetch("/api/notifications", {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("failed");
+        const data = await res.json();
+        if (mounted) {
+          setUnreadCount(Number(data.unreadCount ?? 0));
+        }
+      } catch (error) {
+        console.error(error);
+        if (mounted) setUnreadCount(0);
+      }
+    };
+    void loadUnread();
+    return () => {
+      mounted = false;
+    };
+  }, [authLoading, user]);
 
   const handleLogout = async () => {
     if (logoutLoading) return;
@@ -87,7 +116,23 @@ export default function SidebarNav() {
       </nav>
 
       {!authLoading && (
-        <div className="pb-6 flex justify-center">
+        <div className="pb-6 flex flex-col items-center gap-3">
+          {user && (
+            <Link
+              href="/notifications"
+              onClick={() => closeDrawer()}
+              className="relative text-base text-white/70 hover:text-white transition"
+              aria-label="Notifications"
+            >
+              <span aria-hidden>🔔</span>
+              {unreadCount !== null && unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[1.1rem] rounded-full bg-white text-[0.6rem] font-semibold text-black px-1 text-center">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
+
           {user ? (
             <button
               type="button"
