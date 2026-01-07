@@ -107,9 +107,15 @@ export default async function PostPage({
     const paragraphs = hasText ? splitIntoParagraphs(post.text ?? "") : [];
 
     const user = await getCurrentUser();
+    const isAdmin = user?.role === "ADMIN";
 
     const COMMENTS_LIMIT = 10;
-    const whereRoot = { postId: post.id, deletedAt: null, parentId: null };
+    const whereRoot = {
+      postId: post.id,
+      parentId: null,
+      ...(isAdmin ? {} : { deletedAt: null }),
+    };
+    const repliesCountSelect = isAdmin ? true : { where: { deletedAt: null } };
 
     const [postMeta, totalRootComments, rootComments] = await Promise.all([
       prisma.post
@@ -119,7 +125,7 @@ export default async function PostPage({
             _count: {
               select: {
                 likes: true,
-                comments: { where: { deletedAt: null } },
+                comments: isAdmin ? true : { where: { deletedAt: null } },
               },
             },
           },
@@ -142,11 +148,12 @@ export default async function PostPage({
             text: true,
             parentId: true,
             createdAt: true,
+            deletedAt: true,
             user: { select: { id: true, nickname: true } },
             _count: {
               select: {
                 likes: true,
-                replies: { where: { deletedAt: null } },
+                replies: repliesCountSelect,
               },
             },
           },
@@ -192,6 +199,7 @@ export default async function PostPage({
       text: comment.text,
       parentId: comment.parentId,
       createdAt: comment.createdAt.toISOString(),
+      deletedAt: comment.deletedAt ? comment.deletedAt.toISOString() : null,
       user: comment.user,
       likeCount: comment._count.likes,
       replyCount: comment._count.replies,

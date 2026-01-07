@@ -12,6 +12,7 @@ type CommentItem = {
   text: string;
   parentId: number | null;
   createdAt: string;
+  deletedAt: string | null;
   user: CommentUser;
   likeCount: number;
   replyCount: number;
@@ -102,7 +103,7 @@ export default function CommentsPanel({
       const res = await fetch(
         `/api/posts/${postSlug}/comments?page=${page}&limit=${limit}`,
         {
-        credentials: "include",
+          credentials: "include",
         }
       );
       if (!res.ok) throw new Error("failed");
@@ -184,7 +185,11 @@ export default function CommentsPanel({
         const data = await res.json();
 
         const comment = data.comment as CommentItem;
-        setComments((prev) => [comment, ...prev]);
+        const normalizedComment = {
+          ...comment,
+          deletedAt: comment.deletedAt ?? null,
+        };
+        setComments((prev) => [normalizedComment, ...prev]);
         setPagination((prev) => {
           if (!prev) return prev;
           const totalRootComments = prev.totalRootComments + 1;
@@ -222,6 +227,10 @@ export default function CommentsPanel({
         if (!res.ok) throw new Error("failed");
         const data = await res.json();
         const reply = data.comment as CommentItem;
+        const normalizedReply = {
+          ...reply,
+          deletedAt: reply.deletedAt ?? null,
+        };
 
         setComments((prev) =>
           prev.map((root) =>
@@ -236,7 +245,9 @@ export default function CommentsPanel({
 
         setRepliesVisible((prev) => ({ ...prev, [parentId]: true }));
         setRepliesByRootId((prev) =>
-          prev[parentId] ? { ...prev, [parentId]: [...prev[parentId], reply] } : prev
+          prev[parentId]
+            ? { ...prev, [parentId]: [...prev[parentId], normalizedReply] }
+            : prev
         );
         if (!repliesByRootId[parentId]) {
           void fetchReplies(parentId, { force: true });
@@ -262,6 +273,35 @@ export default function CommentsPanel({
         credentials: "include",
       });
       if (!res.ok) throw new Error("failed");
+
+      const isAdmin = user?.role === "ADMIN";
+      if (isAdmin) {
+        const deletedAt = new Date().toISOString();
+        setComments((prev) =>
+          prev.map((comment) =>
+            comment.id === id ? { ...comment, deletedAt } : comment
+          )
+        );
+        setRepliesByRootId((prev) => {
+          let changed = false;
+          const next = Object.fromEntries(
+            Object.entries(prev).map(([rootId, replies]) => {
+              const updatedReplies = replies.map((reply) => {
+                if (reply.id !== id) return reply;
+                changed = true;
+                return { ...reply, deletedAt };
+              });
+              return [rootId, updatedReplies];
+            })
+          ) as Record<number, CommentItem[]>;
+          return changed ? next : prev;
+        });
+        setReplyTo((prev) => (prev === id ? null : prev));
+        if (replyTo === id) {
+          setReplyText("");
+        }
+        return;
+      }
 
       const isRoot = comments.some((comment) => comment.id === id);
       const parentRootId = Object.entries(repliesByRootId).reduce<number | null>(
@@ -322,6 +362,7 @@ export default function CommentsPanel({
 
   const canDelete = (comment: CommentItem) =>
     !!user &&
+    !comment.deletedAt &&
     (user.role === "ADMIN" || (comment.user?.id && comment.user.id === user.id));
 
   const formatDate = (createdAt: string) =>
@@ -331,6 +372,7 @@ export default function CommentsPanel({
       hour: "2-digit",
       minute: "2-digit",
     });
+  const isDeleted = (comment: CommentItem) => !!comment.deletedAt;
 
   return (
     <div className="space-y-4">
@@ -379,20 +421,31 @@ export default function CommentsPanel({
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
               <div className="flex items-center justify-between text-xs text-white/60">
                 <div className="font-semibold text-white">
-                  {comment.user?.nickname || "Без имени"}
+                  {!isDeleted(comment)
+                    ? comment.user?.nickname || "Без имени"
+                    : null}
                 </div>
                 <span>{formatDate(comment.createdAt)}</span>
               </div>
-              <p className="mt-2 text-sm text-white/90 whitespace-pre-wrap">
-                {comment.text}
+              <p
+                className={[
+                  "mt-2 whitespace-pre-wrap",
+                  isDeleted(comment)
+                    ? "text-xs text-white/50"
+                    : "text-sm text-white/90",
+                ].join(" ")}
+              >
+                {isDeleted(comment) ? "Комментарий удалён" : comment.text}
               </p>
 
               <div className="mt-3 flex items-center justify-between gap-3">
-                <CommentLikeButton
-                  commentId={comment.id}
-                  initialLiked={comment.likedByMe}
-                  initialCount={comment.likeCount}
-                />
+                {!isDeleted(comment) && (
+                  <CommentLikeButton
+                    commentId={comment.id}
+                    initialLiked={comment.likedByMe}
+                    initialCount={comment.likeCount}
+                  />
+                )}
 
                 <div className="flex items-center gap-4">
                   {comment.replyCount > 0 && (
@@ -406,25 +459,27 @@ export default function CommentsPanel({
                     </button>
                   )}
 
-                  <button
-                    onClick={() =>
-                      requireUser(() => {
-                        if (replyTo === comment.id) {
-                          setReplyTo(null);
-                          setReplyText("");
-                        } else {
-                          setReplyTo(comment.id);
-                          setReplyText("");
-                        }
-                      })
-                    }
-                    className={[
-                      "text-xs text-white/70 hover:text-white transition",
-                      !user ? "cursor-not-allowed opacity-70" : "",
-                    ].join(" ")}
-                  >
-                    Ответить
-                  </button>
+                  {!isDeleted(comment) && (
+                    <button
+                      onClick={() =>
+                        requireUser(() => {
+                          if (replyTo === comment.id) {
+                            setReplyTo(null);
+                            setReplyText("");
+                          } else {
+                            setReplyTo(comment.id);
+                            setReplyText("");
+                          }
+                        })
+                      }
+                      className={[
+                        "text-xs text-white/70 hover:text-white transition",
+                        !user ? "cursor-not-allowed opacity-70" : "",
+                      ].join(" ")}
+                    >
+                      Ответить
+                    </button>
+                  )}
 
                   {canDelete(comment) && (
                     <button
@@ -473,20 +528,29 @@ export default function CommentsPanel({
                   >
                     <div className="flex items-center justify-between text-xs text-white/60">
                       <div className="font-semibold text-white">
-                        {reply.user?.nickname || "Без имени"}
+                        {!isDeleted(reply) ? reply.user?.nickname || "Без имени" : null}
                       </div>
                       <span>{formatDate(reply.createdAt)}</span>
                     </div>
-                    <p className="mt-2 text-sm text-white/90 whitespace-pre-wrap">
-                      {reply.text}
+                    <p
+                      className={[
+                        "mt-2 whitespace-pre-wrap",
+                        isDeleted(reply)
+                          ? "text-xs text-white/50"
+                          : "text-sm text-white/90",
+                      ].join(" ")}
+                    >
+                      {isDeleted(reply) ? "Комментарий удалён" : reply.text}
                     </p>
 
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      <CommentLikeButton
-                        commentId={reply.id}
-                        initialLiked={reply.likedByMe}
-                        initialCount={reply.likeCount}
-                      />
+                      {!isDeleted(reply) && (
+                        <CommentLikeButton
+                          commentId={reply.id}
+                          initialLiked={reply.likedByMe}
+                          initialCount={reply.likeCount}
+                        />
+                      )}
 
                       {canDelete(reply) && (
                         <button

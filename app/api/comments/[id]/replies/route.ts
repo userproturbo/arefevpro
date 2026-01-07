@@ -16,6 +16,7 @@ export async function GET(
 ) {
   try {
     const authUser = await getCurrentUser();
+    const isAdmin = authUser?.role === "ADMIN";
     const { id } = await context.params;
     const commentId = Number(id);
     if (Number.isNaN(commentId)) {
@@ -32,7 +33,10 @@ export async function GET(
       },
     });
 
-    if (!parent || parent.deletedAt) {
+    if (!parent) {
+      return NextResponse.json({ error: "Комментарий не найден" }, { status: 404 });
+    }
+    if (parent.deletedAt && !isAdmin) {
       return NextResponse.json({ error: "Комментарий не найден" }, { status: 404 });
     }
 
@@ -47,19 +51,21 @@ export async function GET(
       );
     }
 
+    const repliesCountSelect = isAdmin ? true : { where: { deletedAt: null } };
     const replies = await prisma.comment.findMany({
-      where: { parentId: commentId, deletedAt: null },
+      where: { parentId: commentId, ...(isAdmin ? {} : { deletedAt: null }) },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
         text: true,
         parentId: true,
         createdAt: true,
+        deletedAt: true,
         user: { select: { id: true, nickname: true } },
         _count: {
           select: {
             likes: true,
-            replies: { where: { deletedAt: null } },
+            replies: repliesCountSelect,
           },
         },
       },
@@ -81,6 +87,7 @@ export async function GET(
         text: reply.text,
         parentId: reply.parentId,
         createdAt: reply.createdAt.toISOString(),
+        deletedAt: reply.deletedAt ? reply.deletedAt.toISOString() : null,
         user: reply.user,
         likeCount: reply._count.likes,
         replyCount: reply._count.replies,
@@ -101,4 +108,3 @@ export async function GET(
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
-
