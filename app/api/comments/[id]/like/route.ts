@@ -6,9 +6,13 @@ import {
   isDatabaseUnavailableError,
   isExpectedDevDatabaseError,
 } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const LIKE_COOLDOWN_MS = 1000;
+const RATE_LIMIT_MESSAGE = "Слишком часто. Попробуйте позже.";
 
 export async function POST(
   _req: NextRequest,
@@ -24,6 +28,12 @@ export async function POST(
     const commentId = Number(id);
     if (Number.isNaN(commentId)) {
       return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
+    }
+
+    const rateKey = `comment:like:user:${authUser.id}`;
+    const rateLimit = checkRateLimit(rateKey, LIKE_COOLDOWN_MS);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
     }
 
     const comment = await prisma.comment.findUnique({
@@ -79,6 +89,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
     }
 
+    const rateKey = `comment:like:user:${authUser.id}`;
+    const rateLimit = checkRateLimit(rateKey, LIKE_COOLDOWN_MS);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
+
     const comment = await prisma.comment.findUnique({
       where: { id: commentId },
       select: { id: true, deletedAt: true },
@@ -108,4 +124,3 @@ export async function DELETE(
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
-
