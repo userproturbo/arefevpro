@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getStorageAdapter } from "@/lib/storage";
+import { getCurrentUser } from "@/lib/auth";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -11,7 +10,7 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function parsePositiveInt(value: FormDataEntryValue | null): number | null {
+function parsePositiveInt(value: unknown): number | null {
   if (typeof value === "number") {
     return Number.isInteger(value) && value > 0 ? value : null;
   }
@@ -22,34 +21,42 @@ function parsePositiveInt(value: FormDataEntryValue | null): number | null {
   return null;
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest,
+  context: { params: Promise<{ albumId: string }> }
+) {
   const authUser = await getCurrentUser();
-
   if (!authUser) {
     return NextResponse.json(
       { error: "Требуется авторизация" },
       { status: 401 }
     );
   }
-
   if (authUser.role !== "ADMIN") {
-    return NextResponse.json(
-      { error: "Нет прав доступа" },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: "Нет прав" }, { status: 403 });
   }
 
-  let formData: FormData;
+  const { albumId: albumIdParam } = await context.params;
+  const albumId = parsePositiveInt(albumIdParam);
+
+  if (!albumId) {
+    return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
+  }
+
+  let body: unknown;
   try {
-    formData = await req.formData();
+    body = await req.json();
   } catch (_error) {
-    return NextResponse.json({ error: "Неверные данные формы" }, { status: 400 });
+    return NextResponse.json({ error: "Неверные данные" }, { status: 400 });
   }
 
-  const albumId = parsePositiveInt(formData.get("albumId"));
-  const file = formData.get("file");
+  const photoId = parsePositiveInt(
+    typeof body === "object" && body !== null
+      ? (body as { photoId?: unknown }).photoId
+      : null
+  );
 
-  if (!albumId || !(file instanceof File)) {
+  if (!photoId) {
     return NextResponse.json({ error: "Неверные данные" }, { status: 400 });
   }
 
@@ -63,48 +70,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Альбом не найден" }, { status: 404 });
     }
 
-    const storage = getStorageAdapter();
-    const uploadResult = await storage.uploadFile(file);
-
-    const photo = await prisma.photo.create({
-      data: {
-        albumId,
-        storageKey: uploadResult.storageKey,
-        url: uploadResult.url,
-        width: null,
-        height: null,
-      },
-      select: {
-        id: true,
-        url: true,
-        storageKey: true,
-        createdAt: true,
-      },
+    const photo = await prisma.photo.findUnique({
+      where: { id: photoId },
+      select: { albumId: true },
     });
 
-    return NextResponse.json(
-      {
-        photo: {
-          id: photo.id,
-          url: photo.url,
-          storageKey: photo.storageKey,
-          createdAt: photo.createdAt.toISOString(),
-        },
-      },
-      { status: 201 }
-    );
+    if (!photo) {
+      return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
+    }
+
+    if (photo.albumId !== albumId) {
+      return NextResponse.json(
+        { error: "Фото не принадлежит альбому" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.album.update({
+      where: { id: albumId },
+      data: { coverPhotoId: photoId },
+    });
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
-        console.error("Admin photo upload error:", error);
+        console.error("Admin cover photo update error:", error);
       }
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }
       );
     }
-
-    console.error("Admin photo upload error:", error);
+    console.error("Admin cover photo update error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }

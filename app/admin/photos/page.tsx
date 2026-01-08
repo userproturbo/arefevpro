@@ -8,30 +8,50 @@ import {
   isExpectedDevDatabaseError,
 } from "@/lib/db";
 
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/* =========================
+   Types
+   ========================= */
 
 type Album = {
   id: number;
   title: string;
-  slug: string;
   description: string | null;
   createdAt: Date;
   photosCount: number;
+  coverUrl: string | null;
 };
 
-async function fetchAlbums(): Promise<{ albums: Album[]; error: string | null }> {
+/* =========================
+   Data
+   ========================= */
+
+async function fetchAlbums(): Promise<{
+  albums: Album[];
+  error: string | null;
+}> {
   try {
     const albums = await prisma.album.findMany({
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         title: true,
-        slug: true,
         description: true,
         createdAt: true,
-        _count: { select: { photos: true } },
+
+        coverPhoto: {
+          select: {
+            url: true,
+          },
+        },
+
+        _count: {
+          select: {
+            photos: true,
+          },
+        },
       },
     });
 
@@ -39,10 +59,10 @@ async function fetchAlbums(): Promise<{ albums: Album[]; error: string | null }>
       albums: albums.map((album) => ({
         id: album.id,
         title: album.title,
-        slug: album.slug,
         description: album.description,
         createdAt: album.createdAt,
         photosCount: album._count.photos,
+        coverUrl: album.coverPhoto?.url ?? null,
       })),
       error: null,
     };
@@ -51,18 +71,34 @@ async function fetchAlbums(): Promise<{ albums: Album[]; error: string | null }>
       if (!isExpectedDevDatabaseError(error)) {
         console.error("Admin albums list error:", error);
       }
-      return { albums: [], error: getDatabaseUnavailableMessage() };
+      return {
+        albums: [],
+        error: getDatabaseUnavailableMessage(),
+      };
     }
+
     console.error("Admin albums list error:", error);
-    return { albums: [], error: "Unable to load albums" };
+    return {
+      albums: [],
+      error: "Unable to load albums",
+    };
   }
 }
 
+/* =========================
+   Page
+   ========================= */
+
 export default async function AdminPhotosPage() {
   const requestedPath = "/admin/photos";
+
   const user = await getCurrentUser();
-  if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
-  if (user.role !== "ADMIN") redirect("/");
+  if (!user) {
+    redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
+  }
+  if (user.role !== "ADMIN") {
+    redirect("/");
+  }
 
   const { albums, error } = await fetchAlbums();
 
@@ -85,9 +121,9 @@ export default async function AdminPhotosPage() {
       {error ? (
         <div className="rounded-lg border border-white/10 p-6 text-white/60">
           <div>{error}</div>
-          <p className="text-sm text-muted-foreground">
-  Не удалось загрузить альбомы. Попробуйте обновить страницу.
-</p>
+          <p className="mt-1 text-sm text-white/40">
+            Не удалось загрузить альбомы. Попробуйте обновить страницу.
+          </p>
         </div>
       ) : albums.length === 0 ? (
         <div className="rounded-lg border border-white/10 p-6 text-white/60">
@@ -95,7 +131,8 @@ export default async function AdminPhotosPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="grid grid-cols-[1fr_120px_160px_140px] gap-4 px-4 py-2 text-xs uppercase tracking-wide text-white/50">
+          <div className="grid grid-cols-[96px_1fr_120px_160px_140px] gap-4 px-4 py-2 text-xs uppercase tracking-wide text-white/50">
+            <div>Cover</div>
             <div>Title</div>
             <div>Photos</div>
             <div>Created</div>
@@ -106,15 +143,33 @@ export default async function AdminPhotosPage() {
             {albums.map((album) => (
               <li
                 key={album.id}
-                className="grid grid-cols-[1fr_120px_160px_140px] items-center gap-4 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"
+                className="grid grid-cols-[96px_1fr_120px_160px_140px] items-center gap-4 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"
               >
+                <div className="h-16 w-20 overflow-hidden rounded-md border border-white/10 bg-white/[0.03]">
+                  {album.coverUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={album.coverUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-wide text-white/40">
+                      No cover
+                    </div>
+                  )}
+                </div>
+
                 <div className="min-w-0">
-                  <div className="truncate font-medium">{album.title}</div>
-                  {album.description ? (
+                  <div className="truncate font-medium">
+                    {album.title}
+                  </div>
+                  {album.description && (
                     <div className="truncate text-xs text-white/50">
                       {album.description}
                     </div>
-                  ) : null}
+                  )}
                 </div>
 
                 <div className="text-sm text-white/70">
@@ -122,7 +177,7 @@ export default async function AdminPhotosPage() {
                 </div>
 
                 <div className="text-sm text-white/60">
-                  {new Date(album.createdAt).toLocaleDateString("ru-RU")}
+                  {album.createdAt.toLocaleDateString("ru-RU")}
                 </div>
 
                 <div className="flex justify-end">

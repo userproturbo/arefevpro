@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { slugify } from "@/lib/slug";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -10,18 +9,6 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function generateUniqueAlbumSlug(title: string, desired?: string) {
-  const base = slugify(desired || title) || `album-${Date.now()}`;
-  let candidate = base;
-  let index = 1;
-
-  while (await prisma.album.findUnique({ where: { slug: candidate }, select: { id: true } })) {
-    candidate = `${base}-${index++}`;
-  }
-
-  return candidate;
-}
 
 export async function GET(_req: NextRequest) {
   const authUser = await getCurrentUser();
@@ -41,9 +28,9 @@ export async function GET(_req: NextRequest) {
       select: {
         id: true,
         title: true,
-        slug: true,
         description: true,
         createdAt: true,
+        coverPhoto: { select: { url: true } },
         _count: { select: { photos: true } },
       },
     });
@@ -52,10 +39,9 @@ export async function GET(_req: NextRequest) {
       albums: albums.map((album) => ({
         id: album.id,
         title: album.title,
-        slug: album.slug,
         description: album.description,
         createdAt: album.createdAt.toISOString(),
-        coverUrl: null,
+        coverUrl: album.coverPhoto?.url ?? null,
         photosCount: album._count.photos,
       })),
     });
@@ -101,22 +87,17 @@ export async function POST(req: NextRequest) {
         ? body.description.trim()
         : null;
 
-    const slugInput =
-      typeof body.slug === "string" ? body.slug.trim() : "";
-    const slug = await generateUniqueAlbumSlug(title, slugInput || undefined);
-
     const album = await prisma.album.create({
       data: {
         title,
-        slug,
         description,
       },
       select: {
         id: true,
         title: true,
-        slug: true,
         description: true,
         createdAt: true,
+        coverPhoto: { select: { url: true } },
       },
     });
 
@@ -125,9 +106,8 @@ export async function POST(req: NextRequest) {
         album: {
           id: album.id,
           title: album.title,
-          slug: album.slug,
           description: album.description,
-          coverUrl: null,
+          coverUrl: album.coverPhoto?.url ?? null,
           createdAt: album.createdAt.toISOString(),
         },
       },

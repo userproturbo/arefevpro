@@ -26,9 +26,10 @@ export async function GET(
       select: {
         id: true,
         title: true,
-        slug: true,
         description: true,
         createdAt: true,
+        coverPhotoId: true,
+        coverPhoto: { select: { url: true } },
         photos: {
           orderBy: [{ order: "asc" }, { createdAt: "asc" }],
           select: {
@@ -55,10 +56,10 @@ export async function GET(
       album: {
         id: album.id,
         title: album.title,
-        slug: album.slug,
         description: album.description,
         createdAt: album.createdAt.toISOString(),
-        coverUrl: null, // ⬅️ временно, до реализации upload / cover
+        coverPhotoId: album.coverPhotoId ?? null,
+        coverUrl: album.coverPhoto?.url ?? null,
         photos: album.photos.map((photo) => ({
           id: photo.id,
           storageKey: photo.storageKey,

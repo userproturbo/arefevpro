@@ -8,50 +8,50 @@ generator client {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  login         String    @unique
-  nickname      String?
-  email         String?   @unique
-  passwordHash  String
-  role          UserRole  @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           Int      @id @default(autoincrement())
+  login        String   @unique
+  nickname     String?
+  email        String?  @unique
+  passwordHash String
+  role         UserRole @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  comments       Comment[]
-  likes          Like[]
-  commentLikes   CommentLike[]
-  notifications  Notification[]
+  comments      Comment[]
+  likes         Like[]
+  commentLikes  CommentLike[]
+  notifications Notification[]
 }
 
 model Post {
-  id          Int       @id @default(autoincrement())
-  slug        String    @unique
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
   title       String
   type        PostType
   text        String?
   coverImage  String?
   mediaUrl    String?
-  isPublished Boolean   @default(false)
+  isPublished Boolean  @default(false)
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  comments    Comment[]
-  likes       Like[]
+  comments Comment[]
+  likes    Like[]
 }
 
 model Comment {
-  id        Int       @id @default(autoincrement())
-  text      String
-  postId    Int
-  userId    Int
-  parentId  Int?
+  id       Int    @id @default(autoincrement())
+  text     String
+  postId   Int
+  userId   Int
+  parentId Int?
 
-  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id])
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[] @relation("CommentReplies")
-  likes     CommentLike[]
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id])
+  parent  Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]     @relation("CommentReplies")
+  likes   CommentLike[]
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
@@ -74,12 +74,12 @@ model Notification {
 }
 
 model Like {
-  id        Int      @id @default(autoincrement())
-  postId    Int
-  userId    Int
+  id     Int @id @default(autoincrement())
+  postId Int
+  userId Int
 
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -87,12 +87,12 @@ model Like {
 }
 
 model CommentLike {
-  id        Int      @id @default(autoincrement())
+  id        Int @id @default(autoincrement())
   commentId Int
   userId    Int
 
-  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -102,32 +102,34 @@ model CommentLike {
 }
 
 model Album {
-  id            Int      @id @default(autoincrement())
-  title         String
-  slug          String   @unique
-  description   String?
-  coverPhotoId  Int?
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  coverPhotoId Int?   @unique
+  coverPhoto   Photo? @relation("AlbumCoverPhoto", fields: [coverPhotoId], references: [id])
 
-  photos        Photo[]
+  photos Photo[] @relation("AlbumPhotos")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-
 model Photo {
-  id         Int      @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
   albumId    Int
   storageKey String
   url        String
   width      Int?
   height     Int?
-  order      Int      @default(0)
+  order      Int    @default(0)
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  album      Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  album Album @relation("AlbumPhotos", fields: [albumId], references: [id], onDelete: Cascade)
+
+  coverFor Album? @relation("AlbumCoverPhoto")
 
   @@index([albumId])
 }
@@ -143,7 +145,7 @@ model Visit {
   visitorId String
   createdAt DateTime @default(now())
 
-  visitor   Visitor @relation(fields: [visitorId], references: [id])
+  visitor Visitor @relation(fields: [visitorId], references: [id])
 
   @@index([visitorId])
   @@index([createdAt])
