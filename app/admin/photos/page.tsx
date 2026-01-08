@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import {
+  getDatabaseUnavailableMessage,
+  isDatabaseUnavailableError,
+  isExpectedDevDatabaseError,
+} from "@/lib/db";
+
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,20 +15,46 @@ export const dynamic = "force-dynamic";
 type Album = {
   id: number;
   title: string;
+  slug: string;
   description: string | null;
-  createdAt: string;
+  createdAt: Date;
   photosCount: number;
 };
 
-async function fetchAlbums(): Promise<Album[] | null> {
+async function fetchAlbums(): Promise<{ albums: Album[]; error: string | null }> {
   try {
-    const res = await fetch("/api/albums", { cache: "no-store" });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { albums?: Album[] };
-    return Array.isArray(data.albums) ? data.albums : [];
+    const albums = await prisma.album.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        createdAt: true,
+        _count: { select: { photos: true } },
+      },
+    });
+
+    return {
+      albums: albums.map((album) => ({
+        id: album.id,
+        title: album.title,
+        slug: album.slug,
+        description: album.description,
+        createdAt: album.createdAt,
+        photosCount: album._count.photos,
+      })),
+      error: null,
+    };
   } catch (error) {
-    console.error(error);
-    return null;
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Admin albums list error:", error);
+      }
+      return { albums: [], error: getDatabaseUnavailableMessage() };
+    }
+    console.error("Admin albums list error:", error);
+    return { albums: [], error: "Unable to load albums" };
   }
 }
 
@@ -31,7 +64,7 @@ export default async function AdminPhotosPage() {
   if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
   if (user.role !== "ADMIN") redirect("/");
 
-  const albums = await fetchAlbums();
+  const { albums, error } = await fetchAlbums();
 
   return (
     <main className="space-y-6">
@@ -49,9 +82,12 @@ export default async function AdminPhotosPage() {
         </Link>
       </div>
 
-      {albums === null ? (
+      {error ? (
         <div className="rounded-lg border border-white/10 p-6 text-white/60">
-          Failed to load albums
+          <div>{error}</div>
+          <p className="text-sm text-muted-foreground">
+  Не удалось загрузить альбомы. Попробуйте обновить страницу.
+</p>
         </div>
       ) : albums.length === 0 ? (
         <div className="rounded-lg border border-white/10 p-6 text-white/60">

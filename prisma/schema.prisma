@@ -21,12 +21,7 @@ model User {
   likes          Like[]
   commentLikes   CommentLike[]
   notifications  Notification[]
-
-  // 🔽 ДОБАВЛЕНО ДЛЯ PHOTO-РАЗДЕЛА
-  albums         Album[]
-  photos         Photo[]
 }
-
 
 model Post {
   id          Int       @id @default(autoincrement())
@@ -107,34 +102,51 @@ model CommentLike {
 }
 
 model Album {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  title       String
-  description String?
-  createdAt   DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  title         String
+  slug          String   @unique
+  description   String?
+  coverPhotoId  Int?
 
-  user   User    @relation(fields: [userId], references: [id])
-  photos Photo[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  @@index([userId])
+  photos        Photo[]
 }
+
 
 model Photo {
   id         Int      @id @default(autoincrement())
   albumId    Int
-  userId     Int
   storageKey String
-  mimeType   String
-  size       Int
+  url        String
   width      Int?
   height     Int?
-  createdAt  DateTime @default(now())
+  order      Int      @default(0)
 
-  album Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  album      Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
 
   @@index([albumId])
-  @@index([userId])
+}
+
+model Visitor {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  visits    Visit[]
+}
+
+model Visit {
+  id        String   @id @default(uuid())
+  visitorId String
+  createdAt DateTime @default(now())
+
+  visitor   Visitor @relation(fields: [visitorId], references: [id])
+
+  @@index([visitorId])
+  @@index([createdAt])
 }
 
 enum PostType {
@@ -152,21 +164,4 @@ enum UserRole {
 
 enum NotificationType {
   COMMENT_REPLY
-}
-
-model Visitor {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  visits    Visit[]
-}
-
-model Visit {
-  id        String   @id @default(uuid())
-  visitorId String
-  createdAt DateTime @default(now())
-
-  visitor Visitor @relation(fields: [visitorId], references: [id])
-
-  @@index([visitorId])
-  @@index([createdAt])
 }

@@ -16,6 +16,7 @@ export async function GET(
   try {
     const { id } = await context.params;
     const albumId = Number(id);
+
     if (Number.isNaN(albumId)) {
       return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
     }
@@ -25,15 +26,18 @@ export async function GET(
       select: {
         id: true,
         title: true,
+        slug: true,
         description: true,
         createdAt: true,
         photos: {
-          orderBy: { createdAt: "asc" },
+          orderBy: [{ order: "asc" }, { createdAt: "asc" }],
           select: {
             id: true,
             storageKey: true,
+            url: true,
             width: true,
             height: true,
+            order: true,
             createdAt: true,
           },
         },
@@ -41,20 +45,27 @@ export async function GET(
     });
 
     if (!album) {
-      return NextResponse.json({ error: "Альбом не найден" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Альбом не найден" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({
       album: {
         id: album.id,
         title: album.title,
+        slug: album.slug,
         description: album.description,
         createdAt: album.createdAt.toISOString(),
+        coverUrl: null, // ⬅️ временно, до реализации upload / cover
         photos: album.photos.map((photo) => ({
           id: photo.id,
           storageKey: photo.storageKey,
+          url: photo.url,
           width: photo.width,
           height: photo.height,
+          order: photo.order,
           createdAt: photo.createdAt.toISOString(),
         })),
       },
@@ -69,6 +80,7 @@ export async function GET(
         { status: 503 }
       );
     }
+
     console.error("Album details error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
