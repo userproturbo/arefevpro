@@ -18,6 +18,7 @@ export async function GET(_req: NextRequest) {
         title: true,
         description: true,
         createdAt: true,
+        coverPhoto: { select: { url: true } },
         _count: { select: { photos: true } },
       },
     });
@@ -28,6 +29,7 @@ export async function GET(_req: NextRequest) {
         title: album.title,
         description: album.description,
         createdAt: album.createdAt.toISOString(),
+        coverUrl: album.coverPhoto?.url ?? null,
         photosCount: album._count.photos,
       })),
     });

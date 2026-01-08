@@ -7,6 +7,7 @@ type Album = {
   description: string | null;
   createdAt: string;
   photosCount: number;
+  coverUrl: string | null;
 };
 
 async function fetchAlbums(): Promise<Album[] | null> {

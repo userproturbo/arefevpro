@@ -1,7 +1,8 @@
 import PageContainer from "@/app/components/PageContainer";
-import PhotosGrid from "@/app/photos/[albumId]/PhotosGrid";
+import PhotosGrid from "./PhotosGrid";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import UploadPhotoForm from "./UploadPhotoForm";
 
 type PageProps = {
   params: Promise<{ albumId: string }>;
@@ -69,17 +70,27 @@ export default async function AdminAlbumPage({ params }: PageProps) {
 
   return (
     <PageContainer>
-      <h1 className="text-2xl font-semibold mb-2">
-        {data.album.title}
-      </h1>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold">
+            {data.album.title}
+          </h1>
 
-      {data.album.description && (
-        <p className="text-muted-foreground mb-6">
-          {data.album.description}
-        </p>
-      )}
+          {data.album.description && (
+            <p className="text-muted-foreground">
+              {data.album.description}
+            </p>
+          )}
+        </div>
 
-      <PhotosGrid photos={data.album.photos} />
+        <UploadPhotoForm albumId={id} />
+
+        <PhotosGrid
+          albumId={id}
+          photos={data.album.photos}
+          coverPhotoId={data.album.coverPhotoId ?? null}
+        />
+      </div>
     </PageContainer>
   );
 }
