@@ -70,3 +70,21 @@ export async function generateUniqueSlug(title: string, desired?: string) {
     return `${base}-${suffix}`;
   }
 }
+
+export async function generateUniqueAlbumSlug(title: string, desired?: string) {
+  const base = slugify(desired || title) || `${Date.now()}`;
+  let candidate = base;
+  let index = 1;
+
+  try {
+    while (await prisma.album.findUnique({ where: { slug: candidate } })) {
+      candidate = `${base}-${index++}`;
+    }
+
+    return candidate;
+  } catch (error) {
+    logServerError("Unique album slug generation error:", error);
+    const suffix = Math.random().toString(36).slice(2, 8);
+    return `${base}-${suffix}`;
+  }
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUser } from "@/lib/auth";
+import { generateUniqueAlbumSlug } from "@/lib/slug";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -86,11 +87,15 @@ export async function POST(req: NextRequest) {
       typeof body.description === "string" && body.description.trim()
         ? body.description.trim()
         : null;
+    const published = typeof body.published === "boolean" ? body.published : false;
+    const slug = await generateUniqueAlbumSlug(title);
 
     const album = await prisma.album.create({
       data: {
         title,
         description,
+        slug,
+        published,
       },
       select: {
         id: true,

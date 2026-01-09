@@ -17,10 +17,12 @@ function parsePositiveInt(value: FormDataEntryValue | null): number | null {
   if (typeof value === "number") {
     return Number.isInteger(value) && value > 0 ? value : null;
   }
+
   if (typeof value === "string") {
     const parsed = Number(value);
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
   }
+
   return null;
 }
 
@@ -44,8 +46,11 @@ export async function POST(req: NextRequest) {
   let formData: FormData;
   try {
     formData = await req.formData();
-  } catch (_error) {
-    return NextResponse.json({ error: "Неверные данные формы" }, { status: 400 });
+  } catch {
+    return NextResponse.json(
+      { error: "Неверные данные формы" },
+      { status: 400 }
+    );
   }
 
   const albumId = parsePositiveInt(formData.get("albumId"));
@@ -104,6 +109,7 @@ export async function POST(req: NextRequest) {
       if (!isExpectedDevDatabaseError(error)) {
         console.error("Admin photo upload error:", error);
       }
+
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }

@@ -7,6 +7,7 @@ export default function CreateAlbumForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [published, setPublished] = useState(false);
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function CreateAlbumForm() {
         body: JSON.stringify({
           title: trimmedTitle,
           description: trimmedDescription || undefined,
+          published,
         }),
       });
 
@@ -105,6 +107,17 @@ export default function CreateAlbumForm() {
           disabled={pending}
         />
       </div>
+
+      <label className="flex items-center gap-3 text-sm text-white/70">
+        <input
+          type="checkbox"
+          checked={published}
+          onChange={(event) => setPublished(event.target.checked)}
+          disabled={pending}
+          className="h-4 w-4 rounded border-white/20 bg-black/40 text-white"
+        />
+        Publish album
+      </label>
 
       <div className="flex items-center justify-end gap-3">
         <button
