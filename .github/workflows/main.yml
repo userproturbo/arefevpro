@@ -46,3 +46,4 @@ jobs:
             fi
 
             echo "== Deploy finished successfully =="
+            exit 0
