@@ -32,14 +32,17 @@ jobs:
             echo "== Install dependencies =="
             npm install
 
-            echo "== Prisma generate (no migrate) =="
+            echo "== Prisma generate =="
             npx prisma generate
 
             echo "== Build Next.js =="
             npm run build
 
             echo "== Restart PM2 =="
-            pm2 restart arefev || pm2 start ecosystem.config.js
+            if pm2 describe arefev > /dev/null; then
+              pm2 restart arefev
+            else
+              pm2 start ecosystem.config.js
+            fi
 
             echo "== Deploy finished successfully =="
-            exit 0
