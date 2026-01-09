@@ -21,9 +21,15 @@ export default async function AlbumPage({ params }: PageProps) {
 
   try {
     const album = await prisma.album.findFirst({
-      where: { id: numericId, published: true, slug: { not: null } },
-      select: { slug: true },
+      where: {
+        id: numericId,
+        published: true,
+      },
+      select: {
+        slug: true,
+      },
     });
+    
 
     if (!album?.slug) {
       notFound();
