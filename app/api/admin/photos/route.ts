@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getStorageAdapter } from "@/lib/storage";
@@ -63,14 +65,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Альбом не найден" }, { status: 404 });
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const ext = path.extname(file.name || "") || ".bin";
+    const storagePath = `${Date.now()}-${randomUUID()}${ext}`;
+
     const storage = getStorageAdapter();
-    const uploadResult = await storage.uploadFile(file);
+    const url = await storage.uploadFile(buffer, storagePath);
 
     const photo = await prisma.photo.create({
       data: {
         albumId,
-        storageKey: uploadResult.storageKey,
-        url: uploadResult.url,
+        storageKey: storagePath,
+        url,
         width: null,
         height: null,
       },

@@ -1,10 +1,4 @@
-export interface UploadResult {
-  storageKey: string;
-  url: string;
-  size: number;
-  mimeType: string;
-}
-
 export interface StorageAdapter {
-  uploadFile(file: File): Promise<UploadResult>;
+  uploadFile(file: Buffer, path: string): Promise<string>;
+  deleteFile(path: string): Promise<void>;
 }

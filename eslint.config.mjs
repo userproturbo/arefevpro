@@ -1,19 +1,17 @@
-import { defineConfig, globalIgnores } from "eslint/config";
+import { defineConfig } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-const eslintConfig = defineConfig([
+export default defineConfig([
+  // 1️⃣ Next.js base configs
   ...nextVitals,
   ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-    "scripts/**",
-  ]),
-]);
 
-export default eslintConfig;
+  // 2️⃣ Override rules ONLY for prisma seed
+  {
+    files: ["prisma/seed.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+]);

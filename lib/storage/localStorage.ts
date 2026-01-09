@@ -1,26 +1,32 @@
 import fs from "fs/promises";
 import path from "path";
-import crypto from "crypto";
-import { StorageAdapter, UploadResult } from "./types";
+import { StorageAdapter } from "./types";
 
 export class LocalStorageAdapter implements StorageAdapter {
-  private uploadDir = path.join(process.cwd(), "public/uploads");
+  private uploadDir: string;
 
-  async uploadFile(file: File): Promise<UploadResult> {
-    await fs.mkdir(this.uploadDir, { recursive: true });
+  constructor() {
+    this.uploadDir = path.join(process.cwd(), "public", "uploads");
+  }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = path.extname(file.name);
-    const filename = `${crypto.randomUUID()}${ext}`;
-    const fullPath = path.join(this.uploadDir, filename);
+  async uploadFile(file: Buffer, filePath: string): Promise<string> {
+    const normalizedPath = this.normalizePath(filePath);
+    const destination = path.join(this.uploadDir, normalizedPath);
 
-    await fs.writeFile(fullPath, buffer);
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    await fs.writeFile(destination, file);
 
-    return {
-      storageKey: filename,
-      url: `/uploads/${filename}`,
-      size: buffer.length,
-      mimeType: file.type || "application/octet-stream",
-    };
+    return `/uploads/${normalizedPath.replace(/\\/g, "/")}`;
+  }
+
+  async deleteFile(filePath: string): Promise<void> {
+    const normalizedPath = this.normalizePath(filePath);
+    const destination = path.join(this.uploadDir, normalizedPath);
+    await fs.unlink(destination);
+  }
+
+  private normalizePath(filePath: string): string {
+    const trimmed = filePath.replace(/^[/\\]+/, "");
+    return trimmed.startsWith("uploads/") ? trimmed.slice("uploads/".length) : trimmed;
   }
 }

@@ -1,15 +1,6 @@
-import crypto from "crypto";
-import path from "path";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { StorageAdapter, UploadResult } from "./types";
+import { StorageAdapter } from "./types";
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
-  }
-  return value;
-}
+type S3ClientType = import("@aws-sdk/client-s3").S3Client;
 
 function normalizeEndpoint(endpoint: string): string {
   const trimmed = endpoint.trim();
@@ -19,30 +10,35 @@ function normalizeEndpoint(endpoint: string): string {
   return `https://${trimmed}`;
 }
 
-function ensureHttps(endpoint: string): string {
-  if (endpoint.startsWith("https://")) {
-    return endpoint;
-  }
-  if (endpoint.startsWith("http://")) {
-    return `https://${endpoint.slice("http://".length)}`;
-  }
-  return `https://${endpoint}`;
-}
-
 export class YandexStorageAdapter implements StorageAdapter {
-  private client: S3Client;
-  private bucket: string;
-  private publicBaseUrl: string;
+  private client: S3ClientType | null = null;
+  private bucket: string | null = null;
+  private endpoint: string | null = null;
 
-  constructor() {
-    const accessKeyId = requireEnv("YC_ACCESS_KEY_ID");
-    const secretAccessKey = requireEnv("YC_SECRET_ACCESS_KEY");
-    const bucket = requireEnv("YC_BUCKET");
-    const region = requireEnv("YC_REGION");
-    const endpoint = normalizeEndpoint(requireEnv("YC_ENDPOINT"));
+  private requireEnv(name: string): string {
+    const value = process.env[name];
+    if (!value) {
+      throw new Error(`Missing environment variable: ${name}`);
+    }
+    return value;
+  }
 
+  private async getClient(): Promise<S3ClientType> {
+    if (this.client) {
+      return this.client;
+    }
+
+    const accessKeyId = this.requireEnv("YC_ACCESS_KEY");
+    const secretAccessKey = this.requireEnv("YC_SECRET_KEY");
+    const bucket = this.requireEnv("YC_BUCKET");
+    const endpoint = normalizeEndpoint(this.requireEnv("YC_ENDPOINT"));
+
+    const { S3Client } = await import("@aws-sdk/client-s3");
+
+    this.bucket = bucket;
+    this.endpoint = endpoint;
     this.client = new S3Client({
-      region,
+      region: "ru-central1",
       endpoint,
       credentials: {
         accessKeyId,
@@ -50,33 +46,18 @@ export class YandexStorageAdapter implements StorageAdapter {
       },
       forcePathStyle: true,
     });
-    this.bucket = bucket;
 
-    const publicEndpoint = ensureHttps(endpoint).replace(/\/+$/, "");
-    this.publicBaseUrl = `${publicEndpoint}/${bucket}`;
+    return this.client;
   }
 
-  async uploadFile(file: File): Promise<UploadResult> {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = path.extname(file.name);
-    const filename = `${crypto.randomUUID()}${ext}`;
-    const mimeType = file.type || "application/octet-stream";
+  async uploadFile(file: Buffer, path: string): Promise<string> {
+    await this.getClient();
+    void file;
+    throw new Error(`Not implemented yet: upload ${path}`);
+  }
 
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: filename,
-        Body: buffer,
-        ContentType: mimeType,
-        ACL: "public-read",
-      })
-    );
-
-    return {
-      storageKey: filename,
-      url: `${this.publicBaseUrl}/${filename}`,
-      size: buffer.length,
-      mimeType,
-    };
+  async deleteFile(path: string): Promise<void> {
+    await this.getClient();
+    throw new Error(`Not implemented yet: delete ${path}`);
   }
 }
