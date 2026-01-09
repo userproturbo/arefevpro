@@ -4,10 +4,10 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Props = {
-  albumId: number;
+  albumSlug: string;
 };
 
-export default function UploadPhotoForm({ albumId }: Props) {
+export default function UploadPhotoForm({ albumSlug }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -33,7 +33,7 @@ export default function UploadPhotoForm({ albumId }: Props) {
 
     try {
       const formData = new FormData();
-      formData.append("albumId", String(albumId));
+      formData.append("albumSlug", albumSlug);
       formData.append("file", file);
 
       const res = await fetch("/api/admin/photos", {

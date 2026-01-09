@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 type Album = {
   id: number;
+  slug: string;
   title: string;
   description: string | null;
   createdAt: Date;
@@ -37,6 +38,7 @@ async function fetchAlbums(): Promise<{
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
+        slug: true,
         title: true,
         description: true,
         createdAt: true,
@@ -58,6 +60,7 @@ async function fetchAlbums(): Promise<{
     return {
       albums: albums.map((album) => ({
         id: album.id,
+        slug: album.slug,
         title: album.title,
         description: album.description,
         createdAt: album.createdAt,
@@ -182,7 +185,7 @@ export default async function AdminPhotosPage() {
 
                 <div className="flex justify-end">
                   <Link
-                    href={`/admin/photos/${album.id}`}
+                    href={`/admin/photos/${album.slug}`}
                     className="text-sm text-white/70 hover:text-white"
                   >
                     Open

@@ -7,6 +7,12 @@ type Album = {
   slug: string;
   description: string | null;
   coverImage: string | null;
+  photos: {
+    id: number;
+    url: string;
+    width: number | null;
+    height: number | null;
+  }[];
 };
 
 export default async function PhotoAlbumPage({
@@ -62,9 +68,28 @@ export default async function PhotoAlbumPage({
           ) : null}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-white/70">
-          Фотографии будут добавлены позже
-        </div>
+        {data.album.photos.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-white/70">
+            Фотографии будут добавлены позже
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {data.album.photos.map((photo) => (
+              <div
+                key={photo.id}
+                className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photo.url}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-square h-full w-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </PageContainer>
   );

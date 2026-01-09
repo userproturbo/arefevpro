@@ -52,13 +52,16 @@ export default function CreateAlbumForm() {
         return;
       }
 
-      const albumId =
-        data && typeof data === "object" && data.album && data.album.id
-          ? Number(data.album.id)
+      const albumSlug =
+        data &&
+        typeof data === "object" &&
+        data.album &&
+        typeof data.album.slug === "string"
+          ? data.album.slug
           : null;
 
-      if (albumId) {
-        router.push(`/admin/photos/${albumId}`);
+      if (albumSlug) {
+        router.push(`/admin/photos/${albumSlug}`);
         router.refresh();
       } else {
         router.push("/admin/photos");

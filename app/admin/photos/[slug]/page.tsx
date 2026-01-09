@@ -12,14 +12,14 @@ import UploadPhotoForm from "./UploadPhotoForm";
 import PublishToggle from "./PublishToggle";
 
 type PageProps = {
-  params: Promise<{ albumId: string }>;
+  params: Promise<{ slug: string }>;
 };
 
 export default async function AdminAlbumPage({ params }: PageProps) {
-  const { albumId } = await params;
-  const id = Number(albumId);
+  const { slug } = await params;
+  const normalizedSlug = slug.trim();
 
-  if (!Number.isFinite(id)) {
+  if (!normalizedSlug) {
     return (
       <PageContainer>
         <h1 className="text-xl font-semibold">Некорректный альбом</h1>
@@ -28,14 +28,17 @@ export default async function AdminAlbumPage({ params }: PageProps) {
   }
 
   const user = await getCurrentUser();
-  if (!user) redirect(`/admin/login?next=/admin/photos/${id}`);
+  if (!user) {
+    redirect(`/admin/login?next=/admin/photos/${encodeURIComponent(normalizedSlug)}`);
+  }
   if (user.role !== "ADMIN") redirect("/");
 
   try {
     const album = await prisma.album.findUnique({
-      where: { id },
+      where: { slug: normalizedSlug },
       select: {
         id: true,
+        slug: true,
         title: true,
         description: true,
         published: true,
@@ -53,7 +56,7 @@ export default async function AdminAlbumPage({ params }: PageProps) {
     if (!album) {
       return (
         <PageContainer>
-          <h1 className="text-xl font-semibold">Альбом не найден</h1>
+          <h1 className="text-xl font-semibold">Album not found</h1>
         </PageContainer>
       );
     }
@@ -67,7 +70,7 @@ export default async function AdminAlbumPage({ params }: PageProps) {
                 {album.title}
               </h1>
               <PublishToggle
-                albumId={album.id}
+                albumSlug={album.slug}
                 initialPublished={album.published}
               />
             </div>
@@ -79,10 +82,10 @@ export default async function AdminAlbumPage({ params }: PageProps) {
             )}
           </div>
 
-          <UploadPhotoForm albumId={id} />
+          <UploadPhotoForm albumSlug={album.slug} />
 
           <PhotosGrid
-            albumId={id}
+            albumSlug={album.slug}
             photos={album.photos}
             coverPhotoId={album.coverPhotoId ?? null}
           />

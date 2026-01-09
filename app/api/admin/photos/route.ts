@@ -13,17 +13,10 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function parsePositiveInt(value: FormDataEntryValue | null): number | null {
-  if (typeof value === "number") {
-    return Number.isInteger(value) && value > 0 ? value : null;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-  }
-
-  return null;
+function parseNonEmptyString(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 export async function POST(req: NextRequest) {
@@ -53,16 +46,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const albumId = parsePositiveInt(formData.get("albumId"));
+  const albumSlug = parseNonEmptyString(formData.get("albumSlug"));
   const file = formData.get("file");
 
-  if (!albumId || !(file instanceof File)) {
+  if (!albumSlug || !(file instanceof File)) {
     return NextResponse.json({ error: "Неверные данные" }, { status: 400 });
   }
 
   try {
     const album = await prisma.album.findUnique({
-      where: { id: albumId },
+      where: { slug: albumSlug },
       select: { id: true },
     });
 
@@ -79,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     const photo = await prisma.photo.create({
       data: {
-        albumId,
+        albumId: album.id,
         storageKey: storagePath,
         url,
         width: null,

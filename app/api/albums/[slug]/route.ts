@@ -21,18 +21,28 @@ export async function GET(
       return NextResponse.json({ error: "Неверный slug" }, { status: 400 });
     }
 
-    const album = await prisma.album.findFirst({
-      where: { slug: normalizedSlug, published: true },
+    const album = await prisma.album.findUnique({
+      where: { slug: normalizedSlug },
       select: {
         id: true,
         title: true,
         slug: true,
         description: true,
+        published: true,
         coverPhoto: { select: { url: true } },
+        photos: {
+          orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          select: {
+            id: true,
+            url: true,
+            width: true,
+            height: true,
+          },
+        },
       },
     });
 
-    if (!album) {
+    if (!album || !album.published) {
       return NextResponse.json(
         { error: "Альбом не найден" },
         { status: 404 }
@@ -43,9 +53,10 @@ export async function GET(
       album: {
         id: album.id,
         title: album.title,
-        slug: album.slug ?? normalizedSlug,
+        slug: album.slug,
         description: album.description,
         coverImage: album.coverPhoto?.url ?? null,
+        photos: album.photos,
       },
     });
   } catch (error) {
