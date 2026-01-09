@@ -1,19 +1,19 @@
-"use client";
-
 import Link from "next/link";
 
 type Album = {
   id: number;
   title: string;
+  slug: string;
   description: string | null;
-  createdAt: string;
-  photosCount: number;
-  coverUrl: string | null;
+  coverImage: string | null;
 };
 
 type Props = {
   albums: Album[];
 };
+
+const PLACEHOLDER_COVER =
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80";
 
 export default function AlbumsList({ albums }: Props) {
   if (albums.length === 0) {
@@ -29,18 +29,12 @@ export default function AlbumsList({ albums }: Props) {
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="h-20 w-28 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
-              {album.coverUrl ? (
-                <img
-                  src={album.coverUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-wide text-white/40">
-                  No cover
-                </div>
-              )}
+              <img
+                src={album.coverImage ?? PLACEHOLDER_COVER}
+                alt={album.title}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
             </div>
 
             <div className="flex-1 space-y-2">
@@ -48,14 +42,11 @@ export default function AlbumsList({ albums }: Props) {
               {album.description ? (
                 <p className="text-sm text-white/70">{album.description}</p>
               ) : null}
-              <p className="text-xs text-white/60">
-                📸 {album.photosCount} photos
-              </p>
             </div>
 
             <div>
               <Link
-                href={`/photos/${album.id}`}
+                href={`/photo/${album.slug}`}
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/[0.06]"
               >
                 Open album

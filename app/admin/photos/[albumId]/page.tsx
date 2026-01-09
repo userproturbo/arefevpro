@@ -1,15 +1,21 @@
 import PageContainer from "@/app/components/PageContainer";
 import PhotosGrid from "./PhotosGrid";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import {
+  getDatabaseUnavailableMessage,
+  isDatabaseUnavailableError,
+  isExpectedDevDatabaseError,
+} from "@/lib/db";
 import { redirect } from "next/navigation";
 import UploadPhotoForm from "./UploadPhotoForm";
+import PublishToggle from "./PublishToggle";
 
 type PageProps = {
   params: Promise<{ albumId: string }>;
 };
 
 export default async function AdminAlbumPage({ params }: PageProps) {
-  // 🔴 ВАЖНО: await params
   const { albumId } = await params;
   const id = Number(albumId);
 
@@ -25,72 +31,85 @@ export default async function AdminAlbumPage({ params }: PageProps) {
   if (!user) redirect(`/admin/login?next=/admin/photos/${id}`);
   if (user.role !== "ADMIN") redirect("/");
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000");
-
-  let res: Response;
-
   try {
-    res = await fetch(`${baseUrl}/api/albums/${id}`, {
-      cache: "no-store",
+    const album = await prisma.album.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        published: true,
+        coverPhotoId: true,
+        photos: {
+          orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          select: {
+            id: true,
+            url: true,
+          },
+        },
+      },
     });
-  } catch (e) {
-    console.error("Fetch album failed:", e);
+
+    if (!album) {
+      return (
+        <PageContainer>
+          <h1 className="text-xl font-semibold">Альбом не найден</h1>
+        </PageContainer>
+      );
+    }
+
     return (
       <PageContainer>
-        <h1 className="text-xl font-semibold">
-          Ошибка загрузки альбома
-        </h1>
-      </PageContainer>
-    );
-  }
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h1 className="text-2xl font-semibold">
+                {album.title}
+              </h1>
+              <PublishToggle
+                albumId={album.id}
+                initialPublished={album.published}
+              />
+            </div>
 
-  if (res.status === 404) {
-    return (
-      <PageContainer>
-        <h1 className="text-xl font-semibold">Альбом не найден</h1>
-      </PageContainer>
-    );
-  }
+            {album.description && (
+              <p className="text-muted-foreground">
+                {album.description}
+              </p>
+            )}
+          </div>
 
-  if (!res.ok) {
-    return (
-      <PageContainer>
-        <h1 className="text-xl font-semibold">
-          Ошибка загрузки альбома
-        </h1>
-      </PageContainer>
-    );
-  }
+          <UploadPhotoForm albumId={id} />
 
-  const data = await res.json();
-
-  return (
-    <PageContainer>
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">
-            {data.album.title}
-          </h1>
-
-          {data.album.description && (
-            <p className="text-muted-foreground">
-              {data.album.description}
-            </p>
-          )}
+          <PhotosGrid
+            albumId={id}
+            photos={album.photos}
+            coverPhotoId={album.coverPhotoId ?? null}
+          />
         </div>
+      </PageContainer>
+    );
+  } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Admin album load error:", error);
+      }
+      return (
+        <PageContainer>
+          <h1 className="text-xl font-semibold">
+            {getDatabaseUnavailableMessage()}
+          </h1>
+        </PageContainer>
+      );
+    }
 
-        <UploadPhotoForm albumId={id} />
-
-        <PhotosGrid
-          albumId={id}
-          photos={data.album.photos}
-          coverPhotoId={data.album.coverPhotoId ?? null}
-        />
-      </div>
-    </PageContainer>
-  );
+    console.error("Admin album load error:", error);
+    return (
+      <PageContainer>
+        <h1 className="text-xl font-semibold">
+          Ошибка загрузки альбома
+        </h1>
+      </PageContainer>
+    );
+  }
 }

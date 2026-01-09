@@ -1,5 +1,11 @@
 import PageContainer from "@/app/components/PageContainer";
-import PhotosGrid from "./PhotosGrid";
+import { prisma } from "@/lib/prisma";
+import {
+  getDatabaseUnavailableMessage,
+  isDatabaseUnavailableError,
+  isExpectedDevDatabaseError,
+} from "@/lib/db";
+import { notFound, redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ albumId: string }>;
@@ -7,48 +13,38 @@ type PageProps = {
 
 export default async function AlbumPage({ params }: PageProps) {
   const { albumId } = await params;
-  const id = Number(albumId);
+  const numericId = Number(albumId);
 
-  if (!Number.isFinite(id)) {
-    return (
-      <PageContainer>
-        <h1 className="text-xl font-semibold">Некорректный альбом</h1>
-      </PageContainer>
-    );
+  if (!Number.isFinite(numericId)) {
+    redirect(`/photo/${albumId}`);
   }
-
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000");
-
-  let res: Response;
 
   try {
-    res = await fetch(`${baseUrl}/api/albums/${id}`, {
-      cache: "no-store",
+    const album = await prisma.album.findFirst({
+      where: { id: numericId, published: true, slug: { not: null } },
+      select: { slug: true },
     });
-  } catch (e) {
-    console.error("Fetch album failed:", e);
-    return (
-      <PageContainer>
-        <h1 className="text-xl font-semibold">
-          Не удалось загрузить альбом
-        </h1>
-      </PageContainer>
-    );
-  }
 
-  if (res.status === 404) {
-    return (
-      <PageContainer>
-        <h1 className="text-xl font-semibold">Альбом не найден</h1>
-      </PageContainer>
-    );
-  }
+    if (!album?.slug) {
+      notFound();
+    }
 
-  if (!res.ok) {
+    redirect(`/photo/${album.slug}`);
+  } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      if (!isExpectedDevDatabaseError(error)) {
+        console.error("Album redirect error:", error);
+      }
+      return (
+        <PageContainer>
+          <h1 className="text-xl font-semibold">
+            {getDatabaseUnavailableMessage()}
+          </h1>
+        </PageContainer>
+      );
+    }
+
+    console.error("Album redirect error:", error);
     return (
       <PageContainer>
         <h1 className="text-xl font-semibold">
@@ -57,22 +53,4 @@ export default async function AlbumPage({ params }: PageProps) {
       </PageContainer>
     );
   }
-
-  const data = await res.json();
-
-  return (
-    <PageContainer>
-      <h1 className="text-2xl font-semibold mb-2">
-        {data.album.title}
-      </h1>
-
-      {data.album.description && (
-        <p className="text-muted-foreground mb-6">
-          {data.album.description}
-        </p>
-      )}
-
-      <PhotosGrid photos={data.album.photos} />
-    </PageContainer>
-  );
 }

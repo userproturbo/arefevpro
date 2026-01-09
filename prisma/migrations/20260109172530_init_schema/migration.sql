@@ -5,7 +5,9 @@
   - You are about to drop the column `mimeType` on the `Photo` table. All the data in the column will be lost.
   - You are about to drop the column `size` on the `Photo` table. All the data in the column will be lost.
   - You are about to drop the column `userId` on the `Photo` table. All the data in the column will be lost.
+  - A unique constraint covering the columns `[slug]` on the table `Album` will be added. If there are existing duplicate values, this will fail.
   - A unique constraint covering the columns `[coverPhotoId]` on the table `Album` will be added. If there are existing duplicate values, this will fail.
+  - Added the required column `slug` to the `Album` table without a default value. This is not possible if the table is not empty.
   - Added the required column `updatedAt` to the `Album` table without a default value. This is not possible if the table is not empty.
   - Added the required column `updatedAt` to the `Photo` table without a default value. This is not possible if the table is not empty.
   - Added the required column `url` to the `Photo` table without a default value. This is not possible if the table is not empty.
@@ -26,6 +28,8 @@ DROP INDEX "Photo_userId_idx";
 -- AlterTable
 ALTER TABLE "Album" DROP COLUMN "userId",
 ADD COLUMN     "coverPhotoId" INTEGER,
+ADD COLUMN     "published" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "slug" TEXT NOT NULL,
 ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL;
 
 -- AlterTable
@@ -35,6 +39,9 @@ DROP COLUMN "userId",
 ADD COLUMN     "order" INTEGER NOT NULL DEFAULT 0,
 ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL,
 ADD COLUMN     "url" TEXT NOT NULL;
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Album_slug_key" ON "Album"("slug");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Album_coverPhotoId_key" ON "Album"("coverPhotoId");

@@ -11,37 +11,24 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const albumId = Number(id);
+    const { slug } = await context.params;
+    const normalizedSlug = slug.trim();
 
-    if (Number.isNaN(albumId)) {
-      return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
+    if (!normalizedSlug) {
+      return NextResponse.json({ error: "Неверный slug" }, { status: 400 });
     }
 
-    const album = await prisma.album.findUnique({
-      where: { id: albumId },
+    const album = await prisma.album.findFirst({
+      where: { slug: normalizedSlug, published: true },
       select: {
         id: true,
         title: true,
+        slug: true,
         description: true,
-        createdAt: true,
-        coverPhotoId: true,
         coverPhoto: { select: { url: true } },
-        photos: {
-          orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-          select: {
-            id: true,
-            storageKey: true,
-            url: true,
-            width: true,
-            height: true,
-            order: true,
-            createdAt: true,
-          },
-        },
       },
     });
 
@@ -56,19 +43,9 @@ export async function GET(
       album: {
         id: album.id,
         title: album.title,
+        slug: album.slug ?? normalizedSlug,
         description: album.description,
-        createdAt: album.createdAt.toISOString(),
-        coverPhotoId: album.coverPhotoId ?? null,
-        coverUrl: album.coverPhoto?.url ?? null,
-        photos: album.photos.map((photo) => ({
-          id: photo.id,
-          storageKey: photo.storageKey,
-          url: photo.url,
-          width: photo.width,
-          height: photo.height,
-          order: photo.order,
-          createdAt: photo.createdAt.toISOString(),
-        })),
+        coverImage: album.coverPhoto?.url ?? null,
       },
     });
   } catch (error) {

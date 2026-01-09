@@ -4,15 +4,19 @@ import AlbumsList from "./AlbumsList";
 type Album = {
   id: number;
   title: string;
+  slug: string;
   description: string | null;
-  createdAt: string;
-  photosCount: number;
-  coverUrl: string | null;
+  coverImage: string | null;
 };
 
 async function fetchAlbums(): Promise<Album[] | null> {
   try {
-    const res = await fetch("/api/albums", { cache: "no-store" });
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ??
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/albums`, { cache: "no-store" });
     if (!res.ok) return null;
     const data = (await res.json()) as { albums?: Album[] };
     return Array.isArray(data.albums) ? data.albums : [];
