@@ -75,3 +75,18 @@ export async function getCurrentUser() {
   const result = await getCurrentUserResult();
   return result.user;
 }
+
+export function getApiUser(): AuthCookiePayload | null {
+  const cookieStore = cookies();
+  const token = cookieStore.get(AUTH_COOKIE)?.value;
+  if (!token) {
+    return null;
+  }
+
+  const payload = verifyToken(token);
+  if (!payload) {
+    return null;
+  }
+
+  return { id: payload.id, role: payload.role };
+}
