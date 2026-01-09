@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getApiUser } from "@/lib/auth";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
+    const user = await getApiUser();
 
     if (!user) {
       return NextResponse.json(

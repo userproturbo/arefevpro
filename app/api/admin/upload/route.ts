@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { getCurrentUser } from "@/lib/auth";
+import { getApiUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const user = await getCurrentUser();
+  const user = await getApiUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

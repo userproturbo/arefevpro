@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getApiUser } from "@/lib/auth";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -25,7 +25,7 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ albumId: string }> }
 ) {
-  const authUser = await getCurrentUser();
+  const authUser = await getApiUser();
   if (!authUser) {
     return NextResponse.json(
       { error: "Требуется авторизация" },

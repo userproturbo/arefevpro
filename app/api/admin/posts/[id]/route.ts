@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getApiUser } from "@/lib/auth";
 import { PostType } from "@prisma/client";
 import {
   getDatabaseUnavailableMessage,
@@ -29,7 +29,7 @@ function normalizeString(value: unknown) {
 }
 
 async function requireAdminOrFail() {
-  const user = await getCurrentUser();
+  const user = await getApiUser();
   if (!user) {
     return { user: null, res: NextResponse.json({ error: "Требуется авторизация" }, { status: 401 }) };
   }
