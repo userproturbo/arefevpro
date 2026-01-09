@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUser } from "@/lib/auth";
-import { generateUniqueAlbumSlug } from "@/lib/slug";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -11,20 +10,9 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function parsePositiveInt(value: unknown): number | null {
-  if (typeof value === "number") {
-    return Number.isInteger(value) && value > 0 ? value : null;
-  }
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-  }
-  return null;
-}
-
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ albumId: string }> }
+  context: { params: Promise<{ slug: string }> }
 ) {
   const authUser = await getApiUser();
   if (!authUser) {
@@ -37,10 +25,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Нет прав" }, { status: 403 });
   }
 
-  const { albumId: albumIdParam } = await context.params;
-  const albumId = parsePositiveInt(albumIdParam);
-  if (!albumId) {
-    return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
+  const { slug } = await context.params;
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) {
+    return NextResponse.json({ error: "Неверный slug" }, { status: 400 });
   }
 
   let body: unknown;
@@ -61,25 +49,17 @@ export async function PATCH(
 
   try {
     const album = await prisma.album.findUnique({
-      where: { id: albumId },
-      select: { id: true, title: true, slug: true },
+      where: { slug: normalizedSlug },
+      select: { id: true, slug: true },
     });
 
     if (!album) {
       return NextResponse.json({ error: "Альбом не найден" }, { status: 404 });
     }
 
-    const data: { published: boolean; slug?: string } = {
-      published,
-    };
-
-    if (published && !album.slug) {
-      data.slug = await generateUniqueAlbumSlug(album.title);
-    }
-
     const updated = await prisma.album.update({
-      where: { id: albumId },
-      data,
+      where: { id: album.id },
+      data: { published },
       select: {
         id: true,
         slug: true,

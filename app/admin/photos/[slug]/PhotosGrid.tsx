@@ -9,7 +9,7 @@ type Photo = {
 };
 
 type Props = {
-  albumId: number;
+  albumSlug: string;
   photos: Photo[];
   coverPhotoId: number | null;
 };
@@ -26,7 +26,7 @@ function reorderPhotos(list: Photo[], fromId: number, toId: number): Photo[] {
   return next;
 }
 
-export default function PhotosGrid({ albumId, photos, coverPhotoId }: Props) {
+export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
   const router = useRouter();
   const [items, setItems] = useState<Photo[]>(photos);
   const [pendingId, setPendingId] = useState<number | null>(null);
@@ -44,11 +44,14 @@ export default function PhotosGrid({ albumId, photos, coverPhotoId }: Props) {
   const persistOrder = async (nextItems: Photo[], prevItems: Photo[]) => {
     setIsSavingOrder(true);
     try {
-      const res = await fetch(`/api/admin/albums/${albumId}/photos/order`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ albumId, photoIds: nextItems.map((photo) => photo.id) }),
-      });
+      const res = await fetch(
+        `/api/admin/albums/${encodeURIComponent(albumSlug)}/photos/order`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photoIds: nextItems.map((photo) => photo.id) }),
+        }
+      );
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -77,11 +80,14 @@ export default function PhotosGrid({ albumId, photos, coverPhotoId }: Props) {
     setPendingId(photoId);
 
     try {
-      const res = await fetch(`/api/admin/albums/${albumId}/cover`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId }),
-      });
+      const res = await fetch(
+        `/api/admin/albums/${encodeURIComponent(albumSlug)}/cover`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photoId }),
+        }
+      );
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

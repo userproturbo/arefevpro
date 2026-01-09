@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
       },
       select: {
         id: true,
+        slug: true,
         title: true,
         description: true,
         createdAt: true,
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
       {
         album: {
           id: album.id,
+          slug: album.slug,
           title: album.title,
           description: album.description,
           coverUrl: album.coverPhoto?.url ?? null,

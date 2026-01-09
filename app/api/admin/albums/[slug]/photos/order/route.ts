@@ -21,9 +21,21 @@ function parsePositiveInt(value: unknown): number | null {
   return null;
 }
 
+function parsePhotoIds(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const ids: number[] = [];
+  for (const item of value) {
+    const parsed = parsePositiveInt(item);
+    if (!parsed) return null;
+    ids.push(parsed);
+  }
+  const unique = new Set(ids);
+  return unique.size === ids.length ? ids : null;
+}
+
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ albumId: string }> }
+  context: { params: Promise<{ slug: string }> }
 ) {
   const authUser = await getApiUser();
   if (!authUser) {
@@ -36,11 +48,10 @@ export async function POST(
     return NextResponse.json({ error: "Нет прав" }, { status: 403 });
   }
 
-  const { albumId: albumIdParam } = await context.params;
-  const albumId = parsePositiveInt(albumIdParam);
-
-  if (!albumId) {
-    return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
+  const { slug } = await context.params;
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) {
+    return NextResponse.json({ error: "Неверный slug" }, { status: 400 });
   }
 
   let body: unknown;
@@ -50,19 +61,19 @@ export async function POST(
     return NextResponse.json({ error: "Неверные данные" }, { status: 400 });
   }
 
-  const photoId = parsePositiveInt(
+  const photoIds = parsePhotoIds(
     typeof body === "object" && body !== null
-      ? (body as { photoId?: unknown }).photoId
+      ? (body as { photoIds?: unknown }).photoIds
       : null
   );
 
-  if (!photoId) {
+  if (!photoIds) {
     return NextResponse.json({ error: "Неверные данные" }, { status: 400 });
   }
 
   try {
     const album = await prisma.album.findUnique({
-      where: { id: albumId },
+      where: { slug: normalizedSlug },
       select: { id: true },
     });
 
@@ -70,39 +81,49 @@ export async function POST(
       return NextResponse.json({ error: "Альбом не найден" }, { status: 404 });
     }
 
-    const photo = await prisma.photo.findUnique({
-      where: { id: photoId },
-      select: { albumId: true },
+    const photos = await prisma.photo.findMany({
+      where: {
+        id: { in: photoIds },
+        albumId: album.id,
+      },
+      select: { id: true },
     });
 
-    if (!photo) {
-      return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
-    }
-
-    if (photo.albumId !== albumId) {
+    if (photos.length !== photoIds.length) {
       return NextResponse.json(
-        { error: "Фото не принадлежит альбому" },
+        { error: "Некоторые фото не принадлежат альбому" },
         { status: 400 }
       );
     }
 
-    await prisma.album.update({
-      where: { id: albumId },
-      data: { coverPhotoId: photoId },
-    });
+    const updates = photoIds.map((photoId, index) =>
+      prisma.photo.updateMany({
+        where: { id: photoId, albumId: album.id },
+        data: { order: index },
+      })
+    );
+
+    const results = await prisma.$transaction(updates);
+    if (results.some((result) => result.count !== 1)) {
+      return NextResponse.json(
+        { error: "Не удалось обновить порядок" },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
-        console.error("Admin cover photo update error:", error);
+        console.error("Admin photo order update error:", error);
       }
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }
       );
     }
-    console.error("Admin cover photo update error:", error);
+
+    console.error("Admin photo order update error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }

@@ -99,6 +99,89 @@ function DrawerBlogContent() {
   );
 }
 
+function DrawerPhotoContent() {
+  const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">(
+    "idle"
+  );
+  const [albums, setAlbums] = useState<Array<{ title: string; slug: string }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setStatus("loading");
+      try {
+        const res = await fetch("/api/albums", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { albums?: unknown };
+        const rawAlbums = Array.isArray(data.albums) ? data.albums : [];
+
+        const nextAlbums = rawAlbums
+          .map((album) => album as { title?: unknown; slug?: unknown })
+          .filter((album) => typeof album.slug === "string")
+          .map((album) => ({
+            title: typeof album.title === "string" ? album.title : "Untitled",
+            slug: album.slug as string,
+          }));
+
+        if (!cancelled) {
+          setAlbums(nextAlbums);
+          setStatus("success");
+        }
+      } catch {
+        if (!cancelled) setStatus("error");
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const items: DrawerListItem[] = useMemo(
+    () =>
+      albums.map((album) => ({
+        id: album.slug,
+        title: album.title,
+        href: `/photo/${encodeURIComponent(album.slug)}`,
+      })),
+    [albums]
+  );
+
+  if (status === "loading" || status === "idle") {
+    return (
+      <SectionDrawerShell title="Photo">
+        <div className="space-y-2">
+          <div className="h-9 rounded-lg bg-white/[0.06]" />
+          <div className="h-9 rounded-lg bg-white/[0.06]" />
+          <div className="h-9 rounded-lg bg-white/[0.06]" />
+          <div className="h-9 rounded-lg bg-white/[0.06]" />
+        </div>
+      </SectionDrawerShell>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <SectionDrawerShell title="Photo">
+        <p className="text-sm text-white/60">Couldn’t load albums.</p>
+      </SectionDrawerShell>
+    );
+  }
+
+  return (
+    <SectionDrawerShell title="Photo">
+      {items.length === 0 ? (
+        <p className="text-sm text-white/60">No albums yet</p>
+      ) : (
+        <DrawerList items={items} />
+      )}
+    </SectionDrawerShell>
+  );
+}
+
 function DrawerPlaceholderSection({
   title,
   items,
@@ -141,12 +224,14 @@ export default function DrawerContent({ section }: { section: SectionDrawerSecti
     return <DrawerBlogContent />;
   }
 
+  if (section === "photo") {
+    return <DrawerPhotoContent />;
+  }
+
   const items = (() => {
     switch (section) {
       case "projects":
         return ["Featured", "Client work", "Experiments", "Archive"];
-      case "photo":
-        return ["Albums", "Portraits", "Street", "Archive"];
       case "video":
         return ["Reels", "Clips", "Playlists", "Archive"];
       case "music":

@@ -3,11 +3,11 @@
 import { useState } from "react";
 
 type Props = {
-  albumId: number;
+  albumSlug: string;
   initialPublished: boolean;
 };
 
-export default function PublishToggle({ albumId, initialPublished }: Props) {
+export default function PublishToggle({ albumSlug, initialPublished }: Props) {
   const [published, setPublished] = useState(initialPublished);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export default function PublishToggle({ albumId, initialPublished }: Props) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/albums/${albumId}`, {
+      const res = await fetch(`/api/admin/albums/${encodeURIComponent(albumSlug)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ published: next }),
