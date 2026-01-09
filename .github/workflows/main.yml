@@ -21,12 +21,14 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
 
-          # 🔑 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
-          script_stop: false
+          # ⬅️ ВАЖНО
+          script_stop: true
           command_timeout: 30m
 
           script: |
-            cd ~/arefevpro || exit 1
+            set -e
+
+            cd /home/${{ secrets.VPS_USER }}/arefevpro
 
             echo "== Fetch & reset to main =="
             git fetch origin
@@ -42,6 +44,6 @@ jobs:
             npm run build
 
             echo "== Restart PM2 =="
-            pm2 restart arefev || pm2 start ecosystem.config.js
+            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
 
             echo "== Deploy finished successfully =="
