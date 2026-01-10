@@ -1,47 +1,25 @@
-name: Deploy to Production
+- name: Deploy via SSH
+  run: |
+    ssh -T ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+      set -e
 
-on:
-  push:
-    branches:
-      - main
+      cd /home/${{ secrets.VPS_USER }}/arefevpro
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+      echo "== Fetch & reset to main =="
+      git fetch origin
+      git reset --hard origin/main
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      echo "== Install dependencies =="
+      npm install
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      echo "== Prisma generate =="
+      npx prisma generate
 
-      - name: Deploy via SSH
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            set -e
+      echo "== Build Next.js =="
+      npm run build
 
-            cd /home/${{ secrets.VPS_USER }}/arefevpro
+      echo "== Restart PM2 =="
+      pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
 
-            echo "== Fetch & reset to main =="
-            git fetch origin
-            git reset --hard origin/main
-
-            echo "== Install dependencies =="
-            npm install
-
-            echo "== Prisma generate =="
-            npx prisma generate
-
-            echo "== Build Next.js =="
-            npm run build
-
-            echo "== Restart PM2 =="
-            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
-
-            echo "== Deploy finished successfully =="
-          EOF
+      echo "== Deploy finished successfully =="
+    EOF
