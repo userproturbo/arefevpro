@@ -33,8 +33,20 @@ export default async function AdminAlbumPage({ params }: PageProps) {
   }
   if (user.role !== "ADMIN") redirect("/");
 
+  let album: {
+    id: number;
+    slug: string;
+    title: string;
+    description: string | null;
+    published: boolean;
+    coverPhotoId: number | null;
+    photos: { id: number; url: string }[];
+  } | null = null;
+  type LoadError = "not-found" | "db-unavailable" | "db" | null;
+  let error: LoadError = null;
+
   try {
-    const album = await prisma.album.findUnique({
+    album = await prisma.album.findUnique({
       where: { slug: normalizedSlug },
       select: {
         id: true,
@@ -54,59 +66,31 @@ export default async function AdminAlbumPage({ params }: PageProps) {
     });
 
     if (!album) {
-      return (
-        <PageContainer>
-          <h1 className="text-xl font-semibold">Album not found</h1>
-        </PageContainer>
-      );
+      error = "not-found";
     }
+  } catch (fetchError) {
+    if (isDatabaseUnavailableError(fetchError)) {
+      if (!isExpectedDevDatabaseError(fetchError)) {
+        console.error("Admin album load error:", fetchError);
+      }
+      error = "db-unavailable";
+    } else {
+      console.error("Admin album load error:", fetchError);
+      error = "db";
+    }
+  }
 
+  if (error === "db-unavailable") {
     return (
       <PageContainer>
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-2xl font-semibold">
-                {album.title}
-              </h1>
-              <PublishToggle
-                albumSlug={album.slug}
-                initialPublished={album.published}
-              />
-            </div>
-
-            {album.description && (
-              <p className="text-muted-foreground">
-                {album.description}
-              </p>
-            )}
-          </div>
-
-          <UploadPhotoForm albumSlug={album.slug} />
-
-          <PhotosGrid
-            albumSlug={album.slug}
-            photos={album.photos}
-            coverPhotoId={album.coverPhotoId ?? null}
-          />
-        </div>
+        <h1 className="text-xl font-semibold">
+          {getDatabaseUnavailableMessage()}
+        </h1>
       </PageContainer>
     );
-  } catch (error) {
-    if (isDatabaseUnavailableError(error)) {
-      if (!isExpectedDevDatabaseError(error)) {
-        console.error("Admin album load error:", error);
-      }
-      return (
-        <PageContainer>
-          <h1 className="text-xl font-semibold">
-            {getDatabaseUnavailableMessage()}
-          </h1>
-        </PageContainer>
-      );
-    }
+  }
 
-    console.error("Admin album load error:", error);
+  if (error === "db") {
     return (
       <PageContainer>
         <h1 className="text-xl font-semibold">
@@ -115,4 +99,44 @@ export default async function AdminAlbumPage({ params }: PageProps) {
       </PageContainer>
     );
   }
+
+  if (error === "not-found" || !album) {
+    return (
+      <PageContainer>
+        <h1 className="text-xl font-semibold">Album not found</h1>
+      </PageContainer>
+    );
+  }
+
+  return (
+    <PageContainer>
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-2xl font-semibold">
+              {album.title}
+            </h1>
+            <PublishToggle
+              albumSlug={album.slug}
+              initialPublished={album.published}
+            />
+          </div>
+
+          {album.description && (
+            <p className="text-muted-foreground">
+              {album.description}
+            </p>
+          )}
+        </div>
+
+        <UploadPhotoForm albumSlug={album.slug} />
+
+        <PhotosGrid
+          albumSlug={album.slug}
+          photos={album.photos}
+          coverPhotoId={album.coverPhotoId ?? null}
+        />
+      </div>
+    </PageContainer>
+  );
 }

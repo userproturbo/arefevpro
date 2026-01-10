@@ -72,9 +72,10 @@ export async function generateUniqueSlug(title: string, desired?: string) {
 }
 
 export async function generateUniqueAlbumSlug(title: string, desired?: string) {
-  const base = slugify(desired || title) || `${Date.now()}`;
+  const base =
+    slugify(desired || title).replace(/^-+|-+$/g, "") || `${Date.now()}`;
   let candidate = base;
-  let index = 1;
+  let index = 2;
 
   try {
     while (await prisma.album.findUnique({ where: { slug: candidate } })) {
