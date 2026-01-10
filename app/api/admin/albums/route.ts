@@ -11,7 +11,13 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: NextRequest) {
+function getPrismaErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" ? code : null;
+}
+
+export async function GET() {
   const authUser = await getApiUser();
   if (!authUser) {
     return NextResponse.json(
@@ -109,6 +115,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
+        id: album.id,
+        slug: album.slug,
+        title: album.title,
         album: {
           id: album.id,
           slug: album.slug,
@@ -128,6 +137,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }
+      );
+    }
+    if (getPrismaErrorCode(error) === "P2002") {
+      return NextResponse.json(
+        { error: "Album title produces a duplicate slug" },
+        { status: 400 }
       );
     }
     console.error("Admin create album error:", error);
