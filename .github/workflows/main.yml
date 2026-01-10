@@ -13,19 +13,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy via SSH
-        run: |
-          ssh -T ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
             set -e
 
-            cd /home/${{ secrets.VPS_USER }}/arefevpro
+            cd ~/arefevpro
 
             echo "== Fetch & reset to main =="
             git fetch origin
@@ -41,7 +39,4 @@ jobs:
             npm run build
 
             echo "== Restart PM2 =="
-            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
-
-            echo "== Deploy finished successfully =="
-          EOF
+            pm2 restart arefev

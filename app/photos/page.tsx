@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import PageContainer from "../components/PageContainer";
 import AlbumsList from "./AlbumsList";
 

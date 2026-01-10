@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import PageContainer from "@/app/components/PageContainer";
 import { notFound } from "next/navigation";
 
