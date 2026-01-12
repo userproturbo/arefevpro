@@ -45,13 +45,11 @@ export default async function AdminAlbumPage({ params }: PageProps) {
   }
 
   const user = await getCurrentUser();
-
   if (!user) {
     redirect(
       `/admin/login?next=/admin/photos/${encodeURIComponent(normalizedSlug)}`
     );
   }
-
   if (user.role !== "ADMIN") {
     redirect("/");
   }
@@ -73,9 +71,7 @@ export default async function AdminAlbumPage({ params }: PageProps) {
         published: true,
         coverPhotoId: true,
         photos: {
-          where: {
-            deletedAt: null,
-          },
+          where: { deletedAt: null },
           orderBy: [
             { order: "asc" },
             { createdAt: "asc" },
@@ -136,10 +132,7 @@ export default async function AdminAlbumPage({ params }: PageProps) {
       <div className="space-y-6">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-2xl font-semibold">
-              {album.title}
-            </h1>
-
+            <h1 className="text-2xl font-semibold">{album.title}</h1>
             <PublishToggle
               albumSlug={album.slug}
               initialPublished={album.published}
@@ -147,9 +140,7 @@ export default async function AdminAlbumPage({ params }: PageProps) {
           </div>
 
           {album.description && (
-            <p className="text-muted-foreground">
-              {album.description}
-            </p>
+            <p className="text-muted-foreground">{album.description}</p>
           )}
         </div>
 
