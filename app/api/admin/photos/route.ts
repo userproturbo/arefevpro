@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const album = await prisma.album.findUnique({
-      where: { slug: albumSlug },
+    const album = await prisma.album.findFirst({
+      where: { slug: albumSlug, deletedAt: null },
       select: { id: true },
     });
 

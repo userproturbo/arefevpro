@@ -24,6 +24,7 @@ export default async function AlbumPage({ params }: PageProps) {
       where: {
         id: numericId,
         published: true,
+        deletedAt: null,
       },
       select: {
         slug: true,

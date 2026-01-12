@@ -31,14 +31,15 @@ export async function GET() {
 
   try {
     const albums = await prisma.album.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         title: true,
         description: true,
         createdAt: true,
-        coverPhoto: { select: { url: true } },
-        _count: { select: { photos: true } },
+        coverPhoto: { select: { url: true, deletedAt: true } },
+        photos: { where: { deletedAt: null }, select: { id: true } },
       },
     });
 
@@ -48,8 +49,8 @@ export async function GET() {
         title: album.title,
         description: album.description,
         createdAt: album.createdAt.toISOString(),
-        coverUrl: album.coverPhoto?.url ?? null,
-        photosCount: album._count.photos,
+        coverUrl: album.coverPhoto?.deletedAt ? null : album.coverPhoto?.url ?? null,
+        photosCount: album.photos.length,
       })),
     });
   } catch (error) {

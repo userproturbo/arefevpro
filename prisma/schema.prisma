@@ -98,6 +98,7 @@ model Album {
   slug         String   @unique
   description  String?
   published    Boolean  @default(false)
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -113,6 +114,7 @@ model Photo {
   storageKey String
   width      Int?
   height     Int?
+  deletedAt  DateTime?
   createdAt  DateTime @default(now())
   order      Int      @default(0)
   updatedAt  DateTime @updatedAt

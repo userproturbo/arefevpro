@@ -72,8 +72,8 @@ export async function POST(
   }
 
   try {
-    const album = await prisma.album.findUnique({
-      where: { slug: normalizedSlug },
+    const album = await prisma.album.findFirst({
+      where: { slug: normalizedSlug, deletedAt: null },
       select: { id: true },
     });
 
@@ -85,6 +85,7 @@ export async function POST(
       where: {
         id: { in: photoIds },
         albumId: album.id,
+        deletedAt: null,
       },
       select: { id: true },
     });
@@ -98,7 +99,7 @@ export async function POST(
 
     const updates = photoIds.map((photoId, index) =>
       prisma.photo.updateMany({
-        where: { id: photoId, albumId: album.id },
+        where: { id: photoId, albumId: album.id, deletedAt: null },
         data: { order: index },
       })
     );

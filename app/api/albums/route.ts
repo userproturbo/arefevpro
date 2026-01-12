@@ -14,6 +14,7 @@ export async function GET() {
     const albums = await prisma.album.findMany({
       where: {
         published: true,
+        deletedAt: null,
       },
       orderBy: {
         createdAt: "desc",
@@ -26,6 +27,7 @@ export async function GET() {
         coverPhoto: {
           select: {
             url: true,
+            deletedAt: true,
           },
         },
       },
@@ -37,7 +39,7 @@ export async function GET() {
         title: album.title,
         slug: album.slug, // slug NOT NULL, без fallback
         description: album.description,
-        coverImage: album.coverPhoto?.url ?? null,
+        coverImage: album.coverPhoto?.deletedAt ? null : album.coverPhoto?.url ?? null,
       })),
     });
   } catch (error) {

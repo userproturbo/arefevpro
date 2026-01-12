@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import AlbumActions from "./AlbumActions";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -35,6 +36,7 @@ async function fetchAlbums(): Promise<{
 }> {
   try {
     const albums = await prisma.album.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -46,12 +48,14 @@ async function fetchAlbums(): Promise<{
         coverPhoto: {
           select: {
             url: true,
+            deletedAt: true,
           },
         },
 
-        _count: {
+        photos: {
+          where: { deletedAt: null },
           select: {
-            photos: true,
+            id: true,
           },
         },
       },
@@ -64,8 +68,8 @@ async function fetchAlbums(): Promise<{
         title: album.title,
         description: album.description,
         createdAt: album.createdAt,
-        photosCount: album._count.photos,
-        coverUrl: album.coverPhoto?.url ?? null,
+        photosCount: album.photos.length,
+        coverUrl: album.coverPhoto?.deletedAt ? null : album.coverPhoto?.url ?? null,
       })),
       error: null,
     };
@@ -134,7 +138,7 @@ export default async function AdminPhotosPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="grid grid-cols-[96px_1fr_120px_160px_140px] gap-4 px-4 py-2 text-xs uppercase tracking-wide text-white/50">
+          <div className="grid grid-cols-[96px_1fr_120px_160px_180px] gap-4 px-4 py-2 text-xs uppercase tracking-wide text-white/50">
             <div>Cover</div>
             <div>Title</div>
             <div>Photos</div>
@@ -146,7 +150,7 @@ export default async function AdminPhotosPage() {
             {albums.map((album) => (
               <li
                 key={album.id}
-                className="grid grid-cols-[96px_1fr_120px_160px_140px] items-center gap-4 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"
+                className="grid grid-cols-[96px_1fr_120px_160px_180px] items-center gap-4 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"
               >
                 <div className="h-16 w-20 overflow-hidden rounded-md border border-white/10 bg-white/[0.03]">
                   {album.coverUrl ? (
@@ -183,14 +187,10 @@ export default async function AdminPhotosPage() {
                   {album.createdAt.toLocaleDateString("ru-RU")}
                 </div>
 
-                <div className="flex justify-end">
-                  <Link
-                    href={`/admin/photos/${album.slug}`}
-                    className="text-sm text-white/70 hover:text-white"
-                  >
-                    Open
-                  </Link>
-                </div>
+                <AlbumActions
+                  albumSlug={album.slug}
+                  albumTitle={album.title}
+                />
               </li>
             ))}
           </ul>

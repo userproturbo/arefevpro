@@ -21,17 +21,18 @@ export async function GET(
       return NextResponse.json({ error: "Неверный slug" }, { status: 400 });
     }
 
-    const album = await prisma.album.findUnique({
-      where: { slug: normalizedSlug },
+    const album = await prisma.album.findFirst({
+      where: { slug: normalizedSlug, published: true, deletedAt: null },
       select: {
         id: true,
         title: true,
         slug: true,
         description: true,
         published: true,
-        coverPhoto: { select: { url: true } },
+        coverPhoto: { select: { url: true, deletedAt: true } },
         photos: {
           orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          where: { deletedAt: null },
           select: {
             id: true,
             url: true,
@@ -55,7 +56,7 @@ export async function GET(
         title: album.title,
         slug: album.slug,
         description: album.description,
-        coverImage: album.coverPhoto?.url ?? null,
+        coverImage: album.coverPhoto?.deletedAt ? null : album.coverPhoto?.url ?? null,
         photos: album.photos,
       },
     });

@@ -21,9 +21,9 @@ function parsePositiveInt(value: unknown): number | null {
   return null;
 }
 
-export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+export async function DELETE(
+  _req: NextRequest,
+  context: { params: Promise<{ slug: string; photoId: string }> }
 ) {
   const authUser = await getApiUser();
   if (!authUser) {
@@ -36,33 +36,21 @@ export async function POST(
     return NextResponse.json({ error: "Нет прав" }, { status: 403 });
   }
 
-  const { slug } = await context.params;
+  const { slug, photoId: rawPhotoId } = await context.params;
   const normalizedSlug = slug.trim();
   if (!normalizedSlug) {
     return NextResponse.json({ error: "Неверный slug" }, { status: 400 });
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch (_error) {
-    return NextResponse.json({ error: "Неверные данные" }, { status: 400 });
-  }
-
-  const photoId = parsePositiveInt(
-    typeof body === "object" && body !== null
-      ? (body as { photoId?: unknown }).photoId
-      : null
-  );
-
+  const photoId = parsePositiveInt(rawPhotoId);
   if (!photoId) {
-    return NextResponse.json({ error: "Неверные данные" }, { status: 400 });
+    return NextResponse.json({ error: "Неверный id" }, { status: 400 });
   }
 
   try {
     const album = await prisma.album.findFirst({
       where: { slug: normalizedSlug, deletedAt: null },
-      select: { id: true },
+      select: { id: true, coverPhotoId: true },
     });
 
     if (!album) {
@@ -70,38 +58,42 @@ export async function POST(
     }
 
     const photo = await prisma.photo.findFirst({
-      where: { id: photoId, deletedAt: null },
-      select: { albumId: true },
+      where: { id: photoId, albumId: album.id, deletedAt: null },
+      select: { id: true },
     });
 
     if (!photo) {
       return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
     }
 
-    if (photo.albumId !== album.id) {
-      return NextResponse.json(
-        { error: "Фото не принадлежит альбому" },
-        { status: 400 }
+    const deletedAt = new Date();
+    const updates = [
+      prisma.photo.update({ where: { id: photoId }, data: { deletedAt } }),
+    ];
+
+    if (album.coverPhotoId === photoId) {
+      updates.push(
+        prisma.album.update({
+          where: { id: album.id },
+          data: { coverPhotoId: null },
+        })
       );
     }
 
-    await prisma.album.update({
-      where: { id: album.id },
-      data: { coverPhotoId: photoId },
-    });
+    await prisma.$transaction(updates);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
-        console.error("Admin cover photo update error:", error);
+        console.error("Admin photo delete error:", error);
       }
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }
       );
     }
-    console.error("Admin cover photo update error:", error);
+    console.error("Admin photo delete error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
