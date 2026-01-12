@@ -30,6 +30,7 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
   const router = useRouter();
   const [items, setItems] = useState<Photo[]>(photos);
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [deletePendingId, setDeletePendingId] = useState<number | null>(null);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
@@ -108,6 +109,41 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
     }
   };
 
+  const handleDeletePhoto = async (photoId: number) => {
+    if (pendingId || deletePendingId || isSavingOrder) return;
+    const confirmed = window.confirm(
+      "Delete this photo? It will be hidden from the album."
+    );
+    if (!confirmed) return;
+    setError(null);
+    setDeletePendingId(photoId);
+
+    try {
+      const res = await fetch(
+        `/api/admin/albums/${encodeURIComponent(albumSlug)}/photos/${photoId}`,
+        { method: "DELETE" }
+      );
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message =
+          data && typeof data === "object" && typeof data.error === "string"
+            ? data.error
+            : "Failed to delete photo";
+        setError(message);
+        return;
+      }
+
+      setItems((prev) => prev.filter((photo) => photo.id !== photoId));
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete photo");
+    } finally {
+      setDeletePendingId(null);
+    }
+  };
+
   const handleDragStart = (photoId: number) => (event: React.DragEvent) => {
     if (isSavingOrder) return;
     event.dataTransfer.effectAllowed = "move";
@@ -168,13 +204,14 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
         {items.map((photo) => {
           const isCover = coverPhotoId === photo.id;
           const isPending = pendingId === photo.id;
+          const isDeleting = deletePendingId === photo.id;
           const isDragging = draggingId === photo.id;
           const isDragOver = dragOverId === photo.id;
 
           return (
             <div
               key={photo.id}
-              draggable={!isSavingOrder}
+              draggable={!isSavingOrder && deletePendingId === null}
               onDragStart={handleDragStart(photo.id)}
               onDragOver={handleDragOver(photo.id)}
               onDrop={handleDrop(photo.id)}
@@ -210,14 +247,29 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
                 <span className="text-[10px] uppercase tracking-wide text-white/50">
                   Drag to reorder
                 </span>
-                <button
-                  type="button"
-                  onClick={() => handleSetCover(photo.id)}
-                  disabled={isCover || isPending || pendingId !== null}
-                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90 hover:bg-white/20 disabled:opacity-50"
-                >
-                  {isCover ? "Cover" : isPending ? "Setting..." : "Set as cover"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePhoto(photo.id)}
+                    disabled={isDeleting || deletePendingId !== null || isSavingOrder}
+                    className="rounded-full border border-red-400/40 bg-red-500/10 px-3 py-1 text-[11px] font-semibold text-red-100 hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetCover(photo.id)}
+                    disabled={
+                      isCover ||
+                      isPending ||
+                      pendingId !== null ||
+                      deletePendingId !== null
+                    }
+                    className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90 hover:bg-white/20 disabled:opacity-50"
+                  >
+                    {isCover ? "Cover" : isPending ? "Setting..." : "Set as cover"}
+                  </button>
+                </div>
               </div>
             </div>
           );

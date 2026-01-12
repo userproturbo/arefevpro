@@ -46,8 +46,8 @@ export default async function AdminAlbumPage({ params }: PageProps) {
   let error: LoadError = null;
 
   try {
-    album = await prisma.album.findUnique({
-      where: { slug: normalizedSlug },
+    album = await prisma.album.findFirst({
+      where: { slug: normalizedSlug, deletedAt: null },
       select: {
         id: true,
         slug: true,
@@ -57,6 +57,7 @@ export default async function AdminAlbumPage({ params }: PageProps) {
         coverPhotoId: true,
         photos: {
           orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          where: { deletedAt: null },
           select: {
             id: true,
             url: true,
