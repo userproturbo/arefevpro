@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getApiUser } from "@/lib/auth";
+import { getStorageAdapter } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,17 +29,21 @@ export async function POST(req: NextRequest) {
 
     const ext = path.extname(file.name || "") || ".bin";
     const filename = `${Date.now()}-${randomUUID()}${ext}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    const filePath = path.join(uploadDir, filename);
 
-    await fs.mkdir(uploadDir, { recursive: true });
-    await fs.writeFile(filePath, buffer);
+    // 🔑 ВАЖНО: единая точка хранения
+    const storage = getStorageAdapter();
 
-    const url = `/uploads/${filename}`;
+    // логический путь (адаптер сам решит, куда и как)
+    const objectPath = `uploads/${filename}`;
+
+    const url = await storage.uploadFile(buffer, objectPath);
 
     return NextResponse.json({ url });
   } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "Не удалось загрузить файл" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Не удалось загрузить файл" },
+      { status: 500 }
+    );
   }
 }
