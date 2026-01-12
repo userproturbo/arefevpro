@@ -1,5 +1,8 @@
 import PageContainer from "@/app/components/PageContainer";
 import PhotosGrid from "./PhotosGrid";
+import UploadPhotoForm from "./UploadPhotoForm";
+import PublishToggle from "./PublishToggle";
+
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -7,13 +10,27 @@ import {
   isDatabaseUnavailableError,
   isExpectedDevDatabaseError,
 } from "@/lib/db";
+
 import { redirect } from "next/navigation";
-import UploadPhotoForm from "./UploadPhotoForm";
-import PublishToggle from "./PublishToggle";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+type AlbumWithPhotos = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  published: boolean;
+  coverPhotoId: number | null;
+  photos: {
+    id: number;
+    url: string;
+  }[];
+};
+
+type LoadError = "not-found" | "db-unavailable" | "db" | null;
 
 export default async function AdminAlbumPage({ params }: PageProps) {
   const { slug } = await params;
@@ -28,26 +45,26 @@ export default async function AdminAlbumPage({ params }: PageProps) {
   }
 
   const user = await getCurrentUser();
-  if (!user) {
-    redirect(`/admin/login?next=/admin/photos/${encodeURIComponent(normalizedSlug)}`);
-  }
-  if (user.role !== "ADMIN") redirect("/");
 
-  let album: {
-    id: number;
-    slug: string;
-    title: string;
-    description: string | null;
-    published: boolean;
-    coverPhotoId: number | null;
-    photos: { id: number; url: string }[];
-  } | null = null;
-  type LoadError = "not-found" | "db-unavailable" | "db" | null;
+  if (!user) {
+    redirect(
+      `/admin/login?next=/admin/photos/${encodeURIComponent(normalizedSlug)}`
+    );
+  }
+
+  if (user.role !== "ADMIN") {
+    redirect("/");
+  }
+
+  let album: AlbumWithPhotos | null = null;
   let error: LoadError = null;
 
   try {
     album = await prisma.album.findFirst({
-      where: { slug: normalizedSlug, deletedAt: null },
+      where: {
+        slug: normalizedSlug,
+        deletedAt: null,
+      },
       select: {
         id: true,
         slug: true,
@@ -56,8 +73,13 @@ export default async function AdminAlbumPage({ params }: PageProps) {
         published: true,
         coverPhotoId: true,
         photos: {
-          orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-          where: { deletedAt: null },
+          where: {
+            deletedAt: null,
+          },
+          orderBy: [
+            { order: "asc" },
+            { createdAt: "asc" },
+          ],
           select: {
             id: true,
             url: true,
@@ -117,6 +139,7 @@ export default async function AdminAlbumPage({ params }: PageProps) {
             <h1 className="text-2xl font-semibold">
               {album.title}
             </h1>
+
             <PublishToggle
               albumSlug={album.slug}
               initialPublished={album.published}
@@ -135,7 +158,7 @@ export default async function AdminAlbumPage({ params }: PageProps) {
         <PhotosGrid
           albumSlug={album.slug}
           photos={album.photos}
-          coverPhotoId={album.coverPhotoId ?? null}
+          coverPhotoId={album.coverPhotoId}
         />
       </div>
     </PageContainer>

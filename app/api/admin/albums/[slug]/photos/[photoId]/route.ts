@@ -6,6 +6,7 @@ import {
   isDatabaseUnavailableError,
   isExpectedDevDatabaseError,
 } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ export async function DELETE(
 
   const { slug, photoId: rawPhotoId } = await context.params;
   const normalizedSlug = slug.trim();
+
   if (!normalizedSlug) {
     return NextResponse.json({ error: "Неверный slug" }, { status: 400 });
   }
@@ -66,11 +68,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
     }
 
+    const updates: Prisma.PrismaPromise<unknown>[] = [];
     const deletedAt = new Date();
-    const updates = [
-      prisma.photo.update({ where: { id: photoId }, data: { deletedAt } }),
-    ];
 
+    // если удаляем обложку — сбрасываем её у альбома
     if (album.coverPhotoId === photoId) {
       updates.push(
         prisma.album.update({
@@ -79,6 +80,14 @@ export async function DELETE(
         })
       );
     }
+
+    // soft delete фото
+    updates.push(
+      prisma.photo.update({
+        where: { id: photoId },
+        data: { deletedAt },
+      })
+    );
 
     await prisma.$transaction(updates);
 
@@ -93,6 +102,7 @@ export async function DELETE(
         { status: 503 }
       );
     }
+
     console.error("Admin photo delete error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
