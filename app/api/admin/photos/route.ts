@@ -101,23 +101,29 @@ async function convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
   const sharp = await loadSharp();
   if (sharp) {
     try {
-      return await sharp(buffer).rotate().jpeg({ quality: 85 }).toBuffer();
+      const output = await sharp(buffer)
+        .rotate()
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      return Buffer.from(output);
     } catch {
       // Fall back to heic-convert when sharp cannot decode HEIC/HEIF.
     }
   }
 
-  let heicConvert: ((options: {
+  type HeicConvertFn = (options: {
     buffer: Buffer;
-    format: "JPEG";
-    quality: number;
-  }) => Promise<Buffer | Uint8Array>) | null = null;
+    format: "JPEG" | "PNG";
+    quality?: number;
+  }) => Promise<Buffer>;
+
+  let heicConvert: HeicConvertFn | null = null;
 
   try {
     const mod = await import("heic-convert");
-    const candidate = (mod as { default?: unknown }).default ?? mod;
+    const candidate = (mod as { default?: unknown })?.default ?? mod;
     if (typeof candidate === "function") {
-      heicConvert = candidate as typeof heicConvert;
+      heicConvert = candidate as HeicConvertFn;
     }
   } catch {
     heicConvert = null;
@@ -135,10 +141,11 @@ async function convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
 
   if (sharp) {
     try {
-      return await sharp(Buffer.from(converted))
+      const output = await sharp(Buffer.from(converted))
         .rotate()
         .jpeg({ quality: 85 })
         .toBuffer();
+      return Buffer.from(output);
     } catch {
       return Buffer.from(converted);
     }
@@ -206,7 +213,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let uploadBuffer = buffer;
+    let uploadBuffer: Buffer = buffer;
+
     let outputExtension = resolveOutputExtension(extension, mimeType, isHeic);
 
     if (isHeic) {
