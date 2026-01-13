@@ -27,8 +27,10 @@ jobs:
             git reset --hard origin/main
 
             npm install
+
             npx prisma migrate deploy
             npx prisma generate
+
             npm run build
 
             pm2 restart arefevpro --update-env
