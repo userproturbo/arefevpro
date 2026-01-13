@@ -42,3 +42,4 @@ logs/
 
 # Uploads (user-generated content)
 public/uploads/
+ecosystem.config.cjs
