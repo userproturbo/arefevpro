@@ -210,4 +210,5 @@ enum UserRole {
 
 enum NotificationType {
   COMMENT_REPLY
+  PHOTO_COMMENT_REPLY
 }

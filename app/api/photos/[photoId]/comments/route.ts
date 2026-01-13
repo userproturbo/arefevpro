@@ -252,12 +252,12 @@ export async function POST(
       await prisma.notification.create({
         data: {
           userId: parent.user.id,
-          type: NotificationType.COMMENT_REPLY,
+          type: NotificationType.PHOTO_COMMENT_REPLY,
           data: {
             albumSlug: photo.album.slug,
             photoId: photo.id,
-            commentId: parent.id,
-            replyId: comment.id,
+            commentId: comment.id,
+            parentCommentId: parent.id,
           },
         },
       });
