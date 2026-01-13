@@ -8,6 +8,8 @@ type NotificationData = {
   postSlug?: string;
   commentId?: number;
   replyId?: number;
+  albumSlug?: string;
+  photoId?: number;
 };
 
 type NotificationItem = {
@@ -106,10 +108,15 @@ export default function NotificationsPage() {
         {items.map((item) => {
           const commentId = item.data?.commentId;
           const postSlug = item.data?.postSlug;
+          const albumSlug = item.data?.albumSlug;
+          const photoId = item.data?.photoId;
+          const anchorId = item.data?.replyId ?? commentId ?? undefined;
           const href =
-            postSlug && commentId
+            item.type === "COMMENT_REPLY" && postSlug && commentId
               ? `/blog/${postSlug}#comment-${commentId}`
-              : "/blog";
+              : item.type === "COMMENT_REPLY" && albumSlug && photoId
+                ? `/photo/${albumSlug}/${photoId}${anchorId ? `#comment-${anchorId}` : ""}`
+                : "/blog";
           const createdAt = new Date(item.createdAt).toLocaleString("en-US", {
             month: "short",
             day: "numeric",
@@ -117,6 +124,7 @@ export default function NotificationsPage() {
             minute: "2-digit",
           });
           const isUnread = !item.readAt;
+          const message = "Someone replied to your comment";
 
           return (
             <Link
@@ -130,9 +138,7 @@ export default function NotificationsPage() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm text-white/90">
-                    Someone replied to your comment
-                  </p>
+                  <p className="text-sm text-white/90">{message}</p>
                   <p className="text-xs text-white/50">{createdAt}</p>
                 </div>
                 {isUnread && (
