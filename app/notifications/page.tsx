@@ -8,14 +8,11 @@ type NotificationData = {
   postSlug?: string;
   commentId?: number;
   replyId?: number;
-  parentCommentId?: number;
-  albumSlug?: string;
-  photoId?: number;
 };
 
 type NotificationItem = {
   id: string;
-  type: "COMMENT_REPLY" | "PHOTO_COMMENT_REPLY";
+  type: "COMMENT_REPLY";
   data: NotificationData;
   readAt: string | null;
   createdAt: string;
@@ -108,22 +105,11 @@ export default function NotificationsPage() {
       <div className="space-y-3">
         {items.map((item) => {
           const commentId = item.data?.commentId;
-          const parentCommentId = item.data?.parentCommentId;
           const postSlug = item.data?.postSlug;
-          const albumSlug = item.data?.albumSlug;
-          const photoId = item.data?.photoId;
-          const anchorId =
-            item.type === "PHOTO_COMMENT_REPLY"
-              ? commentId ?? parentCommentId ?? undefined
-              : item.data?.replyId ?? commentId ?? undefined;
           const href =
-            item.type === "COMMENT_REPLY" && postSlug && commentId
+            postSlug && commentId
               ? `/blog/${postSlug}#comment-${commentId}`
-              : item.type === "PHOTO_COMMENT_REPLY" && albumSlug && photoId
-                ? `/photo/${albumSlug}/${photoId}${anchorId ? `#comment-${anchorId}` : ""}`
-                : item.type === "COMMENT_REPLY" && albumSlug && photoId
-                  ? `/photo/${albumSlug}/${photoId}${anchorId ? `#comment-${anchorId}` : ""}`
-                  : "/blog";
+              : "/blog";
           const createdAt = new Date(item.createdAt).toLocaleString("en-US", {
             month: "short",
             day: "numeric",
@@ -131,10 +117,6 @@ export default function NotificationsPage() {
             minute: "2-digit",
           });
           const isUnread = !item.readAt;
-          const message =
-            item.type === "PHOTO_COMMENT_REPLY"
-              ? "Someone replied to your photo comment"
-              : "Someone replied to your comment";
 
           return (
             <Link
@@ -148,7 +130,9 @@ export default function NotificationsPage() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm text-white/90">{message}</p>
+                  <p className="text-sm text-white/90">
+                    Someone replied to your comment
+                  </p>
                   <p className="text-xs text-white/50">{createdAt}</p>
                 </div>
                 {isUnread && (
