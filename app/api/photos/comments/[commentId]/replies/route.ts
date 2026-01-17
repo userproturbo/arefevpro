@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 const COMMENT_COOLDOWN_MS = 5000;
 const RATE_LIMIT_MESSAGE = "Слишком часто. Попробуйте позже.";
 
-function parsePhotoId(raw: string) {
+function parseCommentId(raw: string) {
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return Math.floor(parsed);
@@ -22,73 +22,76 @@ function parsePhotoId(raw: string) {
 
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ photoId: string }> }
+  context: { params: Promise<{ commentId: string }> }
 ) {
   try {
-    const { photoId: rawPhotoId } = await context.params;
-    const photoId = parsePhotoId(rawPhotoId);
-    if (!photoId) {
-      return NextResponse.json({ error: "Неверный photoId" }, { status: 400 });
+    const { commentId: rawCommentId } = await context.params;
+    const commentId = parseCommentId(rawCommentId);
+    if (!commentId) {
+      return NextResponse.json({ error: "Неверный commentId" }, { status: 400 });
     }
 
-    const photo = await prisma.photo.findFirst({
+    const parent = await prisma.photoComment.findFirst({
       where: {
-        id: photoId,
+        id: commentId,
         deletedAt: null,
-        album: { published: true, deletedAt: null },
+        photo: { deletedAt: null, album: { published: true, deletedAt: null } },
       },
-      select: { id: true },
+      select: { id: true, parentId: true },
     });
 
-    if (!photo) {
-      return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
+    if (!parent) {
+      return NextResponse.json(
+        { error: "Комментарий не найден" },
+        { status: 404 }
+      );
     }
 
-    const comments = await prisma.photoComment.findMany({
-      where: {
-        photoId,
-        parentId: null,
-        deletedAt: null,
-      },
-      orderBy: { createdAt: "desc" },
+    if (parent.parentId !== null) {
+      return NextResponse.json(
+        { error: "Можно загружать ответы только для корневых комментариев" },
+        { status: 400 }
+      );
+    }
+
+    const replies = await prisma.photoComment.findMany({
+      where: { parentId: commentId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
       select: {
         id: true,
         text: true,
         createdAt: true,
         user: { select: { id: true, nickname: true } },
-        _count: { select: { replies: true } },
       },
     });
 
     return NextResponse.json({
-      comments: comments.map((comment) => ({
-        id: comment.id,
-        text: comment.text,
-        createdAt: comment.createdAt.toISOString(),
-        user: comment.user,
-        replyCount: comment._count.replies,
+      replies: replies.map((reply) => ({
+        id: reply.id,
+        text: reply.text,
+        createdAt: reply.createdAt.toISOString(),
+        user: reply.user,
       })),
     });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
-        console.error("Photo comments error:", error);
+        console.error("Photo replies error:", error);
       }
-
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }
       );
     }
 
-    console.error("Photo comments error:", error);
+    console.error("Photo replies error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
 
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ photoId: string }> }
+  context: { params: Promise<{ commentId: string }> }
 ) {
   const authUser = await getCurrentUser();
   if (!authUser) {
@@ -96,29 +99,33 @@ export async function POST(
   }
 
   try {
-    const rateKey = `photo-comment:create:user:${authUser.id}`;
+    const rateKey = `photo-comment:reply:user:${authUser.id}`;
     const rateLimit = checkRateLimit(rateKey, COMMENT_COOLDOWN_MS);
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
     }
 
-    const { photoId: rawPhotoId } = await context.params;
-    const photoId = parsePhotoId(rawPhotoId);
-    if (!photoId) {
-      return NextResponse.json({ error: "Неверный photoId" }, { status: 400 });
+    const { commentId: rawCommentId } = await context.params;
+    const commentId = parseCommentId(rawCommentId);
+    if (!commentId) {
+      return NextResponse.json({ error: "Неверный commentId" }, { status: 400 });
     }
 
-    const photo = await prisma.photo.findFirst({
+    const parent = await prisma.photoComment.findFirst({
       where: {
-        id: photoId,
+        id: commentId,
+        parentId: null,
         deletedAt: null,
-        album: { published: true, deletedAt: null },
+        photo: { deletedAt: null, album: { published: true, deletedAt: null } },
       },
-      select: { id: true },
+      select: { id: true, photoId: true },
     });
 
-    if (!photo) {
-      return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
+    if (!parent) {
+      return NextResponse.json(
+        { error: "Комментарий не найден" },
+        { status: 404 }
+      );
     }
 
     const body = (await req.json()) as { text?: unknown };
@@ -130,12 +137,12 @@ export async function POST(
       );
     }
 
-    const comment = await prisma.photoComment.create({
+    const reply = await prisma.photoComment.create({
       data: {
         text: content,
-        photoId,
+        photoId: parent.photoId,
         userId: authUser.id,
-        parentId: null,
+        parentId: parent.id,
       },
       select: {
         id: true,
@@ -147,12 +154,11 @@ export async function POST(
 
     return NextResponse.json(
       {
-        comment: {
-          id: comment.id,
-          text: comment.text,
-          createdAt: comment.createdAt.toISOString(),
-          user: comment.user,
-          replyCount: 0,
+        reply: {
+          id: reply.id,
+          text: reply.text,
+          createdAt: reply.createdAt.toISOString(),
+          user: reply.user,
         },
       },
       { status: 201 }
@@ -160,16 +166,15 @@ export async function POST(
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
-        console.error("Create photo comment error:", error);
+        console.error("Create photo reply error:", error);
       }
-
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }
       );
     }
 
-    console.error("Create photo comment error:", error);
+    console.error("Create photo reply error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
