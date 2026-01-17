@@ -15,9 +15,7 @@ async function fetchRandomPhotos(): Promise<Slide[] | null> {
       (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/photos/random?limit=20`, {
-      cache: "no-store",
-    });
+    const res = await fetch(`${baseUrl}/api/photos/random?limit=20`);
     if (!res.ok) return null;
     const data = (await res.json()) as { photos?: Slide[] };
     return Array.isArray(data.photos) ? data.photos : [];

@@ -7,7 +7,7 @@ import {
 } from "@/lib/db";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 function readLimit(req: NextRequest) {
   const { searchParams } = new URL(req.url);

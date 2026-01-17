@@ -9,6 +9,7 @@ type Props = {
   initialCount: number;
   initialLiked?: boolean;
   size?: "sm" | "md";
+  variant?: "default" | "overlay";
   className?: string;
 };
 
@@ -17,6 +18,7 @@ export default function PhotoLikeButton({
   initialCount,
   initialLiked = false,
   size = "md",
+  variant = "default",
   className,
 }: Props) {
   const { requireUser, user } = useAuth();
@@ -51,9 +53,19 @@ export default function PhotoLikeButton({
       ? "px-2.5 py-1 text-[0.7rem]"
       : "px-3 py-1.5 text-sm";
 
-  const stateClasses = liked
-    ? "bg-emerald-500/30 border-emerald-300/60 text-emerald-100"
-    : "bg-black/55 border-white/20 text-white/90 hover:bg-white/10";
+  const isOverlay = variant === "overlay";
+  const stateClasses = isOverlay
+    ? "bg-transparent border-transparent text-white/90"
+    : liked
+      ? "bg-black/60 border-white/40 text-white"
+      : "bg-black/55 border-white/20 text-white/90 hover:bg-white/10";
+
+  const baseClasses = [
+    "inline-flex items-center gap-1.5 rounded-full border font-semibold transition",
+    isOverlay ? "" : "backdrop-blur",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <motion.button
@@ -63,7 +75,7 @@ export default function PhotoLikeButton({
       disabled={loading}
       aria-pressed={liked}
       className={[
-        "inline-flex items-center gap-1.5 rounded-full border font-semibold backdrop-blur transition",
+        baseClasses,
         sizeClasses,
         stateClasses,
         loading ? "cursor-wait opacity-70" : "",
@@ -74,10 +86,13 @@ export default function PhotoLikeButton({
       <motion.span
         animate={{ scale: liked ? 1.15 : 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 14 }}
+        className={liked ? "text-red-500" : "text-white/80"}
       >
         {liked ? "♥" : "♡"}
       </motion.span>
-      <span>{count}</span>
+      <span className={isOverlay ? "text-white/90" : "text-white/90"}>
+        {count}
+      </span>
     </motion.button>
   );
 }

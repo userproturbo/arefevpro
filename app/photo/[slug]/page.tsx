@@ -130,9 +130,9 @@ export default async function PhotoAlbumPage({
           Фотографии будут добавлены позже
         </div>
       ) : (
-        <div className="grid w-full grid-cols-2 gap-0 md:grid-cols-3 xl:grid-cols-4">
+        <div className="grid w-full grid-cols-2 gap-[2px] md:grid-cols-3 xl:grid-cols-4 no-scrollbar">
           {album.photos.map((photo) => (
-            <div key={photo.id} className="relative">
+            <div key={photo.id} className="group relative overflow-hidden">
               <Link
                 href={`/photo/${encodeURIComponent(album.slug)}/${photo.id}`}
                 scroll={false}
@@ -143,7 +143,7 @@ export default async function PhotoAlbumPage({
                   src={photo.url}
                   alt=""
                   loading="lazy"
-                  className="aspect-square h-full w-full object-cover"
+                  className="aspect-square h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.02] group-hover:brightness-110"
                 />
               </Link>
               <PhotoTileLikeButton

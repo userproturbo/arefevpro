@@ -31,9 +31,7 @@ export default function PhotoSlideshow({
     async function load() {
       setStatus("loading");
       try {
-        const res = await fetch("/api/photos/random?limit=20", {
-          cache: "no-store",
-        });
+        const res = await fetch("/api/photos/random?limit=20");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as { photos?: Slide[] };
         const nextPhotos = Array.isArray(data.photos) ? data.photos : [];
@@ -82,7 +80,6 @@ export default function PhotoSlideshow({
 
       {!emptyMessage && activePhoto ? (
         <AnimatePresence mode="wait">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <motion.img
             key={activePhoto.id}
             src={activePhoto.url}
