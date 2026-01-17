@@ -1,27 +1,26 @@
 export const dynamic = "force-dynamic";
 
-import PageContainer from "../components/PageContainer";
-import AlbumsList from "../photos/AlbumsList";
+import PhotoSlideshow from "../components/photo/PhotoSlideshow";
 
-type Album = {
+type Slide = {
   id: number;
-  title: string;
-  slug: string;
-  description: string | null;
-  coverImage: string | null;
+  url: string;
+  albumSlug: string;
 };
 
-async function fetchAlbums(): Promise<Album[] | null> {
+async function fetchRandomPhotos(): Promise<Slide[] | null> {
   try {
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL ??
       (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/albums`, { cache: "no-store" });
+    const res = await fetch(`${baseUrl}/api/photos/random?limit=20`, {
+      cache: "no-store",
+    });
     if (!res.ok) return null;
-    const data = (await res.json()) as { albums?: Album[] };
-    return Array.isArray(data.albums) ? data.albums : [];
+    const data = (await res.json()) as { photos?: Slide[] };
+    return Array.isArray(data.photos) ? data.photos : [];
   } catch (error) {
     console.error(error);
     return null;
@@ -29,18 +28,11 @@ async function fetchAlbums(): Promise<Album[] | null> {
 }
 
 export default async function PhotoPage() {
-  const albums = await fetchAlbums();
+  const photos = await fetchRandomPhotos();
 
   return (
-    <PageContainer>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-semibold">Photo</h1>
-        {albums === null ? (
-          <p className="text-white/70">Failed to load albums</p>
-        ) : (
-          <AlbumsList albums={albums} />
-        )}
-      </div>
-    </PageContainer>
+    <div className="h-full w-full">
+      <PhotoSlideshow initialPhotos={photos ?? []} />
+    </div>
   );
 }

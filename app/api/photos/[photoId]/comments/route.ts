@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiUser } from "@/lib/auth";
-import { NotificationType } from "@prisma/client";
+import { getCurrentUser } from "@/lib/auth";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -15,23 +14,28 @@ export const dynamic = "force-dynamic";
 const COMMENT_COOLDOWN_MS = 5000;
 const RATE_LIMIT_MESSAGE = "Слишком часто. Попробуйте позже.";
 
+function parsePhotoId(raw: string) {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.floor(parsed);
+}
+
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   context: { params: Promise<{ photoId: string }> }
 ) {
   try {
-    const authUser = await getApiUser();
-    const { photoId } = await context.params;
-    const numericPhotoId = Number(photoId);
-    if (Number.isNaN(numericPhotoId)) {
-      return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
+    const { photoId: rawPhotoId } = await context.params;
+    const photoId = parsePhotoId(rawPhotoId);
+    if (!photoId) {
+      return NextResponse.json({ error: "Неверный photoId" }, { status: 400 });
     }
 
     const photo = await prisma.photo.findFirst({
       where: {
-        id: numericPhotoId,
+        id: photoId,
         deletedAt: null,
-        album: { deletedAt: null, published: true },
+        album: { published: true, deletedAt: null },
       },
       select: { id: true },
     });
@@ -40,96 +44,42 @@ export async function GET(
       return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
     }
 
-    const { searchParams } = new URL(req.url);
-
-    const pageParam = Number(searchParams.get("page") ?? "1");
-    const limitParam = Number(searchParams.get("limit") ?? "10");
-
-    const page =
-      Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
-    const limitUncapped =
-      Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : 10;
-    const limit = Math.min(50, Math.max(1, limitUncapped));
-    const skip = (page - 1) * limit;
-
-    const isAdmin = authUser?.role === "ADMIN";
-    const whereRoot = {
-      photoId: numericPhotoId,
-      parentId: null,
-      ...(isAdmin ? {} : { deletedAt: null }),
-    };
-    const repliesCountSelect = isAdmin ? true : { where: { deletedAt: null } };
-
-    const [totalRootComments, comments] = await prisma.$transaction([
-      prisma.photoComment.count({ where: whereRoot }),
-      prisma.photoComment.findMany({
-        where: whereRoot,
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          text: true,
-          parentId: true,
-          createdAt: true,
-          deletedAt: true,
-          user: { select: { id: true, nickname: true } },
-          _count: {
-            select: {
-              likes: true,
-              replies: repliesCountSelect,
-            },
-          },
-        },
-      }),
-    ]);
-
-    let likedByMeSet = new Set<number>();
-    if (authUser) {
-      const commentIds = comments.map((comment) => comment.id);
-
-      if (commentIds.length > 0) {
-        const liked = await prisma.photoCommentLike.findMany({
-          where: { userId: authUser.id, commentId: { in: commentIds } },
-          select: { commentId: true },
-        });
-        likedByMeSet = new Set(liked.map((row) => row.commentId));
-      }
-    }
-
-    const totalPages = Math.ceil(totalRootComments / limit);
+    const comments = await prisma.photoComment.findMany({
+      where: {
+        photoId,
+        parentId: null,
+        deletedAt: null,
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        text: true,
+        createdAt: true,
+        user: { select: { id: true, nickname: true } },
+      },
+    });
 
     return NextResponse.json({
       comments: comments.map((comment) => ({
         id: comment.id,
         text: comment.text,
-        parentId: comment.parentId,
         createdAt: comment.createdAt.toISOString(),
-        deletedAt: comment.deletedAt ? comment.deletedAt.toISOString() : null,
         user: comment.user,
-        likeCount: comment._count.likes,
-        replyCount: comment._count.replies,
-        likedByMe: authUser ? likedByMeSet.has(comment.id) : false,
       })),
-      pagination: {
-        page,
-        limit,
-        totalRootComments,
-        totalPages,
-        hasNextPage: page < totalPages,
-      },
     });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
-        console.error("Photo comments list error:", error);
+        console.error("Photo comments error:", error);
       }
+
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }
       );
     }
-    console.error("Photo comments list error:", error);
+
+    console.error("Photo comments error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
@@ -138,39 +88,39 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ photoId: string }> }
 ) {
-  const authUser = await getApiUser();
+  const authUser = await getCurrentUser();
   if (!authUser) {
     return NextResponse.json({ error: "Требуется вход" }, { status: 401 });
   }
 
   try {
-    const rateKey = `comment:create:user:${authUser.id}`;
+    const rateKey = `photo-comment:create:user:${authUser.id}`;
     const rateLimit = checkRateLimit(rateKey, COMMENT_COOLDOWN_MS);
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
     }
 
-    const { photoId } = await context.params;
-    const numericPhotoId = Number(photoId);
-    if (Number.isNaN(numericPhotoId)) {
-      return NextResponse.json({ error: "Неверный ID" }, { status: 400 });
+    const { photoId: rawPhotoId } = await context.params;
+    const photoId = parsePhotoId(rawPhotoId);
+    if (!photoId) {
+      return NextResponse.json({ error: "Неверный photoId" }, { status: 400 });
     }
 
     const photo = await prisma.photo.findFirst({
       where: {
-        id: numericPhotoId,
+        id: photoId,
         deletedAt: null,
-        album: { deletedAt: null, published: true },
+        album: { published: true, deletedAt: null },
       },
-      select: { id: true, album: { select: { slug: true } } },
+      select: { id: true },
     });
 
     if (!photo) {
       return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
     }
 
-    const { text, parentId } = await req.json();
-    const content = String(text || "").trim();
+    const body = (await req.json()) as { text?: unknown };
+    const content = String(body.text ?? "").trim();
     if (!content) {
       return NextResponse.json(
         { error: "Пустой комментарий" },
@@ -178,103 +128,28 @@ export async function POST(
       );
     }
 
-    const parsedParentId =
-      parentId === null || parentId === undefined ? null : Number(parentId);
-    if (parsedParentId !== null && Number.isNaN(parsedParentId)) {
-      return NextResponse.json({ error: "Неверный parentId" }, { status: 400 });
-    }
-
-    let parent: {
-      id: number;
-      photoId: number;
-      parentId: number | null;
-      deletedAt: Date | null;
-      user: { id: number } | null;
-    } | null = null;
-
-    if (parsedParentId !== null) {
-      parent = await prisma.photoComment.findUnique({
-        where: { id: parsedParentId },
-        select: {
-          id: true,
-          photoId: true,
-          parentId: true,
-          deletedAt: true,
-          user: { select: { id: true } },
-        },
-      });
-
-      if (!parent || parent.deletedAt) {
-        return NextResponse.json(
-          { error: "Родительский комментарий не найден" },
-          { status: 404 }
-        );
-      }
-
-      if (parent.photoId !== numericPhotoId) {
-        return NextResponse.json(
-          { error: "Родительский комментарий не относится к фото" },
-          { status: 400 }
-        );
-      }
-
-      if (parent.parentId !== null) {
-        return NextResponse.json(
-          { error: "Можно отвечать только на корневые комментарии" },
-          { status: 400 }
-        );
-      }
-    }
-
     const comment = await prisma.photoComment.create({
       data: {
         text: content,
-        photoId: photo.id,
+        photoId,
         userId: authUser.id,
-        parentId: parsedParentId,
+        parentId: null,
       },
       select: {
         id: true,
         text: true,
-        parentId: true,
         createdAt: true,
-        deletedAt: true,
         user: { select: { id: true, nickname: true } },
-        _count: { select: { likes: true, replies: true } },
       },
     });
-
-    if (
-      parsedParentId !== null &&
-      parent?.user?.id &&
-      parent.user.id !== authUser.id
-    ) {
-      await prisma.notification.create({
-        data: {
-          userId: parent.user.id,
-          type: NotificationType.PHOTO_COMMENT_REPLY,
-          data: {
-            albumSlug: photo.album.slug,
-            photoId: photo.id,
-            commentId: comment.id,
-            parentCommentId: parent.id,
-          },
-        },
-      });
-    }
 
     return NextResponse.json(
       {
         comment: {
           id: comment.id,
           text: comment.text,
-          parentId: comment.parentId,
           createdAt: comment.createdAt.toISOString(),
-          deletedAt: comment.deletedAt ? comment.deletedAt.toISOString() : null,
           user: comment.user,
-          likeCount: comment._count.likes,
-          replyCount: comment._count.replies,
-          likedByMe: false,
         },
       },
       { status: 201 }
@@ -284,11 +159,13 @@ export async function POST(
       if (!isExpectedDevDatabaseError(error)) {
         console.error("Create photo comment error:", error);
       }
+
       return NextResponse.json(
         { error: getDatabaseUnavailableMessage() },
         { status: 503 }
       );
     }
+
     console.error("Create photo comment error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
