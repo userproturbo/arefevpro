@@ -321,7 +321,7 @@ export default function PhotoComments({ photoId }: Props) {
       {status === "ready" && comments.length > 0 ? (
         <div className="space-y-4">
           {comments.map((comment) => (
-            <div key={comment.id} className="space-y-3">
+            <div key={comment.id} id={`comment-${comment.id}`} className="space-y-3">
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between text-xs text-white/50">
                   <span>{comment.user?.nickname ?? "Гость"}</span>
@@ -409,6 +409,7 @@ export default function PhotoComments({ photoId }: Props) {
                   {(repliesByRootId[comment.id] ?? []).map((reply) => (
                     <div
                       key={reply.id}
+                      id={`comment-${reply.id}`}
                       className="ml-6 rounded-2xl border border-white/10 bg-white/[0.015] p-4"
                     >
                       <div className="flex items-center justify-between text-xs text-white/50">

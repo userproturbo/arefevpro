@@ -8,11 +8,23 @@ type NotificationData = {
   postSlug?: string;
   commentId?: number;
   replyId?: number;
+  photoId?: number;
+  albumId?: number | null;
+  albumSlug?: string | null;
+  parentCommentId?: number;
+  replyText?: string;
+  sender?: {
+    id: number;
+    login?: string | null;
+    nickname?: string | null;
+  };
 };
+
+type NotificationType = "COMMENT_REPLY" | "PHOTO_COMMENT_REPLY";
 
 type NotificationItem = {
   id: string;
-  type: "COMMENT_REPLY";
+  type: NotificationType;
   data: NotificationData;
   readAt: string | null;
   createdAt: string;
@@ -104,12 +116,10 @@ export default function NotificationsPage() {
 
       <div className="space-y-3">
         {items.map((item) => {
-          const commentId = item.data?.commentId;
-          const postSlug = item.data?.postSlug;
-          const href =
-            postSlug && commentId
-              ? `/blog/${postSlug}#comment-${commentId}`
-              : "/blog";
+          const senderLabel =
+            item.data?.sender?.nickname ||
+            item.data?.sender?.login ||
+            "Someone";
           const createdAt = new Date(item.createdAt).toLocaleString("en-US", {
             month: "short",
             day: "numeric",
@@ -117,6 +127,33 @@ export default function NotificationsPage() {
             minute: "2-digit",
           });
           const isUnread = !item.readAt;
+          const preview = item.data?.replyText;
+          const isPhotoReply = item.type === "PHOTO_COMMENT_REPLY";
+
+          let href = "/blog";
+          let message = "Someone replied to your comment";
+
+          if (isPhotoReply) {
+            const albumSlug = item.data?.albumSlug ?? undefined;
+            const photoId = item.data?.photoId;
+            const parentCommentId = item.data?.parentCommentId;
+            if (albumSlug && photoId) {
+              const anchor = parentCommentId ? `#comment-${parentCommentId}` : "";
+              href = `/photo/${encodeURIComponent(albumSlug)}/${photoId}${anchor}`;
+            } else {
+              href = "/photo";
+            }
+            message = `${senderLabel} replied to your photo comment`;
+          } else {
+            const commentId = item.data?.commentId;
+            const postSlug = item.data?.postSlug;
+            if (postSlug && commentId) {
+              href = `/blog/${postSlug}#comment-${commentId}`;
+            } else {
+              href = "/blog";
+            }
+            message = `${senderLabel} replied to your comment`;
+          }
 
           return (
             <Link
@@ -130,9 +167,7 @@ export default function NotificationsPage() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm text-white/90">
-                    Someone replied to your comment
-                  </p>
+                  <p className="text-sm text-white/90">{message}</p>
                   <p className="text-xs text-white/50">{createdAt}</p>
                 </div>
                 {isUnread && (
@@ -141,6 +176,9 @@ export default function NotificationsPage() {
                   </span>
                 )}
               </div>
+              {preview && (
+                <p className="mt-2 text-xs text-white/60">{preview}</p>
+              )}
               {markingId === item.id && (
                 <p className="mt-2 text-xs text-white/40">Marking as read...</p>
               )}
