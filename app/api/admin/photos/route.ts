@@ -182,10 +182,24 @@ export async function POST(req: NextRequest) {
   }
 
   const albumSlug = parseNonEmptyString(formData.get("albumSlug"));
-  const file = formData.get("file");
+  const files = formData
+    .getAll("files")
+    .filter((entry): entry is File => entry instanceof File);
+  const fallbackFile = formData.get("file");
 
-  if (!albumSlug || !(file instanceof File)) {
+  if (files.length === 0 && fallbackFile instanceof File) {
+    files.push(fallbackFile);
+  }
+
+  if (!albumSlug) {
     return NextResponse.json({ error: "Неверные данные" }, { status: 400 });
+  }
+
+  if (files.length === 0) {
+    return NextResponse.json(
+      { error: "Не выбраны файлы для загрузки" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -198,69 +212,116 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Альбом не найден" }, { status: 404 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const extension = normalizeExtension(file.name);
-    const mimeType = normalizeMimeType(file.type);
-    const isHeic = isHeicFile(extension, mimeType);
-
-    if (!isSupportedImage(extension, mimeType)) {
-      return NextResponse.json(
-        {
-          error:
-            "Неподдерживаемый формат. Допустимы: JPG, PNG, WebP, GIF, HEIC, HEIF.",
-        },
-        { status: 400 }
-      );
-    }
-
-    let uploadBuffer: Buffer = buffer;
-
-    let outputExtension = resolveOutputExtension(extension, mimeType, isHeic);
-
-    if (isHeic) {
-      try {
-        uploadBuffer = await convertHeicToJpeg(buffer);
-        outputExtension = ".jpg";
-      } catch (error) {
-        console.error("Admin HEIC conversion error:", error);
-        return NextResponse.json(
-          { error: "Не удалось обработать файл HEIC/HEIF." },
-          { status: 422 }
-        );
-      }
-    }
-
-    const storagePath = `${Date.now()}-${randomUUID()}${outputExtension}`;
-
+    const photos: Array<{
+      id: string;
+      url: string;
+      storageKey: string;
+      albumId: string;
+      createdAt: string;
+    }> = [];
+    const errors: Array<{ fileName: string; error: string }> = [];
     const storage = getStorageAdapter();
-    const url = await storage.uploadFile(uploadBuffer, storagePath);
 
-    const photo = await prisma.photo.create({
-      data: {
-        albumId: album.id,
-        storageKey: storagePath,
-        url,
-        width: null,
-        height: null,
-      },
-      select: {
-        id: true,
-        url: true,
-        storageKey: true,
-        createdAt: true,
-      },
-    });
+    for (const file of files) {
+      const fileName = file.name || "unknown";
 
-    return NextResponse.json(
-      {
-        photo: {
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const extension = normalizeExtension(file.name);
+        const mimeType = normalizeMimeType(file.type);
+        const isHeic = isHeicFile(extension, mimeType);
+
+        if (!isSupportedImage(extension, mimeType)) {
+          errors.push({
+            fileName,
+            error:
+              "Неподдерживаемый формат. Допустимы: JPG, PNG, WebP, GIF, HEIC, HEIF.",
+          });
+          continue;
+        }
+
+        let uploadBuffer: Buffer = buffer;
+        let outputExtension = resolveOutputExtension(
+          extension,
+          mimeType,
+          isHeic
+        );
+
+        if (isHeic) {
+          try {
+            uploadBuffer = await convertHeicToJpeg(buffer);
+            outputExtension = ".jpg";
+          } catch (error) {
+            console.error("Admin HEIC conversion error:", error);
+            errors.push({
+              fileName,
+              error: "Не удалось обработать файл HEIC/HEIF.",
+            });
+            continue;
+          }
+        }
+
+        const storagePath = `${Date.now()}-${randomUUID()}${outputExtension}`;
+        const url = await storage.uploadFile(uploadBuffer, storagePath);
+
+        const photo = await prisma.photo.create({
+          data: {
+            albumId: album.id,
+            storageKey: storagePath,
+            url,
+            width: null,
+            height: null,
+          },
+          select: {
+            id: true,
+            url: true,
+            storageKey: true,
+            albumId: true,
+            createdAt: true,
+          },
+        });
+
+        photos.push({
           id: photo.id,
           url: photo.url,
           storageKey: photo.storageKey,
+          albumId: photo.albumId,
           createdAt: photo.createdAt.toISOString(),
+        });
+      } catch (error) {
+        if (isDatabaseUnavailableError(error)) {
+          throw error;
+        }
+
+        console.error("Admin photo upload error:", error);
+        errors.push({
+          fileName,
+          error: "Не удалось загрузить файл.",
+        });
+      }
+    }
+
+    if (photos.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Не удалось загрузить файлы.",
+          uploadedCount: 0,
+          photos,
+          errors,
         },
+        { status: 422 }
+      );
+    }
+
+    const status = errors.length > 0 ? 207 : 201;
+
+    return NextResponse.json(
+      {
+        uploadedCount: photos.length,
+        photos,
+        errors: errors.length > 0 ? errors : undefined,
       },
-      { status: 201 }
+      { status }
     );
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
