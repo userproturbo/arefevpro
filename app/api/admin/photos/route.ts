@@ -20,6 +20,7 @@ const HEIC_MIME_TYPES = new Set([
   "image/heic-sequence",
   "image/heif-sequence",
 ]);
+
 const SUPPORTED_IMAGE_EXTENSIONS = new Set([
   ".jpg",
   ".jpeg",
@@ -27,6 +28,7 @@ const SUPPORTED_IMAGE_EXTENSIONS = new Set([
   ".webp",
   ".gif",
 ]);
+
 const SUPPORTED_IMAGE_MIME_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
@@ -34,7 +36,8 @@ const SUPPORTED_IMAGE_MIME_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-const MIME_EXTENSION_MAP = new Map([
+
+const MIME_EXTENSION_MAP = new Map<string, string>([
   ["image/jpeg", ".jpg"],
   ["image/jpg", ".jpg"],
   ["image/png", ".png"],
@@ -65,9 +68,8 @@ function isHeicFile(extension: string, mimeType: string): boolean {
 }
 
 function isSupportedImage(extension: string, mimeType: string): boolean {
-  if (isHeicFile(extension, mimeType)) {
-    return true;
-  }
+  if (isHeicFile(extension, mimeType)) return true;
+
   return (
     SUPPORTED_IMAGE_EXTENSIONS.has(extension) ||
     SUPPORTED_IMAGE_MIME_TYPES.has(mimeType)
@@ -79,12 +81,12 @@ function resolveOutputExtension(
   mimeType: string,
   isHeic: boolean
 ): string {
-  if (isHeic) {
-    return ".jpg";
-  }
+  if (isHeic) return ".jpg";
+
   if (SUPPORTED_IMAGE_EXTENSIONS.has(extension)) {
     return extension;
   }
+
   return MIME_EXTENSION_MAP.get(mimeType) || extension || ".bin";
 }
 
@@ -99,15 +101,13 @@ async function loadSharp() {
 
 async function convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
   const sharp = await loadSharp();
+
   if (sharp) {
     try {
-      const output = await sharp(buffer)
-        .rotate()
-        .jpeg({ quality: 85 })
-        .toBuffer();
+      const output = await sharp(buffer).rotate().jpeg({ quality: 85 }).toBuffer();
       return Buffer.from(output);
     } catch {
-      // Fall back to heic-convert when sharp cannot decode HEIC/HEIF.
+      // fall back
     }
   }
 
@@ -154,39 +154,44 @@ async function convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
   return Buffer.from(converted);
 }
 
+type UploadedPhotoDto = {
+  id: number;
+  url: string;
+  storageKey: string;
+  albumId: number;
+  createdAt: string;
+};
+
+type UploadErrorDto = {
+  fileName: string;
+  error: string;
+};
+
 export async function POST(req: NextRequest) {
   const authUser = await getApiUser();
 
   if (!authUser) {
-    return NextResponse.json(
-      { error: "Требуется авторизация" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Требуется авторизация" }, { status: 401 });
   }
 
   if (authUser.role !== "ADMIN") {
-    return NextResponse.json(
-      { error: "Нет прав доступа" },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: "Нет прав доступа" }, { status: 403 });
   }
 
   let formData: FormData;
   try {
     formData = await req.formData();
   } catch {
-    return NextResponse.json(
-      { error: "Неверные данные формы" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Неверные данные формы" }, { status: 400 });
   }
 
   const albumSlug = parseNonEmptyString(formData.get("albumSlug"));
+
   const files = formData
     .getAll("files")
     .filter((entry): entry is File => entry instanceof File);
-  const fallbackFile = formData.get("file");
 
+  const fallbackFile = formData.get("file");
   if (files.length === 0 && fallbackFile instanceof File) {
     files.push(fallbackFile);
   }
@@ -212,14 +217,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Альбом не найден" }, { status: 404 });
     }
 
-    const photos: Array<{
-      id: string;
-      url: string;
-      storageKey: string;
-      albumId: string;
-      createdAt: string;
-    }> = [];
-    const errors: Array<{ fileName: string; error: string }> = [];
+    const photos: UploadedPhotoDto[] = [];
+    const errors: UploadErrorDto[] = [];
     const storage = getStorageAdapter();
 
     for (const file of files) {
@@ -241,11 +240,7 @@ export async function POST(req: NextRequest) {
         }
 
         let uploadBuffer: Buffer = buffer;
-        let outputExtension = resolveOutputExtension(
-          extension,
-          mimeType,
-          isHeic
-        );
+        let outputExtension = resolveOutputExtension(extension, mimeType, isHeic);
 
         if (isHeic) {
           try {
@@ -313,6 +308,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 201 = created, 207 = partial success (some files failed)
     const status = errors.length > 0 ? 207 : 201;
 
     return NextResponse.json(
