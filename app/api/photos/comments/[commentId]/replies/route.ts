@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { NotificationType } from "@prisma/client";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -118,7 +119,17 @@ export async function POST(
         deletedAt: null,
         photo: { deletedAt: null, album: { published: true, deletedAt: null } },
       },
-      select: { id: true, photoId: true },
+      select: {
+        id: true,
+        photoId: true,
+        userId: true,
+        photo: {
+          select: {
+            albumId: true,
+            album: { select: { slug: true } },
+          },
+        },
+      },
     });
 
     if (!parent) {
@@ -148,9 +159,31 @@ export async function POST(
         id: true,
         text: true,
         createdAt: true,
-        user: { select: { id: true, nickname: true } },
+        user: { select: { id: true, nickname: true, login: true } },
       },
     });
+
+    if (parent.userId && parent.userId !== authUser.id) {
+      await prisma.notification.create({
+        data: {
+          userId: parent.userId,
+          type: NotificationType.PHOTO_COMMENT_REPLY,
+          data: {
+            photoId: parent.photoId,
+            albumId: parent.photo?.albumId ?? null,
+            albumSlug: parent.photo?.album?.slug ?? null,
+            commentId: reply.id,
+            parentCommentId: parent.id,
+            replyText: content.slice(0, 120),
+            sender: {
+              id: reply.user.id,
+              login: reply.user.login,
+              nickname: reply.user.nickname,
+            },
+          },
+        },
+      });
+    }
 
     return NextResponse.json(
       {
