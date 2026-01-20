@@ -19,22 +19,60 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file");
+    const folderRaw = formData.get("folder");
 
     if (!file || typeof file === "string") {
       return NextResponse.json({ error: "Файл не передан" }, { status: 400 });
     }
 
+    const folder = typeof folderRaw === "string" ? folderRaw.trim() : "";
+    const normalizedFolder = folder.toLowerCase();
+    const allowedFolders = new Set(["", "uploads", "videos", "video-thumbnails", "thumbnails"]);
+    if (!allowedFolders.has(normalizedFolder)) {
+      return NextResponse.json({ error: "Неверная папка загрузки" }, { status: 400 });
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const ext = path.extname(file.name || "") || ".bin";
+    const ext = path.extname(file.name || "").toLowerCase() || ".bin";
     const filename = `${Date.now()}-${randomUUID()}${ext}`;
+
+    const isVideoFolder = normalizedFolder === "videos";
+    const isThumbnailFolder =
+      normalizedFolder === "video-thumbnails" || normalizedFolder === "thumbnails";
+
+    if (isVideoFolder) {
+      const allowedVideoExt = new Set([".mp4", ".mov"]);
+      const allowedVideoTypes = new Set(["video/mp4", "video/quicktime"]);
+      if (!allowedVideoExt.has(ext) && !allowedVideoTypes.has(file.type)) {
+        return NextResponse.json(
+          { error: "Неподдерживаемый формат видео. Допустимы MP4 и MOV." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (isThumbnailFolder) {
+      const allowedImageExt = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+      const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+      if (!allowedImageExt.has(ext) && !allowedImageTypes.has(file.type)) {
+        return NextResponse.json(
+          { error: "Неподдерживаемый формат. Допустимы JPG, PNG, WebP." },
+          { status: 400 }
+        );
+      }
+    }
 
     // 🔑 ВАЖНО: единая точка хранения
     const storage = getStorageAdapter();
 
     // логический путь (адаптер сам решит, куда и как)
-    const objectPath = `uploads/${filename}`;
+    const folderPrefix =
+      normalizedFolder && normalizedFolder !== "uploads"
+        ? `uploads/${normalizedFolder}/`
+        : "uploads/";
+    const objectPath = `${folderPrefix}${filename}`;
 
     const url = await storage.uploadFile(buffer, objectPath);
 
