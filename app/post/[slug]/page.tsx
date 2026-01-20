@@ -292,7 +292,8 @@ export default async function PostPage({
           )}
 
           <CommentsPanel
-            postSlug={post.slug}
+            entity="post"
+            entityId={post.slug}
             initialComments={comments}
             initialPagination={initialPagination}
             showLoginNotice={false}
