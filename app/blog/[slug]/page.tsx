@@ -140,7 +140,8 @@ export default async function BlogPostPage({
       </div>
 
       <CommentsPanel
-        postSlug={post.slug}
+        entity="post"
+        entityId={post.slug}
         initialComments={comments}
         initialPagination={initialPagination}
       />

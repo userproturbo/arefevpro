@@ -7,12 +7,14 @@ type Props = {
   commentId: number;
   initialLiked: boolean;
   initialCount: number;
+  endpoint?: string;
 };
 
 export default function CommentLikeButton({
   commentId,
   initialLiked,
   initialCount,
+  endpoint,
 }: Props) {
   const { user, loading: authLoading } = useAuth();
   const [liked, setLiked] = useState(initialLiked);
@@ -38,6 +40,7 @@ export default function CommentLikeButton({
   const toggle = async () => {
     if (disabled) return;
 
+    const likeEndpoint = endpoint ?? `/api/comments/${commentId}/like`;
     const prevLiked = liked;
     const prevCount = count;
     const nextLiked = !prevLiked;
@@ -52,7 +55,7 @@ export default function CommentLikeButton({
     setSubmitting(true);
 
     try {
-      const res = await fetch(`/api/comments/${commentId}/like`, {
+      const res = await fetch(likeEndpoint, {
         method: nextLiked ? "POST" : "DELETE",
         credentials: "include",
       });

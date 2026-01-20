@@ -19,6 +19,8 @@ type CommentItem = {
   likedByMe: boolean;
 };
 
+type CommentEntity = "post" | "photo" | "video";
+
 type Pagination = {
   page: number;
   limit: number;
@@ -28,20 +30,55 @@ type Pagination = {
 };
 
 type Props = {
-  postSlug: string;
+  entity: CommentEntity;
+  entityId: string | number;
   initialComments?: CommentItem[];
   initialPagination?: Pagination;
   showLoginNotice?: boolean;
 };
 
+const entityPluralByType: Record<CommentEntity, string> = {
+  post: "posts",
+  photo: "photos",
+  video: "videos",
+};
+
+const buildCommentPaths = (entity: CommentEntity, entityId: string | number) => {
+  const entityPlural = entityPluralByType[entity];
+  const encodedId = encodeURIComponent(String(entityId));
+  return {
+    listUrl: `/api/${entityPlural}/${encodedId}/comments`,
+    repliesUrl: (commentId: number) =>
+      `/api/${entityPlural}/comments/${commentId}/replies`,
+    deleteUrl: (commentId: number) =>
+      `/api/${entityPlural}/${encodedId}/comments/${commentId}`,
+    likeUrl: (commentId: number) =>
+      `/api/${entityPlural}/comments/${commentId}/like`,
+    enableLikes: entity !== "photo",
+  };
+};
+
+const normalizeComment = (comment: CommentItem & { content?: string }) => ({
+  ...comment,
+  text: comment.text ?? comment.content ?? "",
+  parentId: comment.parentId ?? null,
+  deletedAt: comment.deletedAt ?? null,
+  likeCount: typeof comment.likeCount === "number" ? comment.likeCount : 0,
+  replyCount: typeof comment.replyCount === "number" ? comment.replyCount : 0,
+  likedByMe: typeof comment.likedByMe === "boolean" ? comment.likedByMe : false,
+});
+
 export default function CommentsPanel({
-  postSlug,
+  entity,
+  entityId,
   initialComments,
   initialPagination,
   showLoginNotice = true,
 }: Props) {
   const { user, requireUser } = useAuth();
-  const [comments, setComments] = useState<CommentItem[]>(initialComments || []);
+  const [comments, setComments] = useState<CommentItem[]>(
+    (initialComments ?? []).map(normalizeComment)
+  );
   const [pagination, setPagination] = useState<Pagination | null>(
     initialPagination || null
   );
@@ -65,9 +102,10 @@ export default function CommentsPanel({
   const [repliesError, setRepliesError] = useState<Record<number, string | null>>(
     {}
   );
+  const paths = buildCommentPaths(entity, entityId);
 
   useEffect(() => {
-    setComments(initialComments || []);
+    setComments((initialComments ?? []).map(normalizeComment));
     setPagination(initialPagination || null);
     setRepliesByRootId({});
     setRepliesVisible({});
@@ -85,7 +123,7 @@ export default function CommentsPanel({
       fetchRootComments({ page: 1, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postSlug]);
+  }, [entity, entityId]);
 
   const readErrorMessage = async (res: Response, fallback: string) => {
     try {
@@ -114,7 +152,7 @@ export default function CommentsPanel({
       const limit =
         pagination?.limit || initialPagination?.limit || 10;
       const res = await fetch(
-        `/api/posts/${postSlug}/comments?page=${page}&limit=${limit}`,
+        `${paths.listUrl}?page=${page}&limit=${limit}`,
         {
           credentials: "include",
         }
@@ -125,7 +163,9 @@ export default function CommentsPanel({
       const nextPagination = (data.pagination ?? null) as Pagination | null;
 
       setComments((prev) =>
-        replace ? nextComments : [...prev, ...nextComments]
+        replace
+          ? nextComments.map(normalizeComment)
+          : [...prev, ...nextComments.map(normalizeComment)]
       );
       setPagination(nextPagination);
     } catch (error) {
@@ -153,14 +193,16 @@ export default function CommentsPanel({
       setRepliesLoading((prev) => ({ ...prev, [rootCommentId]: true }));
       setRepliesError((prev) => ({ ...prev, [rootCommentId]: null }));
 
-      const res = await fetch(`/api/comments/${rootCommentId}/replies`, {
+      const res = await fetch(paths.repliesUrl(rootCommentId), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("failed");
       const data = await res.json();
       setRepliesByRootId((prev) => ({
         ...prev,
-        [rootCommentId]: (data.replies ?? []) as CommentItem[],
+        [rootCommentId]: ((data.replies ?? []) as CommentItem[]).map(
+          normalizeComment
+        ),
       }));
     } catch (error) {
       console.error(error);
@@ -188,11 +230,11 @@ export default function CommentsPanel({
     await requireUser(async () => {
       try {
         setSubmitting(true);
-        const res = await fetch(`/api/posts/${postSlug}/comments`, {
+        const res = await fetch(paths.listUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ text: content }),
+          body: JSON.stringify({ text: content, content }),
         });
         if (!res.ok) {
           const message = await readErrorMessage(
@@ -204,11 +246,9 @@ export default function CommentsPanel({
         }
         const data = await res.json();
 
-        const comment = data.comment as CommentItem;
-        const normalizedComment = {
-          ...comment,
-          deletedAt: comment.deletedAt ?? null,
-        };
+        const comment = (data.comment ?? data.reply) as CommentItem | undefined;
+        if (!comment) return;
+        const normalizedComment = normalizeComment(comment);
         setComments((prev) => [normalizedComment, ...prev]);
         setPagination((prev) => {
           if (!prev) return prev;
@@ -238,11 +278,11 @@ export default function CommentsPanel({
     await requireUser(async () => {
       try {
         setSubmitting(true);
-        const res = await fetch(`/api/posts/${postSlug}/comments`, {
+        const res = await fetch(paths.repliesUrl(parentId), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ text: content, parentId }),
+          body: JSON.stringify({ text: content, content }),
         });
         if (!res.ok) {
           const message = await readErrorMessage(
@@ -253,11 +293,9 @@ export default function CommentsPanel({
           return;
         }
         const data = await res.json();
-        const reply = data.comment as CommentItem;
-        const normalizedReply = {
-          ...reply,
-          deletedAt: reply.deletedAt ?? null,
-        };
+        const reply = (data.reply ?? data.comment) as CommentItem | undefined;
+        if (!reply) return;
+        const normalizedReply = normalizeComment(reply);
 
         setComments((prev) =>
           prev.map((root) =>
@@ -295,7 +333,7 @@ export default function CommentsPanel({
     if (deleteLoading[id]) return;
     try {
       setDeleteLoading((prev) => ({ ...prev, [id]: true }));
-      const res = await fetch(`/api/comments/${id}`, {
+      const res = await fetch(paths.deleteUrl(id), {
         method: "DELETE",
         credentials: "include",
       });
@@ -466,11 +504,12 @@ export default function CommentsPanel({
               </p>
 
               <div className="mt-3 flex items-center justify-between gap-3">
-                {!isDeleted(comment) && (
+                {!isDeleted(comment) && paths.enableLikes && (
                   <CommentLikeButton
                     commentId={comment.id}
                     initialLiked={comment.likedByMe}
                     initialCount={comment.likeCount}
+                    endpoint={paths.likeUrl(comment.id)}
                   />
                 )}
 
@@ -572,11 +611,12 @@ export default function CommentsPanel({
                     </p>
 
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      {!isDeleted(reply) && (
+                      {!isDeleted(reply) && paths.enableLikes && (
                         <CommentLikeButton
                           commentId={reply.id}
                           initialLiked={reply.likedByMe}
                           initialCount={reply.likeCount}
+                          endpoint={paths.likeUrl(reply.id)}
                         />
                       )}
 

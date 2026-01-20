@@ -1,37 +1,35 @@
 const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const login = "admin";
-  const password = "temp";
+  const existing = await prisma.video.count();
+  if (existing > 0) {
+    console.log("Videos already seeded.");
+    return;
+  }
 
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  const user = await prisma.user.upsert({
-    where: { login },
-    update: {
-      passwordHash,
-      role: "ADMIN",
-      nickname: "Admin",
-    },
-    create: {
-      login,
-      passwordHash,
-      role: "ADMIN",
-      nickname: "Admin",
-      email: null,
-    },
+  // Update videoUrl/embedUrl/thumbnailUrl to point at real assets.
+  await prisma.video.createMany({
+    data: [
+      {
+        title: "Sample video",
+        description: "Replace embedUrl/videoUrl with your own media.",
+        thumbnailUrl: "/img/placeholder.jpg",
+        embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        isPublished: true,
+      },
+    ],
   });
 
-  console.log("✅ Admin ready:", {
-    id: user.id,
-    login: user.login,
-    role: user.role,
-  });
+  console.log("Seeded sample videos.");
 }
 
 main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+  .catch((error) => {
+    console.error("Seed error:", error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
