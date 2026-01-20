@@ -184,7 +184,7 @@ export default function VideoPage() {
             <button
               type="button"
               onClick={() => setActiveVideo(null)}
-              className="absolute right-3 top-3 rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80 hover:text-white"
+              className="absolute right-3 top-3 z-[9999] pointer-events-auto rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80 hover:text-white"
             >
               Закрыть
             </button>
@@ -195,14 +195,14 @@ export default function VideoPage() {
                 title={activeVideo.title}
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
-                className="h-[60vh] w-full"
+                className="relative z-0 h-[60vh] w-full"
               />
             ) : activeVideo.videoUrl ? (
               <video
                 src={activeVideo.videoUrl}
                 controls
                 autoPlay
-                className="h-[60vh] w-full bg-black"
+                className="relative z-0 h-[60vh] w-full bg-black"
               />
             ) : (
               <div className="flex h-[40vh] items-center justify-center text-white/70">

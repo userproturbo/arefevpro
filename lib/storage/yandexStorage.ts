@@ -116,6 +116,10 @@ export class YandexStorageAdapter implements StorageAdapter {
         return "image/avif";
       case ".svg":
         return "image/svg+xml";
+      case ".mp4":
+        return "video/mp4";
+      case ".mov":
+        return "video/quicktime";
       default:
         return "application/octet-stream";
     }
