@@ -95,6 +95,29 @@ export class YandexStorageAdapter implements StorageAdapter {
     return `${base}/${key}`;
   }
 
+  async createPresignedUploadUrl(options: {
+    key: string;
+    contentType: string;
+    expiresInSeconds?: number;
+  }): Promise<{ uploadUrl: string; publicUrl: string; key: string }> {
+    const client = await this.getClient();
+    const { PutObjectCommand } = await this.getS3Module();
+    const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+
+    const key = options.key.replace(/^\/+/, "");
+    const command = new PutObjectCommand({
+      Bucket: this.getBucket(),
+      Key: key,
+      ContentType: options.contentType,
+    });
+
+    const uploadUrl = await getSignedUrl(client, command, {
+      expiresIn: options.expiresInSeconds ?? 900,
+    });
+
+    return { uploadUrl, publicUrl: this.buildPublicUrl(key), key };
+  }
+
   private getContentType(objectKey: string): string {
     const ext = path.extname(objectKey).toLowerCase();
     switch (ext) {

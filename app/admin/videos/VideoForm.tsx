@@ -25,6 +25,55 @@ type FileUploadButtonProps = {
   onSelect: (file: File) => void;
 };
 
+const videoContentTypes = new Set(["video/mp4", "video/quicktime"]);
+const extensionContentTypes: Record<string, string> = {
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+function inferContentType(file: File): string {
+  if (file.type) {
+    return file.type;
+  }
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return extensionContentTypes[ext] ?? "";
+}
+
+function putFileWithProgress(
+  url: string,
+  file: File,
+  contentType: string,
+  onProgress: (progress: number) => void
+) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("Content-Type", contentType);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        onProgress(progress);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`Ошибка загрузки: ${xhr.status}`));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Ошибка сети при загрузке"));
+    xhr.send(file);
+  });
+}
+
 function FileUploadButton({ label, accept, disabled, onSelect }: FileUploadButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState("");
@@ -85,6 +134,7 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
   const [error, setError] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState<"video" | "thumb" | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -97,7 +147,7 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
     return !!cleanedTitle && (!!cleanedVideoUrl || !!cleanedEmbedUrl);
   }, [cleanedTitle, cleanedVideoUrl, cleanedEmbedUrl]);
 
-  async function uploadFile(
+  async function uploadFileLegacy(
     field: "videoUrl" | "thumbnailUrl",
     folder: "videos" | "video-thumbnails",
     file: File
@@ -133,6 +183,49 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
       setUploadError(message);
     } finally {
       setUploading(null);
+    }
+  }
+
+  async function uploadVideoViaPresign(file: File) {
+    try {
+      setUploading("video");
+      setUploadProgress(0);
+      setUploadError(null);
+
+      const contentType = inferContentType(file);
+      if (!videoContentTypes.has(contentType)) {
+        throw new Error("Неподдерживаемый формат видео. Допустимы MP4 и MOV.");
+      }
+
+      const presignRes = await fetch("/api/admin/upload/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType,
+          folder: "videos",
+        }),
+      });
+
+      const presignJson = await presignRes.json().catch(() => ({}));
+      if (!presignRes.ok || !presignJson?.uploadUrl || !presignJson?.publicUrl) {
+        throw new Error(presignJson.error || "Не удалось получить ссылку загрузки");
+      }
+
+      await putFileWithProgress(
+        presignJson.uploadUrl,
+        file,
+        contentType,
+        setUploadProgress
+      );
+
+      setVideoUrl(presignJson.publicUrl);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Ошибка загрузки файла";
+      setUploadError(message);
+    } finally {
+      setUploading(null);
+      setUploadProgress(null);
     }
   }
 
@@ -275,7 +368,7 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
               label="Или загрузите MP4/MOV"
               accept="video/mp4,video/quicktime"
               disabled={disabled}
-              onSelect={(file) => uploadFile("videoUrl", "videos", file)}
+              onSelect={(file) => uploadVideoViaPresign(file)}
             />
             {videoUrl && (
               <p className="text-xs text-white/50">
@@ -323,7 +416,7 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
           label="Или загрузите изображение"
           accept="image/jpeg,image/png,image/webp"
           disabled={disabled}
-          onSelect={(file) => uploadFile("thumbnailUrl", "video-thumbnails", file)}
+          onSelect={(file) => uploadFileLegacy("thumbnailUrl", "video-thumbnails", file)}
         />
         {thumbnailUrl ? (
           <img
@@ -355,7 +448,11 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
         </p>
       )}
       {uploading && (
-        <p className="text-sm text-white/70">Загружаем файл...</p>
+        <p className="text-sm text-white/70">
+          {uploading === "video" && uploadProgress !== null
+            ? `Загружаем видео: ${uploadProgress}%`
+            : "Загружаем файл..."}
+        </p>
       )}
 
       <div className="flex items-center gap-3">
