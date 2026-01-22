@@ -83,7 +83,8 @@ export class YandexStorageAdapter implements StorageAdapter {
 
   private normalizeObjectKey(filePath: string): string {
     const trimmed = filePath.replace(/^[/\\]+/, "").replace(/\\/g, "/");
-    if (trimmed.startsWith("albums/")) {
+    const allowedPrefixes = ["albums/", "videos/", "video-thumbnails/"];
+    if (allowedPrefixes.some((prefix) => trimmed.startsWith(prefix))) {
       return trimmed;
     }
     return `albums/${trimmed}`;
@@ -95,16 +96,16 @@ export class YandexStorageAdapter implements StorageAdapter {
     return `${base}/${key}`;
   }
 
-  async createPresignedUploadUrl(options: {
+  async presignUpload(options: {
     key: string;
     contentType: string;
     expiresInSeconds?: number;
-  }): Promise<{ uploadUrl: string; publicUrl: string; key: string }> {
+  }): Promise<{ uploadUrl: string; publicUrl: string }> {
     const client = await this.getClient();
     const { PutObjectCommand } = await this.getS3Module();
     const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
 
-    const key = options.key.replace(/^\/+/, "");
+    const key = this.normalizeObjectKey(options.key);
     const command = new PutObjectCommand({
       Bucket: this.getBucket(),
       Key: key,
@@ -112,10 +113,10 @@ export class YandexStorageAdapter implements StorageAdapter {
     });
 
     const uploadUrl = await getSignedUrl(client, command, {
-      expiresIn: options.expiresInSeconds ?? 900,
+      expiresIn: options.expiresInSeconds ?? 600,
     });
 
-    return { uploadUrl, publicUrl: this.buildPublicUrl(key), key };
+    return { uploadUrl, publicUrl: this.buildPublicUrl(key) };
   }
 
   private getContentType(objectKey: string): string {

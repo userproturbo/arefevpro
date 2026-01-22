@@ -27,7 +27,14 @@ export async function POST(req: NextRequest) {
 
     const folder = typeof folderRaw === "string" ? folderRaw.trim() : "";
     const normalizedFolder = folder.toLowerCase();
-    const allowedFolders = new Set(["", "uploads", "videos", "video-thumbnails", "thumbnails"]);
+
+    const allowedFolders = new Set([
+      "",
+      "uploads",
+      "videos",
+      "video-thumbnails",
+      "thumbnails",
+    ]);
     if (!allowedFolders.has(normalizedFolder)) {
       return NextResponse.json({ error: "Неверная папка загрузки" }, { status: 400 });
     }

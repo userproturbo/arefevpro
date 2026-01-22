@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 
@@ -47,18 +48,22 @@ function putFileWithProgress(
   url: string,
   file: File,
   contentType: string,
-  onProgress: (progress: number) => void
+  onProgress: (progress: number, loaded: number, total: number) => void,
+  onXhr?: (xhr: XMLHttpRequest) => void
 ) {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    onXhr?.(xhr);
     xhr.open("PUT", url);
     xhr.setRequestHeader("Content-Type", contentType);
 
     xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const progress = Math.round((event.loaded / event.total) * 100);
-        onProgress(progress);
-      }
+      const total = file.size;
+      const loaded = Math.min(event.loaded, total);
+      const progress =
+        total > 0 ? Math.floor((loaded / total) * 100) : 0;
+      const clampedProgress = Math.min(Math.max(progress, 0), 100);
+      onProgress(clampedProgress, loaded, total);
     };
 
     xhr.onload = () => {
@@ -69,6 +74,7 @@ function putFileWithProgress(
       }
     };
 
+    xhr.onabort = () => reject(new Error("UPLOAD_ABORTED"));
     xhr.onerror = () => reject(new Error("Ошибка сети при загрузке"));
     xhr.send(file);
   });
@@ -135,8 +141,16 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState<"video" | "thumb" | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadLoadedBytes, setUploadLoadedBytes] = useState<number | null>(null);
+  const [uploadTotalBytes, setUploadTotalBytes] = useState<number | null>(null);
+  const [uploadSpeed, setUploadSpeed] = useState<number | null>(null);
+  const [uploadEta, setUploadEta] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const uploadXhrRef = useRef<XMLHttpRequest | null>(null);
+  const lastProgressTimeRef = useRef<number | null>(null);
+  const lastLoadedRef = useRef<number | null>(null);
+  const emaSpeedRef = useRef<number | null>(null);
 
   const cleanedTitle = title.trim();
   const cleanedVideoUrl = videoUrl.trim();
@@ -147,6 +161,37 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
     return !!cleanedTitle && (!!cleanedVideoUrl || !!cleanedEmbedUrl);
   }, [cleanedTitle, cleanedVideoUrl, cleanedEmbedUrl]);
 
+  const formatEta = (seconds: number | null) => {
+    if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return "—";
+    const total = Math.ceil(seconds);
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const secs = total % 60;
+    if (hours > 0) {
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+        2,
+        "0"
+      )}:${String(secs).padStart(2, "0")}`;
+    }
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  const formatMb = (bytes: number | null) => {
+    if (bytes === null || !Number.isFinite(bytes)) return "0.0";
+    return (bytes / (1024 * 1024)).toFixed(1);
+  };
+
+  const resetUploadMetrics = () => {
+    setUploadProgress(null);
+    setUploadLoadedBytes(null);
+    setUploadTotalBytes(null);
+    setUploadSpeed(null);
+    setUploadEta(null);
+    lastProgressTimeRef.current = null;
+    lastLoadedRef.current = null;
+    emaSpeedRef.current = null;
+  };
+
   async function uploadFileLegacy(
     field: "videoUrl" | "thumbnailUrl",
     folder: "videos" | "video-thumbnails",
@@ -154,6 +199,16 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
   ) {
     try {
       setUploading(field === "videoUrl" ? "video" : "thumb");
+      if (field === "videoUrl") {
+        setUploadProgress(0);
+        setUploadLoadedBytes(0);
+        setUploadTotalBytes(file.size);
+        setUploadSpeed(null);
+        setUploadEta(null);
+        lastProgressTimeRef.current = null;
+        lastLoadedRef.current = null;
+        emaSpeedRef.current = null;
+      }
       setUploadError(null);
 
       const data = new FormData();
@@ -183,6 +238,9 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
       setUploadError(message);
     } finally {
       setUploading(null);
+      if (field === "videoUrl") {
+        resetUploadMetrics();
+      }
     }
   }
 
@@ -190,6 +248,13 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
     try {
       setUploading("video");
       setUploadProgress(0);
+      setUploadLoadedBytes(0);
+      setUploadTotalBytes(file.size);
+      setUploadSpeed(null);
+      setUploadEta(null);
+      lastProgressTimeRef.current = null;
+      lastLoadedRef.current = null;
+      emaSpeedRef.current = null;
       setUploadError(null);
 
       const contentType = inferContentType(file);
@@ -208,24 +273,72 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
       });
 
       const presignJson = await presignRes.json().catch(() => ({}));
-      if (!presignRes.ok || !presignJson?.uploadUrl || !presignJson?.publicUrl) {
+      if (!presignRes.ok) {
+        if (presignJson?.code === "PRESIGN_UNSUPPORTED") {
+          resetUploadMetrics();
+          await uploadFileLegacy("videoUrl", "videos", file);
+          return;
+        }
         throw new Error(presignJson.error || "Не удалось получить ссылку загрузки");
+      }
+
+      if (!presignJson?.uploadUrl || !presignJson?.publicUrl) {
+        throw new Error("Не удалось получить ссылку загрузки");
       }
 
       await putFileWithProgress(
         presignJson.uploadUrl,
         file,
         contentType,
-        setUploadProgress
+        (progress, loaded) => {
+          setUploadProgress(progress);
+          setUploadLoadedBytes(loaded);
+          setUploadTotalBytes(file.size);
+          const now = performance.now();
+          if (lastProgressTimeRef.current !== null && lastLoadedRef.current !== null) {
+            const deltaBytes = loaded - lastLoadedRef.current;
+            const deltaSeconds = (now - lastProgressTimeRef.current) / 1000;
+            if (deltaSeconds > 0 && deltaBytes >= 0) {
+              const instantSpeed = deltaBytes / deltaSeconds;
+              const alpha = 0.2;
+              const ema =
+                emaSpeedRef.current === null
+                  ? instantSpeed
+                  : emaSpeedRef.current * (1 - alpha) + instantSpeed * alpha;
+              emaSpeedRef.current = ema;
+              const speedMbps = ema / (1024 * 1024);
+              setUploadSpeed(Number.isFinite(speedMbps) ? speedMbps : null);
+
+              if (ema > 0) {
+                const remaining = Math.max(file.size - loaded, 0);
+                const etaSeconds = remaining / ema;
+                setUploadEta(Number.isFinite(etaSeconds) ? etaSeconds : null);
+              } else {
+                setUploadEta(null);
+              }
+            }
+          }
+
+          lastProgressTimeRef.current = now;
+          lastLoadedRef.current = loaded;
+        },
+        (xhr) => {
+          uploadXhrRef.current = xhr;
+        }
       );
 
       setVideoUrl(presignJson.publicUrl);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Ошибка загрузки файла";
-      setUploadError(message);
+      if (message === "UPLOAD_ABORTED") {
+        setUploadError("Upload cancelled");
+      } else {
+        setUploadError(message);
+      }
     } finally {
+      uploadXhrRef.current = null;
       setUploading(null);
-      setUploadProgress(null);
+      resetUploadMetrics();
     }
   }
 
@@ -299,6 +412,11 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
   }
 
   const disabled = loading || deleting || !!uploading;
+  const showVideoProgress = uploading === "video";
+  const progressPercent = uploadProgress ?? 0;
+  const speedLabel =
+    uploadSpeed !== null ? `${uploadSpeed.toFixed(1)} MB/s` : "—";
+  const etaLabel = formatEta(uploadEta);
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
@@ -370,6 +488,37 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
               disabled={disabled}
               onSelect={(file) => uploadVideoViaPresign(file)}
             />
+            {showVideoProgress && (
+              <div className="space-y-2 text-xs text-white/70">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm text-white/70">
+                    {`Uploading: ${progressPercent}%`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => uploadXhrRef.current?.abort()}
+                    className="rounded-md border border-white/20 px-2 py-1 text-xs text-white/70 transition hover:border-white/40 hover:text-white"
+                  >
+                    Cancel upload
+                  </button>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-white/10">
+                  <div
+                    className="h-full bg-white transition-[width] duration-150"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="text-xs text-white/60">
+                  {`${formatMb(uploadLoadedBytes)} MB / ${formatMb(
+                    uploadTotalBytes
+                  )} MB`}
+                </div>
+                <div className="flex flex-wrap gap-3 text-xs text-white/60">
+                  <span>{`Speed: ${speedLabel}`}</span>
+                  <span>{`ETA: ${etaLabel}`}</span>
+                </div>
+              </div>
+            )}
             {videoUrl && (
               <p className="text-xs text-white/50">
                 Загружено: <span className="break-all">{videoUrl}</span>
@@ -419,9 +568,11 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
           onSelect={(file) => uploadFileLegacy("thumbnailUrl", "video-thumbnails", file)}
         />
         {thumbnailUrl ? (
-          <img
+          <Image
             src={thumbnailUrl}
             alt="thumbnail preview"
+            width={800}
+            height={320}
             className="mt-2 h-32 w-full rounded-lg border border-white/10 object-cover"
           />
         ) : null}
@@ -447,12 +598,8 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
           {uploadError}
         </p>
       )}
-      {uploading && (
-        <p className="text-sm text-white/70">
-          {uploading === "video" && uploadProgress !== null
-            ? `Загружаем видео: ${uploadProgress}%`
-            : "Загружаем файл..."}
-        </p>
+      {uploading === "thumb" && (
+        <p className="text-sm text-white/70">Загружаем файл...</p>
       )}
 
       <div className="flex items-center gap-3">
