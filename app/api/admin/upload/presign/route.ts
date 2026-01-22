@@ -77,9 +77,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ uploadUrl, publicUrl, key });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Ошибка пресайна";
-      if (message.toLowerCase().includes("not supported")) {
+      const lower = message.toLowerCase();
+      if (lower.includes("not supported")) {
         return NextResponse.json(
           { error: message, code: "PRESIGN_UNSUPPORTED" },
+          { status: 400 }
+        );
+      }
+      if (message.startsWith("S3 config is missing:")) {
+        return NextResponse.json(
+          { error: message, code: "S3_CONFIG_MISSING" },
+          { status: 400 }
+        );
+      }
+      if (message.startsWith("S3 config is invalid:")) {
+        return NextResponse.json(
+          { error: message, code: "S3_CONFIG_INVALID" },
           { status: 400 }
         );
       }
@@ -88,7 +101,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Presign upload error:", error);
     return NextResponse.json(
-      { error: "Не удалось получить ссылку загрузки" },
+      { error: "Failed to generate presigned URL", code: "PRESIGN_FAILED" },
       { status: 500 }
     );
   }
