@@ -274,16 +274,28 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
 
       const presignJson = await presignRes.json().catch(() => ({}));
       if (!presignRes.ok) {
+        console.error("Presign error response:", {
+          status: presignRes.status,
+          body: presignJson,
+        });
         if (presignJson?.code === "PRESIGN_UNSUPPORTED") {
           resetUploadMetrics();
           await uploadFileLegacy("videoUrl", "videos", file);
           return;
         }
-        throw new Error(presignJson.error || "Не удалось получить ссылку загрузки");
+        const errorMessage =
+          presignJson?.error || "Не удалось получить ссылку загрузки";
+        const errorCode = presignJson?.code;
+        throw new Error(
+          errorCode
+            ? `Presign error (${errorCode}): ${errorMessage}`
+            : `Presign error: ${errorMessage}`
+        );
       }
 
       if (!presignJson?.uploadUrl || !presignJson?.publicUrl) {
-        throw new Error("Не удалось получить ссылку загрузки");
+        console.error("Presign success response missing data:", presignJson);
+        throw new Error("Presign error: empty response from server");
       }
 
       await putFileWithProgress(

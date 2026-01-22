@@ -21,9 +21,21 @@ export class YandexStorageAdapter implements StorageAdapter {
   private requireEnv(name: string): string {
     const value = process.env[name];
     if (!value) {
-      throw new Error(`Missing environment variable: ${name}`);
+      throw new Error(`S3 config is missing: ${name}`);
     }
     return value;
+  }
+
+  private validateBucketName(bucket: string): void {
+    if (
+      bucket.includes("://") ||
+      bucket.includes("/") ||
+      bucket.includes("storage.yandexcloud.net")
+    ) {
+      throw new Error(
+        "S3 config is invalid: S3_BUCKET must be a bucket name only"
+      );
+    }
   }
 
   private async getClient(): Promise<S3ClientType> {
@@ -36,6 +48,8 @@ export class YandexStorageAdapter implements StorageAdapter {
     const bucket = this.requireEnv("S3_BUCKET");
     const endpoint = normalizeEndpoint(this.requireEnv("S3_ENDPOINT"));
     const publicBaseUrl = this.requireEnv("S3_PUBLIC_URL").trim().replace(/\/+$/, "");
+
+    this.validateBucketName(bucket);
 
     const s3 = await import("@aws-sdk/client-s3");
     const { S3Client } = s3;
