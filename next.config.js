@@ -6,6 +6,12 @@ const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
   serverExternalPackages: ["@prisma/client", "prisma"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "*.storage.yandexcloud.net" },
+      { protocol: "https", hostname: "storage.yandexcloud.net" },
+    ],
+  },
 };
 
 module.exports = nextConfig;
