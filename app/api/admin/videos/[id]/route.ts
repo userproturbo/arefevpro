@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUser } from "@/lib/auth";
+import { getStorageAdapter } from "@/lib/storage";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -168,6 +169,20 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json({ error: "Видео не найдено" }, { status: 404 });
     }
+
+    const storage = getStorageAdapter();
+    const cleanupTargets = [existing.videoUrl, existing.thumbnailUrl].filter(
+      (value): value is string => !!value
+    );
+    await Promise.all(
+      cleanupTargets.map(async (url) => {
+        try {
+          await storage.deleteFileByUrl(url);
+        } catch (error) {
+          console.error("Admin delete video storage cleanup error:", { url, error });
+        }
+      })
+    );
 
     await prisma.video.delete({ where: { id } });
 

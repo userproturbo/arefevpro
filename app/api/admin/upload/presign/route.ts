@@ -44,7 +44,11 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedFolder = folder.toLowerCase();
-    if (normalizedFolder !== "videos") {
+    const isVideoFolder = normalizedFolder === "videos";
+    const isThumbnailFolder =
+      normalizedFolder === "video-thumbnails" || normalizedFolder === "thumbnails";
+
+    if (!isVideoFolder && !isThumbnailFolder) {
       return NextResponse.json(
         { error: "Неверная папка загрузки", code: "INVALID_REQUEST" },
         { status: 400 }
@@ -53,20 +57,38 @@ export async function POST(req: NextRequest) {
 
     const ext = path.extname(filename).toLowerCase();
     const contentType = rawContentType.toLowerCase();
-    const isMp4 = ext === ".mp4" && contentType === "video/mp4";
-    const isMov = ext === ".mov" && contentType === "video/quicktime";
+    if (isVideoFolder) {
+      const isMp4 = ext === ".mp4" && contentType === "video/mp4";
+      const isMov = ext === ".mov" && contentType === "video/quicktime";
 
-    if (!isMp4 && !isMov) {
-      return NextResponse.json(
-        {
-          error: "Неподдерживаемый формат видео. Допустимы MP4 и MOV.",
-          code: "INVALID_REQUEST",
-        },
-        { status: 400 }
-      );
+      if (!isMp4 && !isMov) {
+        return NextResponse.json(
+          {
+            error: "Неподдерживаемый формат видео. Допустимы MP4 и MOV.",
+            code: "INVALID_REQUEST",
+          },
+          { status: 400 }
+        );
+      }
     }
 
-    const key = `videos/${Date.now()}-${randomUUID()}${ext}`;
+    if (isThumbnailFolder) {
+      const allowedImageExt = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+      const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+      if (!allowedImageExt.has(ext) && !allowedImageTypes.has(contentType)) {
+        return NextResponse.json(
+          {
+            error: "Неподдерживаемый формат. Допустимы JPG, PNG, WebP.",
+            code: "INVALID_REQUEST",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const folderPrefix =
+      normalizedFolder === "thumbnails" ? "video-thumbnails" : normalizedFolder;
+    const key = `${folderPrefix}/${Date.now()}-${randomUUID()}${ext}`;
     const storage = getStorageAdapter();
     try {
       const { uploadUrl, publicUrl } = await storage.presignUpload({

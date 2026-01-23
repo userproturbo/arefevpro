@@ -110,6 +110,34 @@ export class YandexStorageAdapter implements StorageAdapter {
     return `${base}/${key}`;
   }
 
+  private parseObjectKeyFromUrl(url: string): string | null {
+    try {
+      const parsed = new URL(url);
+      const hostname = parsed.hostname;
+      const pathname = parsed.pathname.replace(/^\/+/, "");
+      if (!pathname) return null;
+
+      const bucket = this.getBucket();
+      const virtualHost = `${bucket}.storage.yandexcloud.net`;
+
+      if (hostname === virtualHost) {
+        return pathname;
+      }
+
+      if (hostname === "storage.yandexcloud.net") {
+        const [bucketFromPath, ...rest] = pathname.split("/");
+        if (bucketFromPath !== bucket || rest.length === 0) {
+          return null;
+        }
+        return rest.join("/");
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   async presignUpload(options: {
     key: string;
     contentType: string;
@@ -193,5 +221,24 @@ export class YandexStorageAdapter implements StorageAdapter {
         Key: objectKey,
       })
     );
+  }
+
+  async deleteFileByUrl(url: string): Promise<void> {
+    const client = await this.getClient();
+    const { DeleteObjectCommand } = await this.getS3Module();
+    const objectKey = this.parseObjectKeyFromUrl(url);
+
+    if (!objectKey) return;
+
+    try {
+      await client.send(
+        new DeleteObjectCommand({
+          Bucket: this.getBucket(),
+          Key: objectKey,
+        })
+      );
+    } catch (error) {
+      console.error("S3 delete by URL error:", error);
+    }
   }
 }

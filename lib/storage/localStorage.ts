@@ -25,6 +25,20 @@ export class LocalStorageAdapter implements StorageAdapter {
     await fs.unlink(destination);
   }
 
+  async deleteFileByUrl(url: string): Promise<void> {
+    if (!url.startsWith("/uploads/")) return;
+    const relativePath = url.replace(/^\/+/, "");
+    const destination = path.join(process.cwd(), "public", relativePath);
+    try {
+      await fs.unlink(destination);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return;
+      }
+      throw error;
+    }
+  }
+
   async presignUpload(
     _options: {
       key: string;

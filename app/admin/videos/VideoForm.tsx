@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type FormValues = {
   title: string;
@@ -27,6 +27,7 @@ type FileUploadButtonProps = {
 };
 
 const videoContentTypes = new Set(["video/mp4", "video/quicktime"]);
+const imageContentTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const extensionContentTypes: Record<string, string> = {
   mp4: "video/mp4",
   mov: "video/quicktime",
@@ -147,10 +148,14 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
   const [uploadEta, setUploadEta] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [storageMode, setStorageMode] = useState<"s3" | "local" | null>(null);
   const uploadXhrRef = useRef<XMLHttpRequest | null>(null);
   const lastProgressTimeRef = useRef<number | null>(null);
   const lastLoadedRef = useRef<number | null>(null);
   const emaSpeedRef = useRef<number | null>(null);
+  const storageModePromiseRef = useRef<Promise<"s3" | "local" | null> | null>(
+    null
+  );
 
   const cleanedTitle = title.trim();
   const cleanedVideoUrl = videoUrl.trim();
@@ -191,6 +196,38 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
     lastLoadedRef.current = null;
     emaSpeedRef.current = null;
   };
+
+  const loadStorageMode = async (): Promise<"s3" | "local" | null> => {
+    if (storageMode) return storageMode;
+    if (storageModePromiseRef.current) return storageModePromiseRef.current;
+
+    const promise = (async () => {
+      try {
+        const res = await fetch("/api/admin/storage/mode");
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(json?.error || "Не удалось определить режим хранения");
+        }
+        if (json?.mode === "s3" || json?.mode === "local") {
+          setStorageMode(json.mode);
+          return json.mode as "s3" | "local";
+        }
+        throw new Error("Некорректный ответ сервера");
+      } catch (error) {
+        console.error("Storage mode fetch error:", error);
+        return null;
+      }
+    })();
+
+    storageModePromiseRef.current = promise;
+    const resolved = await promise;
+    storageModePromiseRef.current = null;
+    return resolved;
+  };
+
+  useEffect(() => {
+    void loadStorageMode();
+  }, []);
 
   async function uploadFileLegacy(
     field: "videoUrl" | "thumbnailUrl",
@@ -242,6 +279,24 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
         resetUploadMetrics();
       }
     }
+  }
+
+  async function uploadVideoWithMode(file: File) {
+    const mode = await loadStorageMode();
+    if (mode === "local") {
+      await uploadFileLegacy("videoUrl", "videos", file);
+      return;
+    }
+    await uploadVideoViaPresign(file);
+  }
+
+  async function uploadThumbnailWithMode(file: File) {
+    const mode = await loadStorageMode();
+    if (mode === "local") {
+      await uploadFileLegacy("thumbnailUrl", "video-thumbnails", file);
+      return;
+    }
+    await uploadThumbnailViaPresign(file);
   }
 
   async function uploadVideoViaPresign(file: File) {
@@ -351,6 +406,70 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
       uploadXhrRef.current = null;
       setUploading(null);
       resetUploadMetrics();
+    }
+  }
+
+  async function uploadThumbnailViaPresign(file: File) {
+    try {
+      setUploading("thumb");
+      setUploadError(null);
+
+      const contentType = inferContentType(file);
+      if (!contentType) {
+        throw new Error("Не удалось определить тип файла");
+      }
+      if (!imageContentTypes.has(contentType)) {
+        throw new Error("Неподдерживаемый формат. Допустимы JPG, PNG, WebP.");
+      }
+
+      const presignRes = await fetch("/api/admin/upload/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType,
+          folder: "video-thumbnails",
+        }),
+      });
+
+      const presignJson = await presignRes.json().catch(() => ({}));
+      if (!presignRes.ok) {
+        console.error("Presign thumbnail error response:", {
+          status: presignRes.status,
+          body: presignJson,
+        });
+        if (presignJson?.code === "PRESIGN_UNSUPPORTED") {
+          await uploadFileLegacy("thumbnailUrl", "video-thumbnails", file);
+          return;
+        }
+        const errorMessage =
+          presignJson?.error || "Не удалось получить ссылку загрузки";
+        const errorCode = presignJson?.code;
+        throw new Error(
+          errorCode
+            ? `Presign error (${errorCode}): ${errorMessage}`
+            : `Presign error: ${errorMessage}`
+        );
+      }
+
+      if (!presignJson?.uploadUrl || !presignJson?.publicUrl) {
+        console.error("Presign thumbnail response missing data:", presignJson);
+        throw new Error("Presign error: empty response from server");
+      }
+
+      await putFileWithProgress(
+        presignJson.uploadUrl,
+        file,
+        contentType,
+        () => {}
+      );
+
+      setThumbnailUrl(presignJson.publicUrl);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Ошибка загрузки файла";
+      setUploadError(message);
+    } finally {
+      setUploading(null);
     }
   }
 
@@ -498,7 +617,7 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
               label="Или загрузите MP4/MOV"
               accept="video/mp4,video/quicktime"
               disabled={disabled}
-              onSelect={(file) => uploadVideoViaPresign(file)}
+              onSelect={(file) => uploadVideoWithMode(file)}
             />
             {showVideoProgress && (
               <div className="space-y-2 text-xs text-white/70">
@@ -577,7 +696,7 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
           label="Или загрузите изображение"
           accept="image/jpeg,image/png,image/webp"
           disabled={disabled}
-          onSelect={(file) => uploadFileLegacy("thumbnailUrl", "video-thumbnails", file)}
+          onSelect={(file) => uploadThumbnailWithMode(file)}
         />
         {thumbnailUrl ? (
           <Image
