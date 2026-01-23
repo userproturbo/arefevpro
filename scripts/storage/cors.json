@@ -1,0 +1,9 @@
+[
+  {
+    "AllowedOrigins": ["https://arefev.pro", "http://localhost:3000"],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
