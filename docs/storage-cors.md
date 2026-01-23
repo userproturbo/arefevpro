@@ -13,6 +13,7 @@ This project uses presigned PUT uploads for large videos. The browser must be al
 - `S3_SECRET_KEY` - Yandex secret access key
 - `S3_BUCKET` - bucket name
 - `S3_ENDPOINT` - optional, defaults to `https://storage.yandexcloud.net`
+- `USE_OBJECT_STORAGE` - optional override (`true` to force Object Storage, `false` to force local)
 
 ## CORS configuration
 
