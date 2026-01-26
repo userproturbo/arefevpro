@@ -600,11 +600,7 @@ HTTPS
 Деплой автоматизирован через GitHub Actions:
 
 подключение по SSH через appleboy/ssh-action
-
 секреты:
-
 VPS_HOST
-
 VPS_USER
-
 VPS_SSH_KEY
