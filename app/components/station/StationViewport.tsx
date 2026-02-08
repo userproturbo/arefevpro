@@ -2,9 +2,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import StationBlogModule from "./modules/StationBlogModule";
 import StationPhotoModule from "./modules/StationPhotoModule";
 import type { StationMode } from "./types";
+import TransitionShutters, { type ViewportPhase } from "./TransitionShutters";
 
 type StationViewportProps = {
   mode: StationMode;
+  viewportPhase: ViewportPhase;
+  onPhaseComplete: (phase: ViewportPhase) => void;
 };
 
 type ViewportCard = {
@@ -75,42 +78,75 @@ const VIEWPORT_CONTENT: Record<StationMode, ViewportConfig> = {
   },
 };
 
-export default function StationViewport({ mode }: StationViewportProps) {
+const hiddenContentState = {
+  opacity: 0,
+  filter: "blur(8px)",
+  y: 12,
+};
+
+const visibleContentState = {
+  opacity: 1,
+  filter: "blur(0px)",
+  y: 0,
+};
+
+export default function StationViewport({
+  mode,
+  viewportPhase,
+  onPhaseComplete,
+}: StationViewportProps) {
   const content = VIEWPORT_CONTENT[mode];
 
   return (
-    <section className="mb-3 rounded-lg border border-[#1a4028] bg-[#050b07] p-3">
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={mode}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 2 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          {mode === "photo" ? (
-            <StationPhotoModule />
-          ) : mode === "blog" ? (
-            <StationBlogModule />
-          ) : (
-            <>
-              <div className="mb-3 border-b border-[#1a4028] pb-2">
-                <h2 className="text-lg font-semibold tracking-wide text-[#9ef6b2]">{content.title}</h2>
-                <p className="text-sm text-[#8bc99b]">{content.subtitle}</p>
-              </div>
+    <section className="relative mb-3 flex-1 min-h-0 overflow-hidden rounded-lg border border-[#1a4028] bg-[#050b07] p-3">
+      <motion.div
+        className="h-full overflow-y-auto pr-1"
+        key={mode}
+        initial={viewportPhase === "open" ? visibleContentState : hiddenContentState}
+        animate={viewportPhase === "closed" ? hiddenContentState : visibleContentState}
+        transition={
+          viewportPhase === "opening"
+            ? { duration: 0.72, delay: 0.08, ease: "easeOut" }
+            : { duration: 0.15, ease: "easeOut" }
+        }
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={mode}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 2 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
+            {mode === "photo" ? (
+              <StationPhotoModule />
+            ) : mode === "blog" ? (
+              <StationBlogModule />
+            ) : (
+              <>
+                <div className="mb-3 border-b border-[#1a4028] pb-2">
+                  <h2 className="text-lg font-semibold tracking-wide text-[#9ef6b2]">{content.title}</h2>
+                  <p className="text-sm text-[#8bc99b]">{content.subtitle}</p>
+                </div>
 
-              <div className="grid gap-2 md:grid-cols-3">
-                {content.cards.map((card) => (
-                  <article key={card.title} className="rounded-md border border-[#275636] bg-[#09120d] p-3">
-                    <h3 className="text-sm font-semibold text-[#b4fdc3]">{card.title}</h3>
-                    <p className="mt-1 text-xs text-[#8ec99c]">{card.description}</p>
-                  </article>
-                ))}
-              </div>
-            </>
-          )}
-        </motion.div>
-      </AnimatePresence>
+                <div className="grid gap-2 md:grid-cols-3">
+                  {content.cards.map((card) => (
+                    <article key={card.title} className="rounded-md border border-[#275636] bg-[#09120d] p-3">
+                      <h3 className="text-sm font-semibold text-[#b4fdc3]">{card.title}</h3>
+                      <p className="mt-1 text-xs text-[#8ec99c]">{card.description}</p>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
+      <TransitionShutters
+        viewportPhase={viewportPhase}
+        duration={0.8}
+        onPhaseComplete={onPhaseComplete}
+      />
     </section>
   );
 }
