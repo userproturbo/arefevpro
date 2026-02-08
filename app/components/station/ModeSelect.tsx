@@ -4,17 +4,14 @@ import { STATION_MODES } from "./types";
 
 type ModeSelectProps = {
   mode: StationMode;
-  onSelectMode: (mode: StationMode) => void;
+  setMode: (mode: StationMode) => void;
 };
 
 function toLabel(mode: StationMode): string {
   return mode.toUpperCase();
 }
 
-export default function ModeSelect({
-  mode,
-  onSelectMode,
-}: ModeSelectProps) {
+export default function ModeSelect({ mode, setMode }: ModeSelectProps) {
   return (
     <nav
       className="mb-3 flex flex-wrap gap-1.5 rounded-lg border border-[#1d442b] bg-[#060e0a] p-1.5"
@@ -27,7 +24,7 @@ export default function ModeSelect({
           <motion.button
             key={item}
             type="button"
-            onClick={() => onSelectMode(item)}
+            onClick={() => setMode(item)}
             aria-pressed={isActive}
             className="rounded-md border px-3 py-1.5 text-xs uppercase tracking-[0.16em]"
             initial={false}

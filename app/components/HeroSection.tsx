@@ -28,9 +28,6 @@ const cards = [
 export default function HeroSection() {
     return (
         <section className="relative border-b border-white/10 overflow-hidden bg-[radial-gradient(circle_at_top,_#1f2937_0,_#020617_55%,_#000000_100%)]">
-            {/* Лёгкий шум / текстура поверх */}
-            <div className="absolute inset-0 opacity-[0.18] mix-blend-soft-light bg-[radial-gradient(circle_at_0_0,_#ffffff33_0,_transparent_50%),radial-gradient(circle_at_100%_0,_#ffffff26_0,_transparent_55%),radial-gradient(circle_at_50%_100%,_#ffffff1f_0,_transparent_60%)]" />
-
             <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-20 lg:py-24">
                 {/* Верхний блок: заголовок + текст справа */}
                 <motion.div
