@@ -1,6 +1,6 @@
 export default function SoftBackground() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+    <div className="absolute inset-0 -z-10 overflow-hidden">
       <div className="animate-pulse-slow absolute -top-16 -left-10 h-80 w-80 rounded-full bg-indigo-400/25 blur-[120px] sm:h-96 sm:w-96" />
       <div className="animate-pulse-slow absolute bottom-6 left-1/3 h-72 w-72 rounded-full bg-purple-500/20 blur-[110px] sm:h-96 sm:w-96" />
       <div className="animate-pulse-slow absolute -bottom-24 right-0 h-[26rem] w-[26rem] rounded-full bg-emerald-400/16 blur-[140px]" />
