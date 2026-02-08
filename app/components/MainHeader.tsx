@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useHoverSound } from "../hooks/useHoverSound";
 
 const links = [
   { href: "/", label: "HOME" },
@@ -14,6 +15,10 @@ const links = [
 
 export default function MainHeader() {
   const pathname = usePathname();
+  const playHoverSound = useHoverSound({
+    src: "/audio/preloader-2s-001.mp3",
+    volume: 0.3,
+  });
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-[#04050a]/80 backdrop-blur-md">
@@ -26,7 +31,11 @@ export default function MainHeader() {
                 <li key={href}>
                   <Link
                     href={href}
-                    className={`relative pb-1 text-white/80 transition hover:text-white after:absolute after:left-0 after:bottom-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-white/70 after:transition-transform after:duration-300 hover:after:scale-x-100 ${
+                    onMouseEnter={(event) => {
+                      if (!event.currentTarget.classList.contains("top-nav-link")) return;
+                      playHoverSound();
+                    }}
+                    className={`top-nav-link relative pb-1 text-white/80 ${
                       isActive ? "text-white after:scale-x-100" : ""
                     }`}
                   >
