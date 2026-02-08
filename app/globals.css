@@ -62,6 +62,66 @@ body {
   transform: translateY(-3px);
 }
 
+.top-nav-link {
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 0 0 rgba(123, 255, 107, 0);
+  outline: none;
+  transition:
+    color 200ms ease,
+    text-shadow 200ms ease,
+    transform 200ms ease;
+}
+
+.top-nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 0 rgba(123, 255, 107, 0);
+  transition:
+    transform 220ms ease,
+    background 200ms ease,
+    box-shadow 200ms ease,
+    opacity 200ms ease;
+  opacity: 0.6;
+}
+
+@media (hover: hover) {
+  .top-nav-link:hover {
+    color: #ffffff;
+    text-shadow: 0 0 14px rgba(123, 255, 107, 0.55);
+    transform: translateY(-1px);
+  }
+
+  .top-nav-link:hover::after {
+    transform: scaleX(1);
+    opacity: 1;
+    background: var(--hero-green);
+    box-shadow: 0 0 10px rgba(123, 255, 107, 0.65);
+  }
+}
+
+.top-nav-link:focus {
+  outline: none;
+}
+
+.top-nav-link:focus-visible {
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(123, 255, 107, 0.6);
+}
+
+.top-nav-link:focus-visible::after {
+  transform: scaleX(1);
+  opacity: 1;
+  background: var(--hero-green);
+  box-shadow: 0 0 10px rgba(123, 255, 107, 0.6);
+}
+
 /* скрывает скроллбар, но сохраняет скролл */
 .hide-scrollbar {
   -ms-overflow-style: none;
@@ -209,6 +269,32 @@ body {
   letter-spacing: 0.24em;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.station-mode-btn {
+  transition:
+    color 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+
+@media (hover: hover) {
+  .station-mode-btn:hover {
+    color: #ffffff;
+    border-color: #5e9b7a;
+    background-color: #0e1a13;
+    box-shadow: 0 0 0 1px rgba(141, 255, 185, 0.35), 0 0 12px rgba(141, 255, 185, 0.35);
+    transform: translateY(-1px);
+  }
+}
+
+.station-mode-btn:focus-visible {
+  color: #ffffff;
+  border-color: #6acb94;
+  background-color: #0e1a13;
+  box-shadow: 0 0 0 2px rgba(141, 255, 185, 0.45), 0 0 14px rgba(141, 255, 185, 0.4);
 }
 
 .frame-svg {
