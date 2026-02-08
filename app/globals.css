@@ -11,6 +11,20 @@ body {
   overflow-x: hidden;
 }
 
+:where(
+  button,
+  [role="button"],
+  [role="link"],
+  a[href],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="file"],
+  summary
+) {
+  cursor: pointer;
+}
+
 :root {
   --background: #04050a;
   --foreground: #f4f4f5;
