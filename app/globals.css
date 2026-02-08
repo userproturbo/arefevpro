@@ -8,14 +8,7 @@
 
 html,
 body {
-  height: 100%;
   overflow-x: hidden;
-  overflow-y: hidden;
-}
-
-#__next {
-  height: 100%;
-  overflow: hidden;
 }
 
 :root {
