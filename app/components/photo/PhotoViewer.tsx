@@ -89,59 +89,23 @@ export default function PhotoViewer({
   }
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
-      <div className="relative flex flex-1 min-h-0 items-center justify-center px-6 py-6">
-        <motion.img
-          key={activePhoto.id}
-          src={activePhoto.url}
-          alt=""
-          className="max-h-full max-w-full object-contain"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-        />
-        <PhotoLikeButton
-          photoId={activeId}
-          initialCount={likesCount}
-          initialLiked={likedByMe}
-          variant="overlay"
-          className="absolute bottom-6 left-6 z-10"
-        />
-      </div>
-
-      <div className="shrink-0 border-t border-white/10 bg-black/30 h-28">
-        <div className="flex h-full items-center gap-3 overflow-x-auto p-3 no-scrollbar">
-          {photos.map((photo) => {
-            const isActive = photo.id === activeId;
-            return (
-              <button
-                key={photo.id}
-                type="button"
-                onClick={() => {
-                  if (isActive) return;
-                  router.replace(`/photo/${encodedSlug}/${photo.id}`, {
-                    scroll: false,
-                  });
-                }}
-                className="shrink-0"
-                aria-pressed={isActive}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.url}
-                  alt=""
-                  loading="lazy"
-                  className={`h-24 w-24 object-cover transition ${
-                    isActive
-                      ? "ring-2 ring-emerald-400"
-                      : "opacity-70 hover:opacity-100"
-                  }`}
-                />
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <div className="relative flex h-full w-full min-h-0 items-center justify-center px-6 py-6">
+      <motion.img
+        key={activePhoto.id}
+        src={activePhoto.url}
+        alt=""
+        className="max-h-full max-w-full object-contain"
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+      />
+      <PhotoLikeButton
+        photoId={activeId}
+        initialCount={likesCount}
+        initialLiked={likedByMe}
+        variant="overlay"
+        className="absolute bottom-6 left-6 z-10"
+      />
     </div>
   );
 }
