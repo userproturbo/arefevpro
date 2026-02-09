@@ -447,14 +447,6 @@ export default function StationPhotoModule() {
             likedByMe={activeMeta.likedByMe}
           />
         </div>
-
-        <div
-          className="absolute inset-x-0 bottom-0 z-20 h-28"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-        />
       </div>
 
       <div className="rounded-md border border-[#275636] bg-[#09120d] p-3">
