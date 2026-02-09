@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import AudioController from "./AudioController";
 import ModeSelect from "./ModeSelect";
 import StationFrame from "./StationFrame";
 import StationViewport from "./StationViewport";
@@ -23,10 +22,6 @@ export default function StationShell() {
 
           <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
             <StationViewport mode={mode} />
-          </div>
-
-          <div className="shrink-0 pt-3">
-            <AudioController />
           </div>
         </StationFrame>
       </div>
