@@ -12,13 +12,22 @@ export default function StationShell() {
   const [mode, setMode] = useState<StationMode>("idle");
 
   return (
-    <div className="min-h-screen bg-[#020805] px-4 py-6 text-[#d1f7dc]">
-      <div className="mx-auto w-full max-w-6xl">
-        <StationFrame>
+    <div className="h-full min-h-0 bg-[#020805] text-[#d1f7dc]">
+      <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4 py-4 md:py-6">
+        <StationFrame
+          className="flex h-full min-h-0 flex-col"
+          innerClassName="flex h-full min-h-0 flex-col"
+        >
           <SystemStatusBar mode={mode} />
           <ModeSelect mode={mode} setMode={setMode} />
-          <StationViewport mode={mode} />
-          <AudioController />
+
+          <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+            <StationViewport mode={mode} />
+          </div>
+
+          <div className="shrink-0 pt-3">
+            <AudioController />
+          </div>
         </StationFrame>
       </div>
     </div>
