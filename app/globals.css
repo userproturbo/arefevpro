@@ -35,6 +35,91 @@ body {
   --hero-panel: #0c0d12;
 }
 
+.photo-like-heart {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.photo-like-heart__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 4px);
+  grid-auto-rows: 4px;
+  gap: 1px;
+  width: max-content;
+  height: max-content;
+  color: var(--hero-green);
+}
+
+.photo-like-heart__pixel {
+  width: 4px;
+  height: 4px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0);
+}
+
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(1),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(2),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(4),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(5),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(6),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(7),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(8),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(9),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(10),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(12),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(13),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(14),
+.photo-like-heart__grid .photo-like-heart__pixel:nth-child(18) {
+  background: var(--hero-green);
+}
+
+.photo-like-heart__scan {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  clip-path: inset(100% 0 0 0);
+  pointer-events: none;
+}
+
+.photo-like-heart__scan--active {
+  animation: like-scan 420ms steps(7, end) both;
+}
+
+.photo-like-heart__scan--active .photo-like-heart__pixel {
+  animation: like-glow 420ms ease-out both;
+}
+
+@keyframes like-scan {
+  0% {
+    opacity: 0;
+    clip-path: inset(100% 0 0 0);
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes like-glow {
+  0% {
+    box-shadow: 0 0 0 rgba(123, 255, 107, 0);
+  }
+  75% {
+    box-shadow: 0 0 6px rgba(123, 255, 107, 0.65);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(123, 255, 107, 0);
+  }
+}
+
 
 .menu-word {
   display: flex;
