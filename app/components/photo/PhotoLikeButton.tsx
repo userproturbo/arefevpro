@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/app/providers";
 import { usePhotoLikesStore } from "./photoLikesStore";
 
@@ -32,10 +31,36 @@ export default function PhotoLikeButton({
   const liked = likeState?.liked ?? initialLiked;
   const count = likeState?.likesCount ?? initialCount;
   const loading = likeState?.pending ?? false;
+  const [animateLike, setAnimateLike] = useState(false);
+  const prevLikedRef = useRef(liked);
+  const animationTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     ensurePhoto(photoId, initialLiked, initialCount);
   }, [ensurePhoto, initialCount, initialLiked, photoId]);
+
+  useEffect(() => {
+    const prevLiked = prevLikedRef.current;
+    if (!prevLiked && liked) {
+      setAnimateLike(true);
+      if (animationTimeoutRef.current) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+      animationTimeoutRef.current = window.setTimeout(() => {
+        setAnimateLike(false);
+        animationTimeoutRef.current = null;
+      }, 420);
+    }
+    prevLikedRef.current = liked;
+  }, [liked]);
+
+  useEffect(() => {
+    return () => {
+      if (animationTimeoutRef.current) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleLike = async () => {
     if (loading) return;
@@ -80,9 +105,8 @@ export default function PhotoLikeButton({
     .join(" ");
 
   return (
-    <motion.button
+    <button
       type="button"
-      whileTap={{ scale: 0.96 }}
       onClick={toggleLike}
       disabled={loading}
       aria-pressed={liked}
@@ -95,16 +119,63 @@ export default function PhotoLikeButton({
         className ?? "",
       ].join(" ")}
     >
-      <motion.span
-        animate={{ scale: liked ? 1.15 : 1 }}
-        transition={{ type: "spring", stiffness: 400, damping: 14 }}
-        className={liked ? "text-red-500" : "text-white/80"}
-      >
-        {liked ? "♥" : "♡"}
-      </motion.span>
+      <span className="photo-like-heart">
+        <span className="photo-like-heart__grid" aria-hidden="true">
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+          <span className="photo-like-heart__pixel" />
+        </span>
+        <span
+          aria-hidden="true"
+          className={[
+            "photo-like-heart__scan",
+            animateLike ? "photo-like-heart__scan--active" : "",
+          ].join(" ")}
+        >
+          <span className="photo-like-heart__grid">
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+            <span className="photo-like-heart__pixel" />
+          </span>
+        </span>
+      </span>
       <span className={isOverlay ? "text-white/90" : "text-white/90"}>
         {count}
       </span>
-    </motion.button>
+    </button>
   );
 }
