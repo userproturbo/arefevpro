@@ -33,6 +33,48 @@ body {
   --hero-green: #7bff6b;
   --hero-green-soft: rgba(123, 255, 107, 0.18);
   --hero-panel: #0c0d12;
+  --scrollbar-track: #0b0d12;
+  --scrollbar-thumb: #1b7f05;
+  --scrollbar-thumb-glow: rgba(123, 255, 107, 0.65);
+  --scrollbar-thumb-hover: #3d4757;
+}
+
+/* Global cyberpunk scrollbar */
+html,
+body,
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--scrollbar-thumb) 0%, #1a1e27 100%);
+  border-radius: 999px;
+  border: 2px solid var(--scrollbar-track);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 10px var(--scrollbar-thumb-glow);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--scrollbar-thumb-hover) 0%, #222835 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 12px rgba(123, 255, 107, 0.85);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
 
 .photo-like-heart {
