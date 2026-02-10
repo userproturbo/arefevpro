@@ -21,6 +21,7 @@ export default function PhotoTileLikeButton({
       initialCount={initialCount}
       initialLiked={initialLiked}
       size="sm"
+      variant="overlay"
       className={className}
     />
   );

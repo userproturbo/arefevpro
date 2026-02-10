@@ -158,7 +158,7 @@ export default async function PhotoAlbumPage({
                 photoId={photo.id}
                 initialCount={photo.likesCount}
                 initialLiked={photo.likedByMe}
-                className="absolute bottom-2 left-2 z-10"
+                className="absolute bottom-3 left-3 z-10"
               />
             </div>
           ))}

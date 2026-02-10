@@ -368,7 +368,8 @@ export default function StationPhotoModule() {
                           initialCount={photo.likesCount}
                           initialLiked={photo.likedByMe}
                           size="sm"
-                          className="absolute bottom-2 left-2 z-10"
+                          variant="overlay"
+                          className="absolute bottom-3 left-3 z-10"
                         />
                       </article>
                     );
