@@ -5,6 +5,7 @@ import AlbumsList from "@/app/photos/AlbumsList";
 import PhotoViewer from "@/app/components/photo/PhotoViewer";
 import PhotoLikeButton from "@/app/components/photo/PhotoLikeButton";
 import PhotoComments from "@/app/components/comments/PhotoComments";
+import { usePhotoLikesStore } from "@/app/components/photo/photoLikesStore";
 
 type AlbumSummary = {
   id: number;
@@ -19,6 +20,8 @@ type AlbumPhoto = {
   url: string;
   width: number | null;
   height: number | null;
+  likesCount: number;
+  likedByMe: boolean;
 };
 
 type AlbumDetails = AlbumSummary & {
@@ -27,16 +30,6 @@ type AlbumDetails = AlbumSummary & {
 
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type StationPhotoView = "albums" | "album" | "viewer";
-
-type PhotoMeta = {
-  likesCount: number;
-  likedByMe: boolean;
-};
-
-const EMPTY_META: PhotoMeta = {
-  likesCount: 0,
-  likedByMe: false,
-};
 
 function getAnchorTarget(target: EventTarget | null): HTMLAnchorElement | null {
   if (!(target instanceof HTMLElement)) return null;
@@ -56,7 +49,7 @@ export default function StationPhotoModule() {
   const [activePhotoId, setActivePhotoId] = useState<number | null>(null);
   const [albumCache, setAlbumCache] = useState<Record<string, AlbumDetails>>({});
   const [activeAlbum, setActiveAlbum] = useState<AlbumDetails | null>(null);
-  const [photoMetaById, setPhotoMetaById] = useState<Record<number, PhotoMeta>>({});
+  const seedPhotoLikes = usePhotoLikesStore((state) => state.seedPhotos);
 
   const requestIdRef = useRef(0);
 
@@ -106,8 +99,6 @@ export default function StationPhotoModule() {
     };
   }, []);
 
-  const getPhotoMeta = (photoId: number): PhotoMeta => photoMetaById[photoId] ?? EMPTY_META;
-
   const openAlbum = async (slug: string) => {
     const currentRequestId = ++requestIdRef.current;
     const cachedAlbum = albumCache[slug] ?? null;
@@ -117,6 +108,13 @@ export default function StationPhotoModule() {
     setActiveAlbum(cachedAlbum);
 
     if (cachedAlbum) {
+      seedPhotoLikes(
+        cachedAlbum.photos.map((photo) => ({
+          id: photo.id,
+          likesCount: photo.likesCount,
+          likedByMe: photo.likedByMe,
+        }))
+      );
       setAlbumStatus("ready");
       return;
     }
@@ -146,7 +144,7 @@ export default function StationPhotoModule() {
         photos: raw.photos
           .map((photo) => photo as Partial<AlbumPhoto>)
           .filter(
-            (photo): photo is AlbumPhoto =>
+            (photo): photo is Partial<AlbumPhoto> & { id: number; url: string } =>
               typeof photo.id === "number" && typeof photo.url === "string"
           )
           .map((photo) => ({
@@ -154,6 +152,8 @@ export default function StationPhotoModule() {
             url: photo.url,
             width: photo.width ?? null,
             height: photo.height ?? null,
+            likesCount: typeof photo.likesCount === "number" ? photo.likesCount : 0,
+            likedByMe: typeof photo.likedByMe === "boolean" ? photo.likedByMe : false,
           })),
       };
 
@@ -161,15 +161,13 @@ export default function StationPhotoModule() {
 
       setActiveAlbum(nextAlbum);
       setAlbumCache((prev) => ({ ...prev, [slug]: nextAlbum }));
-      setPhotoMetaById((prev) => {
-        const next = { ...prev };
-        nextAlbum.photos.forEach((photo) => {
-          if (!next[photo.id]) {
-            next[photo.id] = EMPTY_META;
-          }
-        });
-        return next;
-      });
+      seedPhotoLikes(
+        nextAlbum.photos.map((photo) => ({
+          id: photo.id,
+          likesCount: photo.likesCount,
+          likedByMe: photo.likedByMe,
+        }))
+      );
       setAlbumStatus("ready");
     } catch (error) {
       console.error(error);
@@ -341,7 +339,6 @@ export default function StationPhotoModule() {
               <>
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
                   {activeAlbum.photos.map((photo) => {
-                    const meta = getPhotoMeta(photo.id);
                     return (
                       <article
                         key={photo.id}
@@ -368,8 +365,8 @@ export default function StationPhotoModule() {
                         />
                         <PhotoLikeButton
                           photoId={photo.id}
-                          initialCount={meta.likesCount}
-                          initialLiked={meta.likedByMe}
+                          initialCount={photo.likesCount}
+                          initialLiked={photo.likedByMe}
                           size="sm"
                           className="absolute bottom-2 left-2 z-10"
                         />
@@ -393,8 +390,6 @@ export default function StationPhotoModule() {
       </div>
     );
   }
-
-  const activeMeta = getPhotoMeta(activePhotoId);
 
   return (
     <div className="space-y-4">
@@ -443,8 +438,8 @@ export default function StationPhotoModule() {
             slug={activeAlbum.slug}
             photos={viewerPhotos}
             activeId={activePhotoId}
-            likesCount={activeMeta.likesCount}
-            likedByMe={activeMeta.likedByMe}
+            likesCount={activeViewerPhoto.likesCount}
+            likedByMe={activeViewerPhoto.likedByMe}
           />
         </div>
       </div>

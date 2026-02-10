@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -14,6 +15,7 @@ export async function GET(
   context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
     const { slug } = await context.params;
     const normalizedSlug = slug.trim();
 
@@ -38,6 +40,7 @@ export async function GET(
             url: true,
             width: true,
             height: true,
+            _count: { select: { likes: true } },
           },
         },
       },
@@ -50,6 +53,16 @@ export async function GET(
       );
     }
 
+    const photoIds = album.photos.map((photo) => photo.id);
+    let likedByMeSet = new Set<number>();
+    if (user && photoIds.length > 0) {
+      const likedRows = await prisma.photoLike.findMany({
+        where: { userId: user.id, photoId: { in: photoIds } },
+        select: { photoId: true },
+      });
+      likedByMeSet = new Set(likedRows.map((row) => row.photoId));
+    }
+
     return NextResponse.json({
       album: {
         id: album.id,
@@ -57,7 +70,14 @@ export async function GET(
         slug: album.slug,
         description: album.description,
         coverImage: album.coverPhoto?.deletedAt ? null : album.coverPhoto?.url ?? null,
-        photos: album.photos,
+        photos: album.photos.map((photo) => ({
+          id: photo.id,
+          url: photo.url,
+          width: photo.width,
+          height: photo.height,
+          likesCount: photo._count.likes,
+          likedByMe: user ? likedByMeSet.has(photo.id) : false,
+        })),
       },
     });
   } catch (error) {
