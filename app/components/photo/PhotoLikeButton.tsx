@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/app/providers";
+import { usePhotoLikesStore } from "./photoLikesStore";
 
 type Props = {
   photoId: number;
@@ -22,14 +23,24 @@ export default function PhotoLikeButton({
   className,
 }: Props) {
   const { requireUser, user } = useAuth();
-  const [liked, setLiked] = useState(initialLiked);
-  const [count, setCount] = useState(initialCount);
-  const [loading, setLoading] = useState(false);
+  const likeState = usePhotoLikesStore((state) => state.byId[photoId]);
+  const ensurePhoto = usePhotoLikesStore((state) => state.ensurePhoto);
+  const optimisticToggle = usePhotoLikesStore((state) => state.optimisticToggle);
+  const applyServerState = usePhotoLikesStore((state) => state.applyServerState);
+  const rollback = usePhotoLikesStore((state) => state.rollback);
+
+  const liked = likeState?.liked ?? initialLiked;
+  const count = likeState?.likesCount ?? initialCount;
+  const loading = likeState?.pending ?? false;
+
+  useEffect(() => {
+    ensurePhoto(photoId, initialLiked, initialCount);
+  }, [ensurePhoto, initialCount, initialLiked, photoId]);
 
   const toggleLike = async () => {
     if (loading) return;
     await requireUser(async () => {
-      setLoading(true);
+      const snapshot = optimisticToggle(photoId);
       try {
         const res = await fetch(`/api/photos/${photoId}/like`, {
           method: "POST",
@@ -37,13 +48,14 @@ export default function PhotoLikeButton({
         });
         if (!res.ok) throw new Error("like failed");
         const data = (await res.json()) as { liked?: unknown; likesCount?: unknown };
-        if (typeof data.liked === "boolean") setLiked(data.liked);
-        if (typeof data.likesCount === "number") setCount(data.likesCount);
+        applyServerState(
+          photoId,
+          typeof data.liked === "boolean" ? data.liked : undefined,
+          typeof data.likesCount === "number" ? data.likesCount : undefined
+        );
       } catch (error) {
         console.error(error);
-        alert("Не удалось обновить лайк");
-      } finally {
-        setLoading(false);
+        rollback(photoId, snapshot);
       }
     });
   };

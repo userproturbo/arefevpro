@@ -10,6 +10,7 @@ import {
   isExpectedDevDatabaseError,
 } from "@/lib/db";
 import PhotoTileLikeButton from "@/app/components/photo/PhotoTileLikeButton";
+import PhotoLikesHydrator from "@/app/components/photo/PhotoLikesHydrator";
 
 type Album = {
   id: number;
@@ -125,6 +126,13 @@ export default async function PhotoAlbumPage({
 
   return (
     <div className="h-full w-full">
+      <PhotoLikesHydrator
+        photos={album.photos.map((photo) => ({
+          id: photo.id,
+          likesCount: photo.likesCount,
+          likedByMe: photo.likedByMe,
+        }))}
+      />
       {album.photos.length === 0 ? (
         <div className="flex h-full w-full items-center justify-center text-white/70">
           Фотографии будут добавлены позже

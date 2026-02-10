@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import PhotoViewer from "@/app/components/photo/PhotoViewer";
+import PhotoLikesHydrator from "@/app/components/photo/PhotoLikesHydrator";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -21,6 +22,8 @@ type Album = {
     url: string;
     width: number | null;
     height: number | null;
+    likesCount: number;
+    likedByMe: boolean;
   }[];
 };
 
@@ -65,6 +68,7 @@ export default async function PhotoViewerPage({
             url: true,
             width: true,
             height: true,
+            _count: { select: { likes: true } },
           },
         },
       },
@@ -72,23 +76,14 @@ export default async function PhotoViewerPage({
 
     if (rawAlbum) {
       const user = await getCurrentUser();
-      const photoMeta = await prisma.photo.findFirst({
-        where: {
-          id: parsedPhotoId,
-          deletedAt: null,
-          album: { slug: normalizedSlug, published: true, deletedAt: null },
-        },
-        select: { _count: { select: { likes: true } } },
-      });
-
-      likesCount = photoMeta?._count.likes ?? 0;
-
-      if (user) {
-        const likeResult = await prisma.photoLike.findUnique({
-          where: { photoId_userId: { photoId: parsedPhotoId, userId: user.id } },
-          select: { id: true },
+      const photoIds = rawAlbum.photos.map((photo) => photo.id);
+      let likedByMeSet = new Set<number>();
+      if (user && photoIds.length > 0) {
+        const likedRows = await prisma.photoLike.findMany({
+          where: { userId: user.id, photoId: { in: photoIds } },
+          select: { photoId: true },
         });
-        likedByMe = !!likeResult;
+        likedByMeSet = new Set(likedRows.map((row) => row.photoId));
       }
 
       album = {
@@ -99,7 +94,14 @@ export default async function PhotoViewerPage({
         coverImage: rawAlbum.coverPhoto?.deletedAt
           ? null
           : rawAlbum.coverPhoto?.url ?? null,
-        photos: rawAlbum.photos,
+        photos: rawAlbum.photos.map((photo) => ({
+          id: photo.id,
+          url: photo.url,
+          width: photo.width,
+          height: photo.height,
+          likesCount: photo._count.likes,
+          likedByMe: user ? likedByMeSet.has(photo.id) : false,
+        })),
       };
     }
   } catch (error) {
@@ -138,17 +140,28 @@ export default async function PhotoViewerPage({
   if (!activePhoto) {
     notFound();
   }
+  likesCount = activePhoto.likesCount;
+  likedByMe = activePhoto.likedByMe;
 
   return (
-    <PhotoViewer
-      slug={album.slug}
-      photos={album.photos.map((photo) => ({
-        id: photo.id,
-        url: photo.url,
-      }))}
-      activeId={parsedPhotoId}
-      likesCount={likesCount}
-      likedByMe={likedByMe}
-    />
+    <>
+      <PhotoLikesHydrator
+        photos={album.photos.map((photo) => ({
+          id: photo.id,
+          likesCount: photo.likesCount,
+          likedByMe: photo.likedByMe,
+        }))}
+      />
+      <PhotoViewer
+        slug={album.slug}
+        photos={album.photos.map((photo) => ({
+          id: photo.id,
+          url: photo.url,
+        }))}
+        activeId={parsedPhotoId}
+        likesCount={likesCount}
+        likedByMe={likedByMe}
+      />
+    </>
   );
 }
