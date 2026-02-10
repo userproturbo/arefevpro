@@ -337,7 +337,7 @@ export default function StationPhotoModule() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2">
                   {activeAlbum.photos.map((photo) => {
                     return (
                       <article
