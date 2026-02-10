@@ -89,23 +89,25 @@ export default function PhotoViewer({
   }
 
   return (
-    <div className="relative flex h-full w-full min-h-0 items-center justify-center px-6 py-6">
-      <motion.img
-        key={activePhoto.id}
-        src={activePhoto.url}
-        alt=""
-        className="max-h-full max-w-full object-contain"
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-      />
-      <PhotoLikeButton
-        photoId={activeId}
-        initialCount={likesCount}
-        initialLiked={likedByMe}
-        variant="overlay"
-        className="absolute bottom-6 left-6 z-10"
-      />
+    <div className="flex h-full w-full min-h-0 items-center justify-center px-6 py-6">
+      <div className="relative inline-block max-h-full max-w-full">
+        <motion.img
+          key={activePhoto.id}
+          src={activePhoto.url}
+          alt=""
+          className="block max-h-full max-w-full object-contain"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+        />
+        <PhotoLikeButton
+          photoId={activeId}
+          initialCount={likesCount}
+          initialLiked={likedByMe}
+          variant="overlay"
+          className="absolute bottom-3 left-3 z-10"
+        />
+      </div>
     </div>
   );
 }
