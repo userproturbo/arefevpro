@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type TouchEvent } from "react";
+import { createPortal } from "react-dom";
 import AlbumsList from "@/app/photos/AlbumsList";
 import PhotoViewer from "@/app/components/photo/PhotoViewer";
 import PhotoLikeButton from "@/app/components/photo/PhotoLikeButton";
@@ -50,11 +51,27 @@ export default function StationPhotoModule() {
   const [albumCache, setAlbumCache] = useState<Record<string, AlbumDetails>>({});
   const [activeAlbum, setActiveAlbum] = useState<AlbumDetails | null>(null);
   const seedPhotoLikes = usePhotoLikesStore((state) => state.seedPhotos);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isMobileViewer, setIsMobileViewer] = useState(false);
 
   const requestIdRef = useRef(0);
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const swipeLastRef = useRef<{ x: number; y: number } | null>(null);
   const swipeActiveRef = useRef(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsMobileViewer(window.innerWidth < 640);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -270,7 +287,7 @@ export default function StationPhotoModule() {
     };
   }, [activeAlbum, nextPhoto, previousPhoto, view]);
 
-  const isMobileViewport = () => typeof window !== "undefined" && window.innerWidth < 640;
+  const isMobileViewport = () => isMobileViewer;
 
   const resetSwipe = () => {
     swipeActiveRef.current = false;
@@ -458,8 +475,34 @@ export default function StationPhotoModule() {
     );
   }
 
+  const mobileFullscreenViewer = (
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-black h-[100svh] h-[100lvh] h-[100dvh] w-[100vw] overflow-hidden">
+      <div
+        className="relative flex-1 overflow-hidden border-0 bg-black p-0 rounded-none touch-none"
+        onTouchStart={handleViewerTouchStart}
+        onTouchMove={handleViewerTouchMove}
+        onTouchEnd={handleViewerTouchEnd}
+        onTouchCancel={resetSwipe}
+      >
+        <div className="h-full w-full">
+          <PhotoViewer
+            slug={activeAlbum.slug}
+            photos={viewerPhotos}
+            activeId={activePhotoId}
+            likesCount={activeViewerPhoto.likesCount}
+            likedByMe={activeViewerPhoto.likedByMe}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isMounted && isMobileViewer) {
+    return createPortal(mobileFullscreenViewer, document.body);
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black sm:static sm:z-auto sm:block sm:bg-transparent sm:space-y-4">
+    <div className="space-y-4">
       <div className="hidden sm:flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -499,14 +542,8 @@ export default function StationPhotoModule() {
         </button>
       </div>
 
-      <div
-        className="relative flex-1 overflow-hidden border-0 bg-black p-0 rounded-none touch-none sm:touch-auto sm:rounded-md sm:border sm:border-[#275636] sm:bg-[#09120d]"
-        onTouchStart={handleViewerTouchStart}
-        onTouchMove={handleViewerTouchMove}
-        onTouchEnd={handleViewerTouchEnd}
-        onTouchCancel={resetSwipe}
-      >
-        <div className="h-full w-full sm:h-[58vh] sm:min-h-[360px] sm:max-h-[680px]">
+      <div className="relative overflow-hidden rounded-md border border-[#275636] bg-[#09120d]">
+        <div className="h-[58vh] min-h-[360px] max-h-[680px]">
           <PhotoViewer
             slug={activeAlbum.slug}
             photos={viewerPhotos}
