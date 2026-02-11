@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type TouchEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type TouchEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import AlbumsList from "@/app/photos/AlbumsList";
 import PhotoViewer from "@/app/components/photo/PhotoViewer";
@@ -42,6 +50,28 @@ function isButtonTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement ? !!target.closest("button") : false;
 }
 
+function useIsMobileSm() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mql = window.matchMedia("(max-width: 639.98px)");
+
+    const update = () => setIsMobile(mql.matches);
+    update();
+
+    mql.addEventListener("change", update);
+
+    return () => {
+      mql.removeEventListener("change", update);
+    };
+  }, []);
+
+  return isMobile;
+}
+
+
 export default function StationPhotoModule() {
   const [view, setView] = useState<StationPhotoView>("albums");
   const [albumsStatus, setAlbumsStatus] = useState<AsyncStatus>("idle");
@@ -50,11 +80,18 @@ export default function StationPhotoModule() {
   const [activePhotoId, setActivePhotoId] = useState<number | null>(null);
   const [albumCache, setAlbumCache] = useState<Record<string, AlbumDetails>>({});
   const [activeAlbum, setActiveAlbum] = useState<AlbumDetails | null>(null);
+
   const seedPhotoLikes = usePhotoLikesStore((state) => state.seedPhotos);
-  const [isMounted, setIsMounted] = useState(false);
-  const [isMobileViewer, setIsMobileViewer] = useState(false);
 
   const requestIdRef = useRef(0);
+
+  // Portal mount guard
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Mobile detection
+  const isMobile = useIsMobileSm();
+
+  // Swipe tracking (mobile viewer)
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const swipeLastRef = useRef<{ x: number; y: number } | null>(null);
   const swipeActiveRef = useRef(false);
@@ -63,16 +100,7 @@ export default function StationPhotoModule() {
     setIsMounted(true);
   }, []);
 
-  useEffect(() => {
-    const updateViewport = () => {
-      setIsMobileViewer(window.innerWidth < 640);
-    };
-
-    updateViewport();
-    window.addEventListener("resize", updateViewport);
-    return () => window.removeEventListener("resize", updateViewport);
-  }, []);
-
+  // Load albums list
   useEffect(() => {
     let cancelled = false;
 
@@ -84,6 +112,7 @@ export default function StationPhotoModule() {
 
         const data = (await res.json()) as { albums?: unknown };
         const rawAlbums = Array.isArray(data.albums) ? data.albums : [];
+
         const nextAlbums = rawAlbums
           .map((album) => album as Partial<AlbumSummary>)
           .filter(
@@ -106,9 +135,7 @@ export default function StationPhotoModule() {
         }
       } catch (error) {
         console.error(error);
-        if (!cancelled) {
-          setAlbumsStatus("error");
-        }
+        if (!cancelled) setAlbumsStatus("error");
       }
     }
 
@@ -119,99 +146,104 @@ export default function StationPhotoModule() {
     };
   }, []);
 
-  const openAlbum = async (slug: string) => {
-    const currentRequestId = ++requestIdRef.current;
-    const cachedAlbum = albumCache[slug] ?? null;
+  const openAlbum = useCallback(
+    async (slug: string) => {
+      const currentRequestId = ++requestIdRef.current;
+      const cachedAlbum = albumCache[slug] ?? null;
 
-    setActivePhotoId(null);
-    setView("album");
-    setActiveAlbum(cachedAlbum);
+      setActivePhotoId(null);
+      setView("album");
+      setActiveAlbum(cachedAlbum);
 
-    if (cachedAlbum) {
-      seedPhotoLikes(
-        cachedAlbum.photos.map((photo) => ({
-          id: photo.id,
-          likesCount: photo.likesCount,
-          likedByMe: photo.likedByMe,
-        }))
-      );
-      setAlbumStatus("ready");
-      return;
-    }
-
-    setAlbumStatus("loading");
-
-    try {
-      const res = await fetch(`/api/albums/${encodeURIComponent(slug)}`, {
-        cache: "no-store",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = (await res.json()) as { album?: Partial<AlbumDetails> };
-      const raw = data.album;
-
-      if (!raw || typeof raw.slug !== "string" || !Array.isArray(raw.photos)) {
-        throw new Error("album_missing");
+      if (cachedAlbum) {
+        seedPhotoLikes(
+          cachedAlbum.photos.map((photo) => ({
+            id: photo.id,
+            likesCount: photo.likesCount,
+            likedByMe: photo.likedByMe,
+          }))
+        );
+        setAlbumStatus("ready");
+        return;
       }
 
-      const nextAlbum: AlbumDetails = {
-        id: typeof raw.id === "number" ? raw.id : 0,
-        title: typeof raw.title === "string" ? raw.title : "Untitled",
-        slug: raw.slug,
-        description: raw.description ?? null,
-        coverImage: raw.coverImage ?? null,
-        photos: raw.photos
-          .map((photo) => photo as Partial<AlbumPhoto>)
-          .filter(
-            (photo): photo is Partial<AlbumPhoto> & { id: number; url: string } =>
-              typeof photo.id === "number" && typeof photo.url === "string"
-          )
-          .map((photo) => ({
+      setAlbumStatus("loading");
+
+      try {
+        const res = await fetch(`/api/albums/${encodeURIComponent(slug)}`, {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = (await res.json()) as { album?: Partial<AlbumDetails> };
+        const raw = data.album;
+
+        if (!raw || typeof raw.slug !== "string" || !Array.isArray(raw.photos)) {
+          throw new Error("album_missing");
+        }
+
+        const nextAlbum: AlbumDetails = {
+          id: typeof raw.id === "number" ? raw.id : 0,
+          title: typeof raw.title === "string" ? raw.title : "Untitled",
+          slug: raw.slug,
+          description: raw.description ?? null,
+          coverImage: raw.coverImage ?? null,
+          photos: raw.photos
+            .map((photo) => photo as Partial<AlbumPhoto>)
+            .filter(
+              (photo): photo is Partial<AlbumPhoto> & { id: number; url: string } =>
+                typeof photo.id === "number" && typeof photo.url === "string"
+            )
+            .map((photo) => ({
+              id: photo.id,
+              url: photo.url,
+              width: photo.width ?? null,
+              height: photo.height ?? null,
+              likesCount: typeof photo.likesCount === "number" ? photo.likesCount : 0,
+              likedByMe: typeof photo.likedByMe === "boolean" ? photo.likedByMe : false,
+            })),
+        };
+
+        if (requestIdRef.current !== currentRequestId) return;
+
+        setActiveAlbum(nextAlbum);
+        setAlbumCache((prev) => ({ ...prev, [slug]: nextAlbum }));
+
+        seedPhotoLikes(
+          nextAlbum.photos.map((photo) => ({
             id: photo.id,
-            url: photo.url,
-            width: photo.width ?? null,
-            height: photo.height ?? null,
-            likesCount: typeof photo.likesCount === "number" ? photo.likesCount : 0,
-            likedByMe: typeof photo.likedByMe === "boolean" ? photo.likedByMe : false,
-          })),
-      };
+            likesCount: photo.likesCount,
+            likedByMe: photo.likedByMe,
+          }))
+        );
 
-      if (requestIdRef.current !== currentRequestId) return;
+        setAlbumStatus("ready");
+      } catch (error) {
+        console.error(error);
+        if (requestIdRef.current !== currentRequestId) return;
+        setAlbumStatus("error");
+      }
+    },
+    [albumCache, seedPhotoLikes]
+  );
 
-      setActiveAlbum(nextAlbum);
-      setAlbumCache((prev) => ({ ...prev, [slug]: nextAlbum }));
-      seedPhotoLikes(
-        nextAlbum.photos.map((photo) => ({
-          id: photo.id,
-          likesCount: photo.likesCount,
-          likedByMe: photo.likedByMe,
-        }))
-      );
-      setAlbumStatus("ready");
-    } catch (error) {
-      console.error(error);
-      if (requestIdRef.current !== currentRequestId) return;
-      setAlbumStatus("error");
-    }
-  };
-
-  const backToAlbums = () => {
+  const backToAlbums = useCallback(() => {
     setView("albums");
     setActiveAlbum(null);
     setActivePhotoId(null);
     setAlbumStatus("idle");
-  };
+  }, []);
 
-  const openViewer = (photoId: number) => {
+  const openViewer = useCallback((photoId: number) => {
     setActivePhotoId(photoId);
     setView("viewer");
-  };
+  }, []);
 
-  const backToAlbum = () => {
+  const backToAlbum = useCallback(() => {
     setView("album");
     setActivePhotoId(null);
-  };
+  }, []);
 
   const handleAlbumsClickCapture = (event: MouseEvent<HTMLDivElement>) => {
     const anchor = getAnchorTarget(event.target);
@@ -253,6 +285,7 @@ export default function StationPhotoModule() {
     return activeAlbum.photos[activeViewerIndex + 1] ?? null;
   }, [activeAlbum, activeViewerIndex]);
 
+  // Keyboard navigation (desktop/tablet viewer)
   useEffect(() => {
     if (view !== "viewer" || !activeAlbum) return;
 
@@ -285,10 +318,26 @@ export default function StationPhotoModule() {
     return () => {
       window.removeEventListener("keydown", onKeyDownCapture, { capture: true });
     };
-  }, [activeAlbum, nextPhoto, previousPhoto, view]);
+  }, [activeAlbum, backToAlbum, nextPhoto, previousPhoto, view]);
 
-  const isMobileViewport = () => isMobileViewer;
+  // Lock body scroll when mobile fullscreen viewer is active
+  const isMobileFullscreen = isMounted && isMobile && view === "viewer";
+  useEffect(() => {
+    if (!isMobileFullscreen) return;
 
+    const previousOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = previousOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [isMobileFullscreen]);
+
+  // Swipe helpers
   const resetSwipe = () => {
     swipeActiveRef.current = false;
     swipeStartRef.current = null;
@@ -296,8 +345,9 @@ export default function StationPhotoModule() {
   };
 
   const handleViewerTouchStart = (event: TouchEvent<HTMLDivElement>) => {
-    if (!isMobileViewport()) return;
+    if (!isMobileFullscreen) return;
     if (event.touches.length !== 1) return;
+
     const touch = event.touches[0];
     swipeActiveRef.current = true;
     swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
@@ -305,19 +355,23 @@ export default function StationPhotoModule() {
   };
 
   const handleViewerTouchMove = (event: TouchEvent<HTMLDivElement>) => {
-    if (!isMobileViewport()) return;
+    if (!isMobileFullscreen) return;
     if (!swipeActiveRef.current || !swipeStartRef.current) return;
+
     const touch = event.touches[0];
     swipeLastRef.current = { x: touch.clientX, y: touch.clientY };
+
     const dx = touch.clientX - swipeStartRef.current.x;
     const dy = touch.clientY - swipeStartRef.current.y;
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+
+    // Prevent page scroll when user is swiping
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
       event.preventDefault();
     }
   };
 
   const handleViewerTouchEnd = () => {
-    if (!isMobileViewport()) {
+    if (!isMobileFullscreen) {
       resetSwipe();
       return;
     }
@@ -328,27 +382,30 @@ export default function StationPhotoModule() {
 
     const dx = swipeLastRef.current.x - swipeStartRef.current.x;
     const dy = swipeLastRef.current.y - swipeStartRef.current.y;
+
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
+
     const horizontalThreshold = 48;
     const verticalThreshold = 56;
 
+    // Swipe down closes viewer (VK-like)
     if (absY > absX && dy > verticalThreshold) {
       backToAlbum();
       resetSwipe();
       return;
     }
 
+    // Horizontal swipe navigates
     if (absX > horizontalThreshold && absX > absY) {
-      if (dx < 0 && nextPhoto) {
-        setActivePhotoId(nextPhoto.id);
-      } else if (dx > 0 && previousPhoto) {
-        setActivePhotoId(previousPhoto.id);
-      }
+      if (dx < 0 && nextPhoto) setActivePhotoId(nextPhoto.id);
+      if (dx > 0 && previousPhoto) setActivePhotoId(previousPhoto.id);
     }
 
     resetSwipe();
   };
+
+  // ===== Views =====
 
   if (view === "albums") {
     return (
@@ -419,47 +476,37 @@ export default function StationPhotoModule() {
                 This album has no photos yet.
               </div>
             ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {activeAlbum.photos.map((photo) => {
-                    return (
-                      <article
-                        key={photo.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={(event) => {
-                          if (isButtonTarget(event.target)) return;
-                          openViewer(photo.id);
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            openViewer(photo.id);
-                          }
-                        }}
-                        className="relative text-left focus:outline-none focus:ring-2 focus:ring-[#4e8f65]"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={photo.url}
-                          alt=""
-                          loading="lazy"
-                          className="aspect-square h-full w-full object-cover"
-                        />
-                        <PhotoLikeButton
-                          photoId={photo.id}
-                          initialCount={photo.likesCount}
-                          initialLiked={photo.likedByMe}
-                          size="sm"
-                          variant="overlay"
-                          className="absolute bottom-3 left-3 z-10"
-                        />
-                      </article>
-                    );
-                  })}
-                </div>
-
-              </>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {activeAlbum.photos.map((photo) => (
+                  <article
+                    key={photo.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      if (isButtonTarget(event.target)) return;
+                      openViewer(photo.id);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openViewer(photo.id);
+                      }
+                    }}
+                    className="relative text-left focus:outline-none focus:ring-2 focus:ring-[#4e8f65]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo.url} alt="" loading="lazy" className="aspect-square h-full w-full object-cover" />
+                    <PhotoLikeButton
+                      photoId={photo.id}
+                      initialCount={photo.likesCount}
+                      initialLiked={photo.likedByMe}
+                      size="sm"
+                      variant="overlay"
+                      className="absolute bottom-3 left-3 z-10"
+                    />
+                  </article>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -467,6 +514,7 @@ export default function StationPhotoModule() {
     );
   }
 
+  // Viewer guards
   if (!activeAlbum || !activePhotoId || !activeViewerPhoto) {
     return (
       <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
@@ -475,16 +523,22 @@ export default function StationPhotoModule() {
     );
   }
 
-  const mobileFullscreenViewer = (
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-black h-[100svh] h-[100lvh] h-[100dvh] w-[100vw] overflow-hidden">
+  // ===== Mobile fullscreen portal viewer =====
+  if (isMobileFullscreen) {
+    const overlay = (
       <div
-        className="relative flex-1 overflow-hidden border-0 bg-black p-0 rounded-none touch-none"
-        onTouchStart={handleViewerTouchStart}
-        onTouchMove={handleViewerTouchMove}
-        onTouchEnd={handleViewerTouchEnd}
-        onTouchCancel={resetSwipe}
+        className="fixed inset-0 z-[9999] bg-black overflow-hidden w-[100vw] h-[100svh] h-[100lvh] h-[100dvh]"
+        // Prevent accidental click-through
+        role="dialog"
+        aria-modal="true"
       >
-        <div className="h-full w-full">
+        <div
+          className="h-full w-full touch-none"
+          onTouchStart={handleViewerTouchStart}
+          onTouchMove={handleViewerTouchMove}
+          onTouchEnd={handleViewerTouchEnd}
+          onTouchCancel={resetSwipe}
+        >
           <PhotoViewer
             slug={activeAlbum.slug}
             photos={viewerPhotos}
@@ -494,16 +548,15 @@ export default function StationPhotoModule() {
           />
         </div>
       </div>
-    </div>
-  );
+    );
 
-  if (isMounted && isMobileViewer) {
-    return createPortal(mobileFullscreenViewer, document.body);
+    return createPortal(overlay, document.body);
   }
 
+  // ===== Desktop / tablet viewer (Station UI) =====
   return (
     <div className="space-y-4">
-      <div className="hidden sm:flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={backToAlbums}
@@ -523,7 +576,7 @@ export default function StationPhotoModule() {
         </div>
       </div>
 
-      <div className="hidden sm:flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => previousPhoto && setActivePhotoId(previousPhoto.id)}
@@ -554,7 +607,7 @@ export default function StationPhotoModule() {
         </div>
       </div>
 
-      <div className="hidden sm:block rounded-md border border-[#275636] bg-[#09120d] p-3">
+      <div className="rounded-md border border-[#275636] bg-[#09120d] p-3">
         <PhotoComments photoId={activePhotoId} />
       </div>
     </div>
