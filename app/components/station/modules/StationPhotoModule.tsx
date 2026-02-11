@@ -354,7 +354,7 @@ export default function StationPhotoModule() {
                             openViewer(photo.id);
                           }
                         }}
-                        className="group relative overflow-hidden rounded-md border border-[#275636] bg-[#09120d] text-left focus:outline-none focus:ring-2 focus:ring-[#4e8f65]"
+                        className="relative text-left focus:outline-none focus:ring-2 focus:ring-[#4e8f65]"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img

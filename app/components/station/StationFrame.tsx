@@ -18,7 +18,7 @@ export default function StationFrame({
       }`}
     >
       <div
-        className={`relative rounded-[14px] border border-[#1c3e2b] bg-[#020504] p-3 shadow-[inset_0_0_0_1px_rgba(115,255,140,0.08)] md:p-4 ${
+        className={`relative border-0 bg-transparent p-0 rounded-none shadow-none sm:rounded-[14px] sm:border sm:border-[#1c3e2b] sm:bg-[#020504] sm:p-3 sm:shadow-[inset_0_0_0_1px_rgba(115,255,140,0.08)] md:p-4 ${
           innerClassName ?? ""
         }`}
       >
