@@ -71,6 +71,26 @@ function useIsMobileSm() {
   return isMobile;
 }
 
+function useViewportHeight(): number | null {
+  const [height, setHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const update = () => setHeight(window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, []);
+
+  return height;
+}
+
 
 export default function StationPhotoModule() {
   const [view, setView] = useState<StationPhotoView>("albums");
@@ -90,6 +110,7 @@ export default function StationPhotoModule() {
 
   // Mobile detection
   const isMobile = useIsMobileSm();
+  const viewportHeight = useViewportHeight();
 
   // Swipe tracking (mobile viewer)
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -527,7 +548,8 @@ export default function StationPhotoModule() {
   if (isMobileFullscreen) {
     const overlay = (
       <div
-        className="fixed inset-0 z-[9999] bg-black overflow-hidden w-[100vw] h-[100svh] h-[100lvh] h-[100dvh]"
+        className="fixed inset-0 z-[9999] w-[100vw] bg-black overflow-hidden"
+        style={{ height: viewportHeight ? `${viewportHeight}px` : "100dvh" }}
         // Prevent accidental click-through
         role="dialog"
         aria-modal="true"
