@@ -71,18 +71,28 @@ function useIsMobileSm() {
   return isMobile;
 }
 
-function useViewportHeight(): number | null {
+function useVisualViewportHeight(): number | null {
   const [height, setHeight] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const update = () => setHeight(window.innerHeight);
+    const update = () => {
+      const nextHeight = window.visualViewport?.height ?? window.innerHeight;
+      setHeight(nextHeight);
+    };
+
+    const visualViewport = window.visualViewport;
     update();
+
+    visualViewport?.addEventListener("resize", update);
+    visualViewport?.addEventListener("scroll", update);
     window.addEventListener("resize", update);
     window.addEventListener("orientationchange", update);
 
     return () => {
+      visualViewport?.removeEventListener("resize", update);
+      visualViewport?.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
       window.removeEventListener("orientationchange", update);
     };
@@ -110,7 +120,7 @@ export default function StationPhotoModule() {
 
   // Mobile detection
   const isMobile = useIsMobileSm();
-  const viewportHeight = useViewportHeight();
+  const viewportHeight = useVisualViewportHeight();
 
   // Swipe tracking (mobile viewer)
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -549,7 +559,7 @@ export default function StationPhotoModule() {
     const overlay = (
       <div
         className="fixed inset-0 z-[9999] w-[100vw] bg-black overflow-hidden"
-        style={{ height: viewportHeight ? `${viewportHeight}px` : "100dvh" }}
+        style={{ height: viewportHeight ? `${viewportHeight}px` : "100vh" }}
         // Prevent accidental click-through
         role="dialog"
         aria-modal="true"
