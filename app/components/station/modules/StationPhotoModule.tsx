@@ -393,7 +393,7 @@ export default function StationPhotoModule() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 sm:space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -433,8 +433,8 @@ export default function StationPhotoModule() {
         </button>
       </div>
 
-      <div className="relative overflow-hidden rounded-md border border-[#275636] bg-[#09120d]">
-        <div className="h-[58vh] min-h-[360px] max-h-[680px]">
+      <div className="relative overflow-hidden border-0 bg-black p-0 rounded-none sm:rounded-md sm:border sm:border-[#275636] sm:bg-[#09120d]">
+        <div className="h-[72vh] min-h-[72vh] max-h-[88vh] sm:h-[58vh] sm:min-h-[360px] sm:max-h-[680px]">
           <PhotoViewer
             slug={activeAlbum.slug}
             photos={viewerPhotos}
