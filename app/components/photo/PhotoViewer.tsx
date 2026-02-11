@@ -105,7 +105,7 @@ export default function PhotoViewer({
           initialCount={likesCount}
           initialLiked={likedByMe}
           variant="overlay"
-          className="absolute bottom-3 left-3 z-10"
+          className="absolute bottom-3 left-3 z-10 hidden sm:flex"
         />
       </div>
     </div>
