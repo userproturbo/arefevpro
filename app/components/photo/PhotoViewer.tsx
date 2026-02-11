@@ -89,7 +89,7 @@ export default function PhotoViewer({
   }
 
   return (
-    <div className="flex h-full w-full min-h-0 items-center justify-center px-6 py-6">
+    <div className="flex h-full w-full min-h-0 items-center justify-center px-0 py-0 sm:px-6 sm:py-6">
       <div className="relative inline-block max-h-full max-w-full">
         <motion.img
           key={activePhoto.id}
