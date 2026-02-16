@@ -17,6 +17,7 @@ type Props = {
   mode: "create" | "edit";
   videoId?: number;
   initialValues?: FormValues;
+  returnTo?: string;
 };
 
 type FileUploadButtonProps = {
@@ -123,7 +124,12 @@ function FileUploadButton({ label, accept, disabled, onSelect }: FileUploadButto
   );
 }
 
-export default function VideoForm({ mode, videoId, initialValues }: Props) {
+export default function VideoForm({
+  mode,
+  videoId,
+  initialValues,
+  returnTo = "/admin/videos",
+}: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
@@ -505,7 +511,7 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
         throw new Error(data.error || "Не удалось сохранить видео");
       }
 
-      router.push("/admin/videos");
+      router.push(returnTo);
       router.refresh();
     } catch (err: unknown) {
       const message =
@@ -531,7 +537,7 @@ export default function VideoForm({ mode, videoId, initialValues }: Props) {
       if (!res.ok) {
         throw new Error(data.error || "Не удалось удалить видео");
       }
-      router.push("/admin/videos");
+      router.push(returnTo);
       router.refresh();
     } catch (err: unknown) {
       const message =
