@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import StationFrame from "@/app/components/station/StationFrame";
+import SystemStatusBar from "@/app/components/station/SystemStatusBar";
 import type { AdminSectionKey } from "./adminSections";
 import { ADMIN_STATION_SECTIONS } from "./adminSections";
 
@@ -19,16 +20,11 @@ export default function AdminStationShell({ activeSection, children }: Props) {
           className="flex h-full min-h-0 flex-col border-[#264d37]"
           innerClassName="flex h-full min-h-0 flex-col"
         >
-          <header className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#1d442b] bg-[#07100b] px-3 py-2 text-[11px] uppercase tracking-[0.15em]">
-            <span className="text-[#86b794]">Admin Station / Online</span>
-            <div className="flex items-center gap-2">
-              <span className="rounded border border-[#2f5f42] bg-[#0a1510] px-2 py-0.5 text-[#b8f8c8]">
-                Mode: {activeSection}
-              </span>
-              <span className="h-3 w-px bg-[#29523a]" aria-hidden="true" />
-              <span className="text-[#729d80]">Scope: /admin</span>
-            </div>
-          </header>
+          <SystemStatusBar
+            mode={activeSection}
+            stationLabel="Admin Station"
+            scopeLabel="/admin"
+          />
 
           <nav
             className="mb-3 flex flex-wrap gap-1.5 rounded-lg border border-[#1d442b] bg-[#060e0a] p-1.5"
