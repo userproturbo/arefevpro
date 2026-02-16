@@ -6,7 +6,7 @@ export default function AdminIdleSection() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[#d19b80]">
+      <p className="text-sm text-[#8bc99b]">
         Use station tabs to manage content by section without leaving `/admin`.
       </p>
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
@@ -14,12 +14,12 @@ export default function AdminIdleSection() {
           <Link
             key={item.key}
             href={item.href}
-            className="rounded-md border border-[#5a3524] bg-[#170d08] p-3 transition hover:border-[#b56c48]"
+            className="rounded-md border border-[#275636] bg-[#09120d] p-3 transition hover:border-[#3a7352]"
           >
-            <div className="text-sm font-semibold uppercase tracking-[0.14em] text-[#ffd6bf]">
+            <div className="text-sm font-semibold uppercase tracking-[0.14em] text-[#b4fdc3]">
               {item.label}
             </div>
-            <p className="mt-1 text-xs text-[#c18d73]">{item.description}</p>
+            <p className="mt-1 text-xs text-[#8ec99c]">{item.description}</p>
           </Link>
         ))}
       </div>

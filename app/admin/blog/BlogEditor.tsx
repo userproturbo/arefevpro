@@ -7,6 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 type BlogEditorProps = {
   mode: "new" | "edit";
   postId?: string;
+  returnTo?: string;
+  inlineMode?: boolean;
   initialData?: {
     title: string;
     slug: string;
@@ -37,6 +39,8 @@ function slugify(input: string) {
 export default function BlogEditor({
   mode,
   postId,
+  returnTo = "/admin/blog",
+  inlineMode = false,
   initialData,
 }: BlogEditorProps) {
   const router = useRouter();
@@ -105,7 +109,7 @@ export default function BlogEditor({
       }
 
       // после сохранения — возвращаемся в список
-      router.push("/admin/blog");
+      router.push(returnTo);
       router.refresh();
     } catch (err: unknown) {
       const message =
@@ -117,18 +121,20 @@ export default function BlogEditor({
   }
 
   return (
-    <main className="max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <Link
-          href="/admin/blog"
-          className="inline-flex items-center gap-2 text-white/70 hover:text-white"
-        >
-          ← Back to blog
-        </Link>
-        <Link href="/admin" className="text-white/70 hover:text-white">
-          ← Dashboard
-        </Link>
-      </div>
+    <main className={inlineMode ? "space-y-6" : "max-w-4xl mx-auto space-y-6"}>
+      {!inlineMode && (
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Link
+            href={returnTo}
+            className="inline-flex items-center gap-2 text-white/70 hover:text-white"
+          >
+            ← Back to blog
+          </Link>
+          <Link href="/admin" className="text-white/70 hover:text-white">
+            ← Dashboard
+          </Link>
+        </div>
+      )}
 
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-white/60">
@@ -140,13 +146,11 @@ export default function BlogEditor({
             <span className="text-white/60"> #{postId}</span>
           ) : null}
         </h1>
-        <p className="text-sm text-white/60">
-          Step 1: Save draft (isPublished=false). Publishing will be added next.
-        </p>
+        <p className="text-sm text-white/60">Create or edit post inline and stay in this section.</p>
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+        <div className="rounded-xl border border-[#275636] bg-[#09120d] p-4 text-sm text-[#8ec99c]">
           {error}
         </div>
       ) : null}
@@ -226,20 +230,19 @@ export default function BlogEditor({
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-          <Link
-            href="/admin/blog"
-            className="text-sm text-white/70 hover:text-white"
-          >
+          <Link href={returnTo} className="text-sm text-white/70 hover:text-white">
             Cancel
           </Link>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/admin/blog/new"
-              className="rounded-lg border border-white/15 bg-white/[0.02] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.04]"
-            >
-              New
-            </Link>
+            {!inlineMode && (
+              <Link
+                href="/admin/blog/new"
+                className="rounded-lg border border-white/15 bg-white/[0.02] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.04]"
+              >
+                New
+              </Link>
+            )}
 
             <button type="submit" disabled={!canSave}>
               {pending

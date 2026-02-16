@@ -61,7 +61,7 @@ export default function PublishToggle({ albumSlug, initialPublished }: Props) {
         <span className="text-xs text-white/50">Saving...</span>
       ) : null}
       {error ? (
-        <span className="text-xs text-red-200">{error}</span>
+        <span className="text-xs text-[#8ec99c]">{error}</span>
       ) : null}
     </div>
   );

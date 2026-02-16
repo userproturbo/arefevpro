@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
-import { ADMIN_POST_TYPES, getAdminType, getTypeLabel } from "@/lib/adminPostTypes";
-import PostForm from "../PostForm";
+import { getAdminType } from "@/lib/adminPostTypes";
+import { requireAdmin } from "@/app/admin/lib/requireAdmin";
 
 export const runtime = "nodejs";
 
@@ -15,41 +13,25 @@ export default async function NewPostPage({
   const typeParam = Array.isArray(params?.type) ? params.type[0] : params?.type;
   const requestedPath = `/admin/posts/new${typeParam ? `?type=${typeParam}` : ""}`;
 
-  const user = await getCurrentUser();
-  if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
-  if (user.role !== "ADMIN") redirect("/");
+  await requireAdmin(requestedPath);
 
-  const config = getAdminType(typeParam) ?? {
-    key: "about" as const,
-    ...ADMIN_POST_TYPES.about,
-  };
+  const typeConfig = getAdminType(typeParam);
 
-  return (
-    <main className="max-w-3xl mx-auto space-y-6">
-      <Link
-        href={`/admin/posts?type=${config.key}`}
-        className="text-sm text-white/60 hover:text-white inline-flex items-center gap-2"
-      >
-        ← Назад к списку постов
-      </Link>
-      <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-white/60">
-          {getTypeLabel(config.key)}
-        </p>
-        <h1 className="text-3xl font-bold">Создать пост</h1>
-      </div>
+  const nextByType = (() => {
+    switch (typeConfig?.key) {
+      case "about":
+        return "/admin/projects?create=1";
+      case "photo":
+        return "/admin/photo?create=1";
+      case "video":
+        return "/admin/video?create=1";
+      case "music":
+        return "/admin/audio?create=1";
+      case "blog":
+      default:
+        return "/admin/blog?create=1";
+    }
+  })();
 
-      <PostForm
-        mode="create"
-        initialType={config.key}
-        initialValues={{
-          title: "",
-          text: "",
-          coverImage: "",
-          mediaUrl: "",
-          isPublished: true,
-        }}
-      />
-    </main>
-  );
+  redirect(nextByType);
 }

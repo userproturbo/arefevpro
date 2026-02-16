@@ -726,12 +726,12 @@ export default function VideoForm({
       </label>
 
       {error && (
-        <p className="text-sm text-red-200 bg-red-500/10 rounded-lg border border-red-500/30 px-3 py-2">
+        <p className="text-sm text-[#8ec99c] bg-[#09120d] rounded-lg border border-[#275636] px-3 py-2">
           {error}
         </p>
       )}
       {uploadError && (
-        <p className="text-sm text-red-200 bg-red-500/10 rounded-lg border border-red-500/30 px-3 py-2">
+        <p className="text-sm text-[#8ec99c] bg-[#09120d] rounded-lg border border-[#275636] px-3 py-2">
           {uploadError}
         </p>
       )}
@@ -753,7 +753,7 @@ export default function VideoForm({
             type="button"
             onClick={handleDelete}
             disabled={disabled}
-            className="rounded-lg border border-red-500/60 text-red-200 px-4 py-2 hover:bg-red-500/10 disabled:opacity-60"
+            className="rounded-lg border border-[#275636] text-[#8ec99c] px-4 py-2 hover:bg-[#0e1b14] disabled:opacity-60"
           >
             {deleting ? "Удаляем..." : "Удалить"}
           </button>

@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function CreateAlbumForm() {
+type Props = {
+  returnTo?: string;
+};
+
+export default function CreateAlbumForm({ returnTo = "/admin/photos" }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -61,10 +65,10 @@ export default function CreateAlbumForm() {
           : null;
 
       if (albumSlug) {
-        router.push(`/admin/photos/${albumSlug}`);
+        router.push(returnTo);
         router.refresh();
       } else {
-        router.push("/admin/photos");
+        router.push(returnTo);
         router.refresh();
       }
     } catch (error) {
@@ -81,7 +85,7 @@ export default function CreateAlbumForm() {
       className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
     >
       {formError ? (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+        <div className="rounded-xl border border-[#275636] bg-[#09120d] p-4 text-sm text-[#8ec99c]">
           {formError}
         </div>
       ) : null}
@@ -96,7 +100,7 @@ export default function CreateAlbumForm() {
           disabled={pending}
         />
         {titleError ? (
-          <p className="text-xs text-red-200">{titleError}</p>
+          <p className="text-xs text-[#8ec99c]">{titleError}</p>
         ) : null}
       </div>
 
@@ -125,7 +129,7 @@ export default function CreateAlbumForm() {
       <div className="flex items-center justify-end gap-3">
         <button
           type="button"
-          onClick={() => router.push("/admin/photos")}
+          onClick={() => router.push(returnTo)}
           className="text-sm text-white/70 hover:text-white"
           disabled={pending}
         >

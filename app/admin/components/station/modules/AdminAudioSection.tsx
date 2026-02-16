@@ -1,15 +1,21 @@
 import { PostType } from "@prisma/client";
 import AdminPostTypeSection from "./AdminPostTypeSection";
 
-export default async function AdminAudioSection() {
+type Props = {
+  createMode: boolean;
+  editId: number | null;
+};
+
+export default async function AdminAudioSection({ createMode, editId }: Props) {
   return (
     <AdminPostTypeSection
       title="Audio"
       description="Music and audio section posts."
       emptyText="No audio entries yet."
       postType={PostType.MUSIC}
-      createHref="/admin/posts/new?type=music"
-      editHref={(id) => `/admin/posts/${id}/edit`}
+      sectionPath="/admin/audio"
+      createMode={createMode}
+      editId={editId}
     />
   );
 }

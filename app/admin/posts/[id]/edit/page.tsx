@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { postTypeToAdminKey, getTypeLabel } from "@/lib/adminPostTypes";
+import { postTypeToAdminKey } from "@/lib/adminPostTypes";
 import { logServerError } from "@/lib/db";
-import PostForm from "../../PostForm";
+import { requireAdmin } from "@/app/admin/lib/requireAdmin";
 
 export const runtime = "nodejs";
 
@@ -20,62 +18,40 @@ export default async function EditPostPage({
 }) {
   const { id: rawId } = await params;
   const id = parseId(rawId);
-  if (!id) redirect("/admin");
+  if (!id) redirect("/admin/idle");
 
-  const user = await getCurrentUser();
-  const requestedPath = `/admin/posts/${id}/edit`;
-  if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
-  if (user.role !== "ADMIN") redirect("/");
+  await requireAdmin(`/admin/posts/${id}/edit`);
 
   const post = await prisma.post
     .findUnique({
       where: { id },
       select: {
         id: true,
-        title: true,
         type: true,
-        text: true,
-        coverImage: true,
-        mediaUrl: true,
-        isPublished: true,
       },
     })
     .catch((error) => {
-      logServerError("Admin post read error:", error);
+      logServerError("Admin legacy post edit redirect error:", error);
       return null;
     });
 
-  if (!post) redirect("/admin");
+  if (!post) redirect("/admin/idle");
 
-  const typeKey = postTypeToAdminKey(post.type);
+  const section = (() => {
+    switch (postTypeToAdminKey(post.type)) {
+      case "about":
+        return "projects";
+      case "photo":
+        return "photo";
+      case "video":
+        return "video";
+      case "music":
+        return "audio";
+      case "blog":
+      default:
+        return "blog";
+    }
+  })();
 
-  return (
-    <main className="max-w-3xl mx-auto space-y-6">
-      <Link
-        href={`/admin/posts?type=${typeKey}`}
-        className="text-sm text-white/60 hover:text-white inline-flex items-center gap-2"
-      >
-        ← Назад к списку постов
-      </Link>
-      <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-white/60">
-          {getTypeLabel(typeKey)}
-        </p>
-        <h1 className="text-3xl font-bold">Редактировать пост</h1>
-      </div>
-
-      <PostForm
-        mode="edit"
-        postId={post.id}
-        initialType={typeKey}
-        initialValues={{
-          title: post.title,
-          text: post.text,
-          coverImage: post.coverImage,
-          mediaUrl: post.mediaUrl,
-          isPublished: post.isPublished,
-        }}
-      />
-    </main>
-  );
+  redirect(`/admin/${section}?edit=${post.id}`);
 }

@@ -19,6 +19,14 @@ function getSingleValue(value: string | string[] | undefined): string | null {
   return value ?? null;
 }
 
+function decodeSafe(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export default async function AdminSectionPage({
   params,
   searchParams,
@@ -45,23 +53,25 @@ export default async function AdminSectionPage({
 
   const createFlag = getSingleValue(query?.create);
   const editParam = getSingleValue(query?.edit);
+  const createMode = createFlag === "1";
   const editId =
     editParam && Number.isFinite(Number(editParam)) ? Number(editParam) : null;
+  const editSlug = editParam ? decodeSafe(editParam) : null;
 
   const moduleContent = (() => {
     switch (sectionConfig.key) {
       case "idle":
         return <AdminIdleSection />;
       case "projects":
-        return <AdminProjectsSection />;
+        return <AdminProjectsSection createMode={createMode} editId={editId} />;
       case "photo":
-        return <AdminPhotoSection />;
+        return <AdminPhotoSection createMode={createMode} editSlug={editSlug} />;
       case "video":
-        return <AdminVideoSection createMode={createFlag === "1"} editId={editId} />;
+        return <AdminVideoSection createMode={createMode} editId={editId} />;
       case "audio":
-        return <AdminAudioSection />;
+        return <AdminAudioSection createMode={createMode} editId={editId} />;
       case "blog":
-        return <AdminBlogSection />;
+        return <AdminBlogSection createMode={createMode} editId={editId} />;
       default:
         return <AdminIdleSection />;
     }

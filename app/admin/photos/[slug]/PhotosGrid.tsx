@@ -191,7 +191,7 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
   return (
     <div className="space-y-3">
       {error ? (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <div className="rounded-xl border border-[#275636] bg-[#09120d] px-3 py-2 text-sm text-[#8ec99c]">
           {error}
         </div>
       ) : null}
@@ -252,7 +252,7 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
                     type="button"
                     onClick={() => handleDeletePhoto(photo.id)}
                     disabled={isDeleting || deletePendingId !== null || isSavingOrder}
-                    className="rounded-full border border-red-400/40 bg-red-500/10 px-3 py-1 text-[11px] font-semibold text-red-100 hover:bg-red-500/20 disabled:opacity-50"
+                    className="rounded-full border border-[#275636] bg-[#09120d] px-3 py-1 text-[11px] font-semibold text-[#8ec99c] hover:bg-[#0e1b14] disabled:opacity-50"
                   >
                     {isDeleting ? "Deleting..." : "Delete"}
                   </button>

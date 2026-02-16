@@ -40,7 +40,7 @@ export default function DeleteVideoButton({ videoId }: { videoId: number }) {
       type="button"
       onClick={handleDelete}
       disabled={pending}
-      className="text-sm text-red-300 hover:text-red-200 disabled:opacity-50"
+      className="text-sm text-[#8ec99c] hover:text-[#b4fdc3] disabled:opacity-50"
     >
       {pending ? "Удаляем..." : "Удалить"}
     </button>

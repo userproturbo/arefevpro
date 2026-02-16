@@ -7,9 +7,16 @@ import { useState } from "react";
 type Props = {
   albumSlug: string;
   albumTitle: string;
+  editHref?: string;
+  editLabel?: string;
 };
 
-export default function AlbumActions({ albumSlug, albumTitle }: Props) {
+export default function AlbumActions({
+  albumSlug,
+  albumTitle,
+  editHref,
+  editLabel = "Open",
+}: Props) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -49,16 +56,16 @@ export default function AlbumActions({ albumSlug, albumTitle }: Props) {
   return (
     <div className="flex items-center justify-end gap-3">
       <Link
-        href={`/admin/photos/${albumSlug}`}
+        href={editHref ?? `/admin/photos/${albumSlug}`}
         className="text-sm text-white/70 hover:text-white"
       >
-        Open
+        {editLabel}
       </Link>
       <button
         type="button"
         onClick={handleDelete}
         disabled={isDeleting}
-        className="text-sm text-red-200 hover:text-red-100 disabled:opacity-60"
+        className="text-sm text-[#8ec99c] hover:text-[#b4fdc3] disabled:opacity-60"
       >
         {isDeleting ? "Deleting..." : "Delete"}
       </button>

@@ -17,6 +17,8 @@ type Props = {
   initialType: AdminPostTypeKey;
   postId?: number;
   initialValues?: FormValues;
+  returnTo?: string;
+  lockType?: boolean;
 };
 
 type FileUploadButtonProps = {
@@ -79,6 +81,8 @@ export default function PostForm({
   initialType,
   postId,
   initialValues,
+  returnTo,
+  lockType = false,
 }: Props) {
   const router = useRouter();
   const [typeKey, setTypeKey] = useState<AdminPostTypeKey>(initialType);
@@ -230,7 +234,7 @@ export default function PostForm({
         throw new Error(data.error || "Не удалось сохранить пост");
       }
 
-      router.push(`/admin/posts?type=${typeKey}`);
+      router.push(returnTo ?? `/admin/posts?type=${typeKey}`);
       router.refresh();
     } catch (err: unknown) {
       const message =
@@ -256,7 +260,7 @@ export default function PostForm({
       if (!res.ok) {
         throw new Error(data.error || "Не удалось удалить пост");
       }
-      router.push(`/admin/posts?type=${typeKey}`);
+      router.push(returnTo ?? `/admin/posts?type=${typeKey}`);
       router.refresh();
     } catch (err: unknown) {
       const message =
@@ -269,21 +273,23 @@ export default function PostForm({
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <div className="space-y-2">
-        <label className="block text-sm text-white/70">Раздел</label>
-        <select
-          className="w-full rounded-lg border border-white/10 bg-black/40 p-3"
-          value={typeKey}
-          onChange={(e) => setTypeKey(e.target.value as AdminPostTypeKey)}
-          disabled={loading || deleting || uploading}
-        >
-          {Object.entries(ADMIN_POST_TYPES).map(([key, config]) => (
-            <option key={key} value={key}>
-              {config.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!lockType && (
+        <div className="space-y-2">
+          <label className="block text-sm text-white/70">Раздел</label>
+          <select
+            className="w-full rounded-lg border border-white/10 bg-black/40 p-3"
+            value={typeKey}
+            onChange={(e) => setTypeKey(e.target.value as AdminPostTypeKey)}
+            disabled={loading || deleting || uploading}
+          >
+            {Object.entries(ADMIN_POST_TYPES).map(([key, config]) => (
+              <option key={key} value={key}>
+                {config.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="space-y-2">
         <label className="block text-sm text-white/70">Заголовок</label>
@@ -365,12 +371,12 @@ export default function PostForm({
       </label>
 
       {error && (
-        <p className="text-sm text-red-200 bg-red-500/10 rounded-lg border border-red-500/30 px-3 py-2">
+        <p className="text-sm text-[#8ec99c] bg-[#09120d] rounded-lg border border-[#275636] px-3 py-2">
           {error}
         </p>
       )}
       {uploadError && (
-        <p className="text-sm text-red-200 bg-red-500/10 rounded-lg border border-red-500/30 px-3 py-2">
+        <p className="text-sm text-[#8ec99c] bg-[#09120d] rounded-lg border border-[#275636] px-3 py-2">
           {uploadError}
         </p>
       )}
@@ -392,7 +398,7 @@ export default function PostForm({
             type="button"
             onClick={handleDelete}
             disabled={loading || deleting || uploading}
-            className="rounded-lg border border-red-500/60 text-red-200 px-4 py-2 hover:bg-red-500/10 disabled:opacity-60"
+            className="rounded-lg border border-[#275636] text-[#8ec99c] px-4 py-2 hover:bg-[#0e1b14] disabled:opacity-60"
           >
             {deleting ? "Удаляем..." : "Удалить"}
           </button>
@@ -400,8 +406,7 @@ export default function PostForm({
       </div>
 
       <p className="text-sm text-white/60">
-        Тип: {selectedType.label}. После сохранения мы перенаправим тебя в список
-        постов.
+        Тип: {selectedType.label}. После сохранения останетесь в текущей секции.
       </p>
     </form>
   );

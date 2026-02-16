@@ -1,15 +1,21 @@
 import { PostType } from "@prisma/client";
 import AdminPostTypeSection from "./AdminPostTypeSection";
 
-export default async function AdminProjectsSection() {
+type Props = {
+  createMode: boolean;
+  editId: number | null;
+};
+
+export default async function AdminProjectsSection({ createMode, editId }: Props) {
   return (
     <AdminPostTypeSection
       title="Projects"
       description="Project and about entries."
       emptyText="No project entries yet."
       postType={PostType.ABOUT}
-      createHref="/admin/posts/new?type=about"
-      editHref={(id) => `/admin/posts/${id}/edit`}
+      sectionPath="/admin/projects"
+      createMode={createMode}
+      editId={editId}
     />
   );
 }

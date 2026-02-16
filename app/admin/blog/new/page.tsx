@@ -1,12 +1,9 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import BlogEditor from "../BlogEditor";
+import { requireAdmin } from "@/app/admin/lib/requireAdmin";
+
+export const runtime = "nodejs";
 
 export default async function AdminBlogNewPage() {
-  const user = await getCurrentUser();
-  const requestedPath = "/admin/blog/new";
-  if (!user) redirect(`/admin/login?next=${encodeURIComponent(requestedPath)}`);
-  if (user.role !== "ADMIN") redirect("/");
-
-  return <BlogEditor mode="new" />;
+  await requireAdmin("/admin/blog/new");
+  redirect("/admin/blog?create=1");
 }
