@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import type { StationMode } from "./types";
 import { motion } from "framer-motion";
 import { useAuth } from "@/app/providers";
+import { useState } from "react";
 
 type SystemStatusBarProps = {
   mode: StationMode;
@@ -17,7 +18,8 @@ export default function SystemStatusBar({
   scopeLabel,
 }: SystemStatusBarProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
+  const [pending, setPending] = useState(false);
   const isAuthenticated = !!user;
   const authText = isAuthenticated ? "ONLINE" : "OFFLINE";
   const authTooltip =
@@ -27,18 +29,47 @@ export default function SystemStatusBar({
       ? "Online"
       : "Offline (Login)";
 
+  const handleAuthClick = async () => {
+    if (pending) return;
+
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    const confirmed = window.confirm("Logout from current session?");
+    if (!confirmed) return;
+
+    setPending(true);
+    try {
+      await fetch("/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      await refresh();
+      router.push("/");
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
     <header className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#1d442b] bg-[#07100b] px-3 py-2 text-[11px] uppercase tracking-[0.15em]">
       <button
         type="button"
-        onClick={() => router.push(isAuthenticated ? "/admin" : "/login")}
+        onClick={handleAuthClick}
         title={authTooltip}
-        className="group inline-flex items-center gap-2 text-[#86b794] transition hover:text-[#b4fdc3]"
+        className="group inline-flex cursor-pointer items-center gap-2 text-[#86b794] transition hover:text-[#b4fdc3]"
+        disabled={pending}
       >
-        <span>{stationLabel} / {authText}</span>
+        <span className="text-[13px] tracking-[0.18em]">
+          {stationLabel} /{" "}
+          <span className="font-semibold text-[#c4fcd2]">{pending ? "..." : authText}</span>
+        </span>
         <span
           aria-hidden="true"
-          className={`h-2.5 w-2.5 rounded-full border ${
+          className={`h-3 w-3 rounded-full border ${
             isAuthenticated
               ? "border-[#5bbf7a] bg-[#72ff8c] shadow-[0_0_0_1px_rgba(114,255,140,0.32),0_0_8px_rgba(114,255,140,0.65)]"
               : "border-[#8a3434] bg-[#d84a4a]"
@@ -46,7 +77,7 @@ export default function SystemStatusBar({
         />
       </button>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 text-[10px]">
         <span className="rounded border border-[#2f5f42] bg-[#0a1510] px-2 py-0.5 text-[#b8f8c8]">
           Mode: {mode}
         </span>
