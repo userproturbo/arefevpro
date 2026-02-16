@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSectionConfig } from "@/lib/sections";
 import { logServerError } from "@/lib/db";
+import StationShell from "@/app/components/station/StationShell";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,10 @@ export default async function SectionPage({
 
   if (!config) {
     return notFound();
+  }
+
+  if (section.toLowerCase() === "video" || section.toLowerCase() === "videos") {
+    return <StationShell initialMode="video" />;
   }
 
   let posts: Array<{

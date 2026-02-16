@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import StationBlogModule from "./modules/StationBlogModule";
 import StationPhotoModule from "./modules/StationPhotoModule";
+import StationVideoModule from "./modules/StationVideoModule";
 import type { StationMode } from "./types";
 
 type StationViewportProps = {
@@ -90,6 +91,8 @@ export default function StationViewport({ mode }: StationViewportProps) {
         >
           {mode === "photo" ? (
             <StationPhotoModule />
+          ) : mode === "video" ? (
+            <StationVideoModule />
           ) : mode === "blog" ? (
             <StationBlogModule />
           ) : (

@@ -7,8 +7,12 @@ import StationViewport from "./StationViewport";
 import SystemStatusBar from "./SystemStatusBar";
 import type { StationMode } from "./types";
 
-export default function StationShell() {
-  const [mode, setMode] = useState<StationMode>("idle");
+type StationShellProps = {
+  initialMode?: StationMode;
+};
+
+export default function StationShell({ initialMode = "idle" }: StationShellProps) {
+  const [mode, setMode] = useState<StationMode>(initialMode);
 
   return (
     <div className="h-full min-h-0 bg-[#020805] text-[#d1f7dc]">
