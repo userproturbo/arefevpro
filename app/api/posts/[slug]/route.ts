@@ -6,6 +6,7 @@ import {
   isDatabaseUnavailableError,
   isExpectedDevDatabaseError,
 } from "@/lib/db";
+import { bannedUserResponse, isBannedUser } from "@/lib/api/banned";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,6 +71,9 @@ export async function PUT(
   if (!authUser) {
     return NextResponse.json({ error: "Требуется авторизация" }, { status: 401 });
   }
+  if (isBannedUser(authUser)) {
+    return bannedUserResponse(authUser.banReason);
+  }
   if (authUser.role !== "ADMIN") {
     return NextResponse.json({ error: "Нет прав" }, { status: 403 });
   }
@@ -132,6 +136,9 @@ export async function DELETE(
   const authUser = await getCurrentUser();
   if (!authUser) {
     return NextResponse.json({ error: "Требуется авторизация" }, { status: 401 });
+  }
+  if (isBannedUser(authUser)) {
+    return bannedUserResponse(authUser.banReason);
   }
   if (authUser.role !== "ADMIN") {
     return NextResponse.json({ error: "Нет прав" }, { status: 403 });

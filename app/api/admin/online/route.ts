@@ -37,6 +37,7 @@ export async function GET() {
     const [onlineUsers, anonymousOnlineRaw] = await Promise.all([
       prisma.user.findMany({
         where: {
+          status: "ACTIVE",
           lastSeenAt: {
             gt: onlineCutoff,
           },

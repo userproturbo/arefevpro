@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { getCurrentUser } from "@/lib/auth";
+import { bannedUserResponse, isBannedUser } from "@/lib/api/banned";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (isBannedUser(user)) {
+    return bannedUserResponse(user.banReason);
   }
   if (user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

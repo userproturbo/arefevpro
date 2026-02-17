@@ -5,11 +5,18 @@ import { prisma } from "@/lib/prisma";
 import { signToken, verifyToken } from "@/lib/jwt";
 import { AUTH_COOKIE } from "@/lib/authCookie";
 import { isDatabaseUnavailableError, isExpectedDevDatabaseError } from "@/lib/db";
+import { UserStatus } from "@prisma/client";
 
 export { AUTH_COOKIE };
 
 export type AuthRole = "USER" | "ADMIN";
 export type AuthCookiePayload = { id: number; role: AuthRole };
+export type AuthUser = {
+  id: number;
+  role: AuthRole;
+  status: UserStatus;
+  banReason: string | null;
+};
 
 export async function setAuthCookie(payload: AuthCookiePayload) {
   const cookieStore = await cookies();
@@ -25,7 +32,7 @@ export async function setAuthCookie(payload: AuthCookiePayload) {
 }
 
 export type CurrentUserResult =
-  | { user: { id: number; role: AuthRole }; error: null }
+  | { user: AuthUser; error: null }
   | { user: null; error: "NO_TOKEN" | "INVALID_TOKEN" | "DB_UNAVAILABLE" };
 
 export async function getCurrentUserResult(): Promise<CurrentUserResult> {
@@ -47,6 +54,8 @@ export async function getCurrentUserResult(): Promise<CurrentUserResult> {
       select: {
         id: true,
         role: true,
+        status: true,
+        banReason: true,
       },
     });
 
@@ -55,7 +64,12 @@ export async function getCurrentUserResult(): Promise<CurrentUserResult> {
     }
 
     return {
-      user: { id: user.id, role: user.role as AuthRole },
+      user: {
+        id: user.id,
+        role: user.role as AuthRole,
+        status: user.status,
+        banReason: user.banReason,
+      },
       error: null,
     };
   } catch (error) {

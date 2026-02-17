@@ -62,12 +62,16 @@ export async function GET() {
             login: true,
             nickname: true,
             role: true,
+            status: true,
+            banReason: true,
+            bannedAt: true,
             createdAt: true,
             lastSeenAt: true,
           },
         }),
         prisma.user.count({
           where: {
+            status: "ACTIVE",
             lastSeenAt: {
               gt: onlineCutoff,
             },
@@ -86,6 +90,7 @@ export async function GET() {
       visitsLast24h,
       uniqueLast24h: toSafeNumber(uniqueLast24hRaw[0]?.count),
       totalUsers,
+      currentAdminUserId: user.id,
       users,
       onlineUsersCount,
       anonymousOnlineCount: toSafeNumber(anonymousOnlineRaw[0]?.count),

@@ -7,6 +7,7 @@ import {
   isExpectedDevDatabaseError,
 } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { bannedUserResponse, isBannedUser } from "@/lib/api/banned";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,9 @@ export async function POST(
   const authUser = await getCurrentUser();
   if (!authUser) {
     return NextResponse.json({ error: "Требуется вход" }, { status: 401 });
+  }
+  if (isBannedUser(authUser)) {
+    return bannedUserResponse(authUser.banReason);
   }
 
   try {
@@ -86,6 +90,9 @@ export async function DELETE(
   const authUser = await getCurrentUser();
   if (!authUser) {
     return NextResponse.json({ error: "Требуется вход" }, { status: 401 });
+  }
+  if (isBannedUser(authUser)) {
+    return bannedUserResponse(authUser.banReason);
   }
 
   try {

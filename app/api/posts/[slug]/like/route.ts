@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { bannedUserResponse, isBannedUser } from "@/lib/api/banned";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -17,6 +18,9 @@ export async function POST(
   const authUser = await getCurrentUser();
   if (!authUser) {
     return NextResponse.json({ error: "Требуется вход" }, { status: 401 });
+  }
+  if (isBannedUser(authUser)) {
+    return bannedUserResponse(authUser.banReason);
   }
 
   try {

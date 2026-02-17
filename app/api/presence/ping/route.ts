@@ -8,8 +8,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    const user = await getApiUser();
-    if (!user) {
+    const apiUser = await getApiUser();
+    if (!apiUser) {
+      return new NextResponse(null, { status: 204 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: apiUser.id },
+      select: { id: true, status: true },
+    });
+    if (!user || user.status === "BANNED") {
       return new NextResponse(null, { status: 204 });
     }
 
