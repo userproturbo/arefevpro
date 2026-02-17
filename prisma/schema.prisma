@@ -14,6 +14,7 @@ model User {
   email         String?        @unique
   passwordHash  String
   role          UserRole       @default(USER)
+  lastSeenAt    DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   comments      Comment[]
@@ -26,6 +27,9 @@ model User {
   videoComments VideoComment[]
   videoCommentLikes VideoCommentLike[]
   notifications Notification[]
+  visits        Visit[]
+
+  @@index([lastSeenAt])
 }
 
 model Post {
@@ -253,10 +257,15 @@ model Visitor {
 model Visit {
   id        String   @id @default(uuid())
   visitorId String
+  userId    Int?
+  path      String?
   createdAt DateTime @default(now())
   visitor   Visitor  @relation(fields: [visitorId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([visitorId])
+  @@index([userId])
+  @@index([userId, createdAt])
   @@index([createdAt])
 }
 

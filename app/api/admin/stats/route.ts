@@ -28,7 +28,11 @@ export async function GET() {
       );
     }
 
-    const totalVisitors = await prisma.visitor.count();
+    const result = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(DISTINCT "visitorId")::bigint AS count
+      FROM "Visit"
+    `;
+    const totalVisitors = Number(result[0]?.count ?? BigInt(0));
 
     return NextResponse.json({
       totalVisitors,

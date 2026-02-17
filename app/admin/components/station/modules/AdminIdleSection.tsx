@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ADMIN_STATION_SECTIONS } from "../adminSections";
+import AdminIdleMetrics from "./AdminIdleMetrics";
 
 export default function AdminIdleSection() {
   const managedSections = ADMIN_STATION_SECTIONS.filter((item) => item.key !== "idle");
@@ -9,6 +10,9 @@ export default function AdminIdleSection() {
       <p className="text-sm text-[#8bc99b]">
         Use station tabs to manage content by section without leaving `/admin`.
       </p>
+
+      <AdminIdleMetrics />
+
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {managedSections.map((item) => (
           <Link

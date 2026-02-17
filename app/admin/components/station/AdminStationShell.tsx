@@ -4,6 +4,7 @@ import StationFrame from "@/app/components/station/StationFrame";
 import SystemStatusBar from "@/app/components/station/SystemStatusBar";
 import type { AdminSectionKey } from "./adminSections";
 import { ADMIN_STATION_SECTIONS } from "./adminSections";
+import AdminPresenceHeartbeat from "./AdminPresenceHeartbeat";
 
 type Props = {
   activeSection: AdminSectionKey;
@@ -16,6 +17,7 @@ export default function AdminStationShell({ activeSection, children }: Props) {
   return (
     <div className="h-full min-h-0 bg-[#020805] text-[#d1f7dc]">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col px-4 py-4 md:py-6">
+        <AdminPresenceHeartbeat />
         <StationFrame
           className="flex h-full min-h-0 flex-col border-[#264d37]"
           innerClassName="flex h-full min-h-0 flex-col"

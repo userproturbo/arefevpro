@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type CurrentUser = {
   id: number;
@@ -31,7 +31,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<CurrentUser>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const visitSent = useRef(false);
+  const pathname = usePathname();
+  const visitSent = useRef<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -55,13 +56,21 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (visitSent.current) return;
-    visitSent.current = true;
+    if (!pathname) return;
 
-    fetch("/api/visit", { method: "POST", cache: "no-store", keepalive: true }).catch(
-      () => {}
-    );
-  }, []);
+    const query = typeof window === "undefined" ? "" : window.location.search;
+    const path = query ? `${pathname}${query}` : pathname;
+    if (visitSent.current === path) return;
+    visitSent.current = path;
+
+    fetch("/api/track/visit", {
+      method: "POST",
+      cache: "no-store",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    }).catch(() => {});
+  }, [pathname]);
 
   const requireUser = async (action?: () => void | Promise<void>) => {
     if (user) {
