@@ -15,7 +15,7 @@ export default function AdminStationShell({ activeSection, children }: Props) {
 
   return (
     <div className="h-full min-h-0 bg-[#020805] text-[#d1f7dc]">
-      <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4 py-4 md:py-6">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col px-4 py-4 md:py-6">
         <StationFrame
           className="flex h-full min-h-0 flex-col border-[#264d37]"
           innerClassName="flex h-full min-h-0 flex-col"
@@ -50,7 +50,7 @@ export default function AdminStationShell({ activeSection, children }: Props) {
             })}
           </nav>
 
-          <section className="mb-3 rounded-lg border border-[#1a4028] bg-[#050b07] p-3">
+          <section className="mb-3 flex min-h-0 flex-1 flex-col rounded-lg border border-[#1a4028] bg-[#050b07] p-3">
             <div className="mb-3 border-b border-[#1a4028] pb-2">
               <h1 className="text-lg font-semibold tracking-wide text-[#9ef6b2]">
                 {current?.label ?? "Admin"} Control
@@ -60,7 +60,9 @@ export default function AdminStationShell({ activeSection, children }: Props) {
               </p>
             </div>
 
-            <div className="min-h-0 overflow-auto [scrollbar-gutter:stable]">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+              {children}
+            </div>
           </section>
         </StationFrame>
       </div>
