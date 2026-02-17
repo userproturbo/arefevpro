@@ -83,6 +83,26 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     router.push(`/login?next=${encodeURIComponent(next)}`);
   };
 
+  useEffect(() => {
+    if (!user) return;
+    if (pathname?.startsWith("/admin")) return;
+
+    const ping = () => {
+      fetch("/api/presence/ping", {
+        method: "POST",
+        cache: "no-store",
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    ping();
+    const timer = window.setInterval(ping, 75_000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [user, pathname]);
+
   return (
     <AuthContext.Provider value={{ user, loading, refresh, requireUser }}>
       {children}
