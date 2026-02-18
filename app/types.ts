@@ -4,6 +4,7 @@ export type UiPost = {
   title: string;
   type: "ABOUT" | "PHOTO" | "VIDEO" | "MUSIC" | "BLOG";
   text: string | null;
+  content?: unknown;
   coverImage: string | null;
   mediaUrl: string | null;
   isPublished: boolean;

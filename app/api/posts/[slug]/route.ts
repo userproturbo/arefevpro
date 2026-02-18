@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { PostType, Prisma } from "@prisma/client";
+import { parseBlogContent } from "@/lib/blogBlocks";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -91,10 +93,18 @@ export async function PUT(
 
     const body = await req.json();
     const title = String(body.title || "").trim();
+    const hasContent = Object.prototype.hasOwnProperty.call(body, "content");
+    const parsedContent = hasContent ? parseBlogContent(body.content) : null;
 
     if (!title) {
       return NextResponse.json(
         { error: "Заголовок обязателен" },
+        { status: 400 }
+      );
+    }
+    if (post.type === PostType.BLOG && hasContent && !parsedContent) {
+      return NextResponse.json(
+        { error: "Некорректный формат content" },
         { status: 400 }
       );
     }
@@ -104,6 +114,12 @@ export async function PUT(
       data: {
         title,
         text: body.text ?? null,
+        content:
+          post.type !== PostType.BLOG
+            ? Prisma.DbNull
+            : hasContent
+            ? parsedContent ?? Prisma.DbNull
+            : undefined,
         mediaUrl: body.mediaUrl ?? null,
         coverImage: body.coverImage ?? null,
         isPublished:

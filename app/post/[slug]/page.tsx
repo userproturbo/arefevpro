@@ -12,6 +12,9 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { logServerError } from "@/lib/db";
 import PageContainer from "../../components/PageContainer";
+import BlogContentRenderer from "@/app/components/blog/BlogContentRenderer";
+import LegacyTextRenderer from "@/app/components/blog/LegacyTextRenderer";
+import { parseBlogContent } from "@/lib/blogBlocks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +29,7 @@ const getPostBase = cache(async (slug: string) => {
         title: true,
         type: true,
         text: true,
+        content: true,
         coverImage: true,
         mediaUrl: true,
         isPublished: true,
@@ -47,11 +51,23 @@ function safeMetaDescription(rawText: string | null, maxLength: number) {
   return `${chars.slice(0, maxLength).join("")}…`;
 }
 
-function splitIntoParagraphs(rawText: string) {
-  return rawText
-    .split(/\n{2,}/g)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
+function extractMetaTextFromContent(rawContent: unknown): string {
+  const parsed = parseBlogContent(rawContent);
+  if (!parsed || parsed.length === 0) return "";
+
+  return parsed
+    .map((block) => {
+      if (block.type === "heading") return block.text;
+      if (block.type === "paragraph") return block.text;
+      if (block.type === "quote") return block.text;
+      if (block.type === "link") return block.label;
+      if (block.type === "image" || block.type === "audio" || block.type === "video") {
+        return block.caption ?? "";
+      }
+      return "";
+    })
+    .join(" ")
+    .trim();
 }
 
 export async function generateMetadata({
@@ -68,7 +84,10 @@ export async function generateMetadata({
 
   return {
     title: post.title,
-    description: safeMetaDescription(post.text, 160),
+    description: safeMetaDescription(
+      extractMetaTextFromContent(post.content) || post.text,
+      160
+    ),
   };
 }
 
@@ -86,6 +105,10 @@ export default async function PostPage({
   }
 
   const hasText = !!post.text?.trim();
+  const parsedContent = parseBlogContent(post.content);
+  const hasContent =
+    (Array.isArray(parsedContent) && parsedContent.length > 0) ||
+    (typeof post.text === "string" && post.text.trim().length > 0);
   const hasAnyMedia =
     (post.type === PostType.PHOTO && !!(post.mediaUrl || post.coverImage)) ||
     (post.type === PostType.VIDEO && !!post.mediaUrl) ||
@@ -104,8 +127,6 @@ export default async function PostPage({
   });
 
   if (post.type === PostType.BLOG) {
-    const paragraphs = hasText ? splitIntoParagraphs(post.text ?? "") : [];
-
     const user = await getCurrentUser();
     const isAdmin = user?.role === "ADMIN";
 
@@ -246,17 +267,16 @@ export default async function PostPage({
             ) : null}
 
           <article className="space-y-6 text-white/85">
-            {paragraphs.length > 0 ? (
-              paragraphs.map((paragraph, index) => (
-                <p
-                  key={index}
-                  className="whitespace-pre-wrap break-words text-base leading-7 sm:text-lg sm:leading-8"
-                >
-                  {paragraph}
-                </p>
-              ))
+            {Array.isArray(parsedContent) && parsedContent.length > 0 ? (
+              <BlogContentRenderer content={parsedContent} />
+            ) : typeof post.text === "string" && post.text.trim().length > 0 ? (
+              <LegacyTextRenderer text={post.text} />
+            ) : !hasContent ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/60">
+                Пост опубликован, но контент пока не добавлен.
+              </div>
             ) : (
-              <p className="text-white/60">Текст скоро появится.</p>
+              null
             )}
           </article>
 

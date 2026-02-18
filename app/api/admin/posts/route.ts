@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PostType } from "@prisma/client";
+import { PostType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getApiUser } from "@/lib/auth";
 import { generateUniqueSlug } from "@/lib/slug";
+import { parseBlogContent } from "@/lib/blogBlocks";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -61,8 +62,17 @@ export async function POST(req: NextRequest) {
     const text = normalizeString(body.text);
     const coverImage = normalizeString(body.coverImage);
     const mediaUrl = normalizeString(body.mediaUrl);
+    const hasContent = Object.prototype.hasOwnProperty.call(body, "content");
+    const parsedContent = hasContent ? parseBlogContent(body.content) : null;
     const isPublished =
       typeof body.isPublished === "boolean" ? body.isPublished : false;
+
+    if (type === PostType.BLOG && hasContent && !parsedContent) {
+      return NextResponse.json(
+        { error: "Некорректный формат content" },
+        { status: 400 }
+      );
+    }
 
     const post = await prisma.post.create({
       data: {
@@ -70,6 +80,10 @@ export async function POST(req: NextRequest) {
         title,
         type,
         text,
+        content:
+          type === PostType.BLOG
+            ? parsedContent ?? Prisma.DbNull
+            : Prisma.DbNull,
         coverImage,
         mediaUrl,
         isPublished,

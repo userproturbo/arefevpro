@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { BlogBlock } from "@/lib/blogBlocks";
+import { isAllowedVideoEmbedUrl, parseBlogContent } from "@/lib/blogBlocks";
 
 type BlogEditorProps = {
   mode: "new" | "edit";
@@ -13,6 +15,7 @@ type BlogEditorProps = {
     title: string;
     slug: string;
     body: string;
+    content?: unknown;
     isPublished: boolean;
   };
 };
@@ -20,9 +23,17 @@ type BlogEditorProps = {
 type FormState = {
   title: string;
   slug: string;
-  excerpt: string;
-  body: string;
-  status: "draft" | "published"; // пока оставим draft, published подключим на шаге 2
+  isPublished: boolean;
+  content: BlogBlock[];
+};
+
+type NewBlockType = BlogBlock["type"];
+
+type UploadButtonProps = {
+  accept: string;
+  disabled?: boolean;
+  label: string;
+  onSelect: (file: File) => void;
 };
 
 function slugify(input: string) {
@@ -36,6 +47,93 @@ function slugify(input: string) {
     .replace(/^-|-$/g, "");
 }
 
+function generateBlockId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `block-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createBlock(type: NewBlockType): BlogBlock {
+  const id = generateBlockId();
+
+  if (type === "heading") {
+    return { id, type, level: 2, text: "" };
+  }
+  if (type === "paragraph") {
+    return { id, type, text: "" };
+  }
+  if (type === "image") {
+    return { id, type, src: "", caption: "" };
+  }
+  if (type === "video") {
+    return { id, type, embedUrl: "", videoUrl: "", caption: "" };
+  }
+  if (type === "audio") {
+    return { id, type, src: "", caption: "" };
+  }
+  if (type === "quote") {
+    return { id, type, text: "", author: "" };
+  }
+  return { id, type, href: "", label: "" };
+}
+
+function mapLegacyBodyToBlocks(body: string): BlogBlock[] {
+  const trimmed = body.trim();
+  if (!trimmed) return [];
+
+  return trimmed
+    .split(/\n{2,}/g)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .map((text) => ({
+      id: generateBlockId(),
+      type: "paragraph",
+      text,
+    }));
+}
+
+function UploadButton({ accept, disabled, label, onSelect }: UploadButtonProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="space-y-1">
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) {
+            onSelect(file);
+          }
+          event.target.value = "";
+        }}
+        disabled={disabled}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled}
+        className="rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
+const BLOCK_LABELS: Record<NewBlockType, string> = {
+  heading: "Heading",
+  paragraph: "Paragraph",
+  image: "Image",
+  video: "Video",
+  audio: "Audio",
+  quote: "Quote",
+  link: "Link",
+};
+
 export default function BlogEditor({
   mode,
   postId,
@@ -47,25 +145,30 @@ export default function BlogEditor({
 
   const titleText = mode === "new" ? "New blog post" : "Edit blog post";
 
+  const initialBlocks =
+    parseBlogContent(initialData?.content) ??
+    mapLegacyBodyToBlocks(initialData?.body ?? "");
+
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [uploadingBlockId, setUploadingBlockId] = useState<string | null>(null);
+  const [newBlockType, setNewBlockType] = useState<NewBlockType>("paragraph");
   const [form, setForm] = useState<FormState>({
     title: initialData?.title ?? "",
     slug: initialData?.slug ?? "",
-    excerpt: "",
-    body: initialData?.body ?? "",
-    status: initialData?.isPublished ? "published" : "draft",
+    isPublished: initialData?.isPublished ?? false,
+    content: initialBlocks,
   });
 
   const canSave = useMemo(() => {
-    // минимальная валидация
     return (
-      form.title.trim().length > 0 && form.slug.trim().length > 0 && !pending
+      form.title.trim().length > 0 &&
+      form.slug.trim().length > 0 &&
+      !pending &&
+      !uploadingBlockId
     );
-  }, [form.title, form.slug, pending]);
+  }, [form.title, form.slug, pending, uploadingBlockId]);
 
-  // удобство: если slug пустой — генерим из title
   useEffect(() => {
     if (form.slug.trim().length === 0 && form.title.trim().length > 0) {
       setForm((s) => ({ ...s, slug: slugify(s.title) }));
@@ -73,9 +176,158 @@ export default function BlogEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.title]);
 
+  function updateBlock(updated: BlogBlock) {
+    setForm((state) => ({
+      ...state,
+      content: state.content.map((block) =>
+        block.id === updated.id ? updated : block
+      ),
+    }));
+  }
+
+  function moveBlock(blockId: string, direction: -1 | 1) {
+    setForm((state) => {
+      const index = state.content.findIndex((block) => block.id === blockId);
+      if (index < 0) return state;
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= state.content.length) return state;
+
+      const nextContent = [...state.content];
+      const [target] = nextContent.splice(index, 1);
+      nextContent.splice(nextIndex, 0, target);
+
+      return { ...state, content: nextContent };
+    });
+  }
+
+  function deleteBlock(blockId: string) {
+    setForm((state) => ({
+      ...state,
+      content: state.content.filter((block) => block.id !== blockId),
+    }));
+  }
+
+  function addBlock() {
+    setForm((state) => ({
+      ...state,
+      content: [...state.content, createBlock(newBlockType)],
+    }));
+  }
+
+  async function uploadBlockFile(
+    blockId: string,
+    field: "src" | "videoUrl",
+    file: File,
+    folder?: "videos"
+  ) {
+    try {
+      setUploadingBlockId(blockId);
+      setError(null);
+
+      const data = new FormData();
+      data.append("file", file);
+      if (folder) {
+        data.append("folder", folder);
+      }
+
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: data,
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.url || typeof json.url !== "string") {
+        throw new Error(json.error || "Ошибка загрузки файла");
+      }
+
+      const uploadedUrl = json.url.trim();
+      if (!uploadedUrl) {
+        throw new Error("Ошибка загрузки файла");
+      }
+
+      setForm((state) => ({
+        ...state,
+        content: state.content.map((block) => {
+          if (block.id !== blockId) return block;
+          if (block.type !== "image" && block.type !== "video" && block.type !== "audio") {
+            return block;
+          }
+          if (field === "src" && (block.type === "image" || block.type === "audio")) {
+            return { ...block, src: uploadedUrl };
+          }
+          if (field === "videoUrl" && block.type === "video") {
+            return { ...block, videoUrl: uploadedUrl };
+          }
+          return block;
+        }),
+      }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Ошибка загрузки файла";
+      setError(message);
+    } finally {
+      setUploadingBlockId(null);
+    }
+  }
+
+  function validateContent(blocks: BlogBlock[]) {
+    for (let index = 0; index < blocks.length; index += 1) {
+      const block = blocks[index];
+      const number = index + 1;
+
+      if (block.type === "heading" && !block.text.trim()) {
+        return `Block ${number}: heading text is required`;
+      }
+      if (block.type === "paragraph" && !block.text.trim()) {
+        return `Block ${number}: paragraph text is required`;
+      }
+      if (block.type === "image" && !block.src.trim()) {
+        return `Block ${number}: image src is required`;
+      }
+      if (block.type === "video") {
+        const hasVideo = !!block.videoUrl?.trim();
+        const hasEmbed = !!block.embedUrl?.trim();
+        if (!hasVideo && !hasEmbed) {
+          return `Block ${number}: videoUrl or embedUrl is required`;
+        }
+        if (hasEmbed && !isAllowedVideoEmbedUrl(block.embedUrl!.trim())) {
+          return `Block ${number}: embed only supports YouTube or Vimeo`;
+        }
+      }
+      if (block.type === "audio" && !block.src.trim()) {
+        return `Block ${number}: audio src is required`;
+      }
+      if (block.type === "link") {
+        if (!block.label.trim()) {
+          return `Block ${number}: link label is required`;
+        }
+        if (!block.href.trim()) {
+          return `Block ${number}: link href is required`;
+        }
+      }
+      if (block.type === "quote" && !block.text.trim()) {
+        return `Block ${number}: quote text is required`;
+      }
+    }
+
+    return null;
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!canSave) return;
+
+    const normalizedTitle = form.title.trim();
+    const normalizedSlug = form.slug.trim();
+    const validationError = validateContent(form.content);
+
+    if (!normalizedTitle || !normalizedSlug) {
+      setError("Title and slug are required");
+      return;
+    }
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setPending(true);
     setError(null);
@@ -83,10 +335,11 @@ export default function BlogEditor({
     try {
       const payload = {
         type: "BLOG",
-        title: form.title.trim(),
-        slug: form.slug.trim(),
-        text: form.body,
-        isPublished: form.status === "published",
+        title: normalizedTitle,
+        slug: normalizedSlug,
+        text: null,
+        content: form.content,
+        isPublished: form.isPublished,
       };
 
       const url =
@@ -108,7 +361,6 @@ export default function BlogEditor({
         throw new Error(data?.error || "Не удалось сохранить черновик");
       }
 
-      // после сохранения — возвращаемся в список
       router.push(returnTo);
       router.refresh();
     } catch (err: unknown) {
@@ -146,7 +398,7 @@ export default function BlogEditor({
             <span className="text-white/60"> #{postId}</span>
           ) : null}
         </h1>
-        <p className="text-sm text-white/60">Create or edit post inline and stay in this section.</p>
+        <p className="text-sm text-white/60">Block editor for media-rich blog posts.</p>
       </div>
 
       {error ? (
@@ -187,11 +439,11 @@ export default function BlogEditor({
           <div className="space-y-1">
             <label className="text-sm text-white/70">Status</label>
             <select
-              value={form.status}
+              value={form.isPublished ? "published" : "draft"}
               onChange={(e) =>
                 setForm((s) => ({
                   ...s,
-                  status: e.target.value as FormState["status"],
+                  isPublished: e.target.value === "published",
                 }))
               }
               className="w-full rounded-lg border border-white/10 bg-black/40 p-3 outline-none disabled:opacity-60"
@@ -199,34 +451,233 @@ export default function BlogEditor({
               <option value="draft">Draft</option>
               <option value="published">Published</option>
             </select>
-            <p className="text-xs text-white/40">
-              Выберите статус и нажмите Save.
-            </p>
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-sm text-white/70">Excerpt</label>
-          <textarea
-            value={form.excerpt}
-            onChange={(e) =>
-              setForm((s) => ({ ...s, excerpt: e.target.value }))
-            }
-            className="w-full rounded-lg border border-white/10 bg-black/40 p-3 outline-none"
-            placeholder="Short summary"
-            rows={3}
-          />
-        </div>
+        <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={newBlockType}
+              onChange={(e) => setNewBlockType(e.target.value as NewBlockType)}
+              className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none"
+            >
+              {Object.keys(BLOCK_LABELS).map((type) => (
+                <option key={type} value={type}>
+                  {BLOCK_LABELS[type as NewBlockType]}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={addBlock}
+              className="rounded-lg border border-white/15 bg-white/[0.02] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.04]"
+            >
+              + Add block
+            </button>
+          </div>
 
-        <div className="space-y-1">
-          <label className="text-sm text-white/70">Body</label>
-          <textarea
-            value={form.body}
-            onChange={(e) => setForm((s) => ({ ...s, body: e.target.value }))}
-            className="w-full rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-sm outline-none"
-            placeholder="Write your post here…"
-            rows={12}
-          />
+          <div className="space-y-3">
+            {form.content.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-white/15 p-4 text-sm text-white/60">
+                Content blocks are empty. Add your first block.
+              </div>
+            ) : (
+              form.content.map((block, index) => (
+                <div
+                  key={block.id}
+                  className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs uppercase tracking-[0.08em] text-white/50">
+                      {index + 1}. {BLOCK_LABELS[block.type]}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => moveBlock(block.id, -1)}
+                        disabled={index === 0}
+                        className="rounded-md border border-white/10 px-2 py-1 text-xs text-white/80 disabled:opacity-40"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveBlock(block.id, 1)}
+                        disabled={index === form.content.length - 1}
+                        className="rounded-md border border-white/10 px-2 py-1 text-xs text-white/80 disabled:opacity-40"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteBlock(block.id)}
+                        className="rounded-md border border-[#275636] bg-[#09120d] px-2 py-1 text-xs text-[#8ec99c]"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  {block.type === "heading" ? (
+                    <div className="grid gap-3 md:grid-cols-[120px_1fr]">
+                      <select
+                        value={block.level}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            level: Number(e.target.value) as 1 | 2 | 3,
+                          })
+                        }
+                        className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none"
+                      >
+                        <option value={1}>H1</option>
+                        <option value={2}>H2</option>
+                        <option value={3}>H3</option>
+                      </select>
+                      <input
+                        value={block.text}
+                        onChange={(e) => updateBlock({ ...block, text: e.target.value })}
+                        className="rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Heading text"
+                      />
+                    </div>
+                  ) : null}
+
+                  {block.type === "paragraph" ? (
+                    <textarea
+                      value={block.text}
+                      onChange={(e) => updateBlock({ ...block, text: e.target.value })}
+                      className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-sm outline-none"
+                      rows={5}
+                      placeholder="Paragraph text"
+                    />
+                  ) : null}
+
+                  {block.type === "image" ? (
+                    <div className="space-y-2">
+                      <input
+                        value={block.src}
+                        onChange={(e) => updateBlock({ ...block, src: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="https://..."
+                      />
+                      <UploadButton
+                        accept="image/*"
+                        disabled={!!uploadingBlockId}
+                        label={uploadingBlockId === block.id ? "Uploading..." : "Upload image"}
+                        onSelect={(file) => uploadBlockFile(block.id, "src", file)}
+                      />
+                      <input
+                        value={block.caption ?? ""}
+                        onChange={(e) => updateBlock({ ...block, caption: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Caption (optional)"
+                      />
+                    </div>
+                  ) : null}
+
+                  {block.type === "video" ? (
+                    <div className="space-y-2">
+                      <input
+                        value={block.embedUrl ?? ""}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            embedUrl: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Embed URL (YouTube / Vimeo)"
+                      />
+                      <input
+                        value={block.videoUrl ?? ""}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            videoUrl: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Video URL (upload or direct file)"
+                      />
+                      <UploadButton
+                        accept="video/mp4,video/quicktime"
+                        disabled={!!uploadingBlockId}
+                        label={uploadingBlockId === block.id ? "Uploading..." : "Upload video"}
+                        onSelect={(file) =>
+                          uploadBlockFile(block.id, "videoUrl", file, "videos")
+                        }
+                      />
+                      <input
+                        value={block.caption ?? ""}
+                        onChange={(e) => updateBlock({ ...block, caption: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Caption (optional)"
+                      />
+                    </div>
+                  ) : null}
+
+                  {block.type === "audio" ? (
+                    <div className="space-y-2">
+                      <input
+                        value={block.src}
+                        onChange={(e) => updateBlock({ ...block, src: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Audio URL"
+                      />
+                      <UploadButton
+                        accept="audio/*"
+                        disabled={!!uploadingBlockId}
+                        label={uploadingBlockId === block.id ? "Uploading..." : "Upload audio"}
+                        onSelect={(file) => uploadBlockFile(block.id, "src", file)}
+                      />
+                      <input
+                        value={block.caption ?? ""}
+                        onChange={(e) => updateBlock({ ...block, caption: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Caption (optional)"
+                      />
+                    </div>
+                  ) : null}
+
+                  {block.type === "quote" ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={block.text}
+                        onChange={(e) => updateBlock({ ...block, text: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-sm outline-none"
+                        rows={4}
+                        placeholder="Quote"
+                      />
+                      <input
+                        value={block.author ?? ""}
+                        onChange={(e) => updateBlock({ ...block, author: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Author (optional)"
+                      />
+                    </div>
+                  ) : null}
+
+                  {block.type === "link" ? (
+                    <div className="space-y-2">
+                      <input
+                        value={block.label}
+                        onChange={(e) => updateBlock({ ...block, label: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="Link label"
+                      />
+                      <input
+                        value={block.href}
+                        onChange={(e) => updateBlock({ ...block, href: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -244,10 +695,14 @@ export default function BlogEditor({
               </Link>
             )}
 
-            <button type="submit" disabled={!canSave}>
+            <button
+              type="submit"
+              disabled={!canSave}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
+            >
               {pending
                 ? "Saving..."
-                : form.status === "published"
+                : form.isPublished
                 ? "Publish"
                 : "Save draft"}
             </button>

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUser } from "@/lib/auth";
-import { PostType } from "@prisma/client";
+import { PostType, Prisma } from "@prisma/client";
+import { parseBlogContent } from "@/lib/blogBlocks";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -55,6 +56,7 @@ export async function GET(_: NextRequest, ctx: { params: Promise<{ id: string }>
         title: true,
         type: true,
         text: true,
+        content: true,
         coverImage: true,
         mediaUrl: true,
         isPublished: true,
@@ -98,14 +100,36 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     const text = normalizeString(body.text);
     const coverImage = normalizeString(body.coverImage);
     const mediaUrl = normalizeString(body.mediaUrl);
+    const hasContent = Object.prototype.hasOwnProperty.call(body, "content");
+    const parsedContent = hasContent ? parseBlogContent(body.content) : null;
     const isPublished = typeof body.isPublished === "boolean" ? body.isPublished : false;
+
+    if (type === PostType.BLOG && hasContent && !parsedContent) {
+      return NextResponse.json(
+        { error: "Некорректный формат content" },
+        { status: 400 }
+      );
+    }
 
     const exists = await prisma.post.findUnique({ where: { id }, select: { id: true } });
     if (!exists) return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
 
     const post = await prisma.post.update({
       where: { id },
-      data: { type, title, text, coverImage, mediaUrl, isPublished },
+      data: {
+        type,
+        title,
+        text,
+        content:
+          type !== PostType.BLOG
+            ? Prisma.DbNull
+            : hasContent
+            ? parsedContent ?? Prisma.DbNull
+            : undefined,
+        coverImage,
+        mediaUrl,
+        isPublished,
+      },
     });
 
     return NextResponse.json({ post });

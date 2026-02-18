@@ -4,6 +4,7 @@ import { UiPost } from "../types";
 import Link from "next/link";
 import LikeButton from "./buttons/LikeButton";
 import { motion } from "framer-motion";
+import { getPostExcerpt } from "@/lib/postExcerpt";
 
 type Props = {
   post: UiPost;
@@ -27,6 +28,8 @@ function getBadge(type: UiPost["type"]) {
 }
 
 export default function PostCard({ post }: Props) {
+  const excerpt = getPostExcerpt(post);
+
   return (
     <motion.div
       whileHover={{ y: -4 }}
@@ -62,9 +65,9 @@ export default function PostCard({ post }: Props) {
             >
               {post.title}
             </Link>
-            {post.text && (
+            {excerpt && (
               <p className="mt-2 text-sm text-white/60 line-clamp-2">
-                {post.text}
+                {excerpt}
               </p>
             )}
           </div>

@@ -3,6 +3,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import LikeButton from "../../components/buttons/LikeButton";
 import CommentsPanel from "../../components/comments/CommentsPanel";
+import BlogContentRenderer from "@/app/components/blog/BlogContentRenderer";
+import LegacyTextRenderer from "@/app/components/blog/LegacyTextRenderer";
+import { parseBlogContent } from "@/lib/blogBlocks";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,6 +31,7 @@ export default async function BlogPostPage({
       slug: true,
       title: true,
       text: true,
+      content: true,
       createdAt: true,
       _count: {
         select: {
@@ -108,6 +112,10 @@ export default async function BlogPostPage({
     totalPages,
     hasNextPage: 1 < totalPages,
   };
+  const parsedContent = parseBlogContent(post.content);
+  const hasContent =
+    (Array.isArray(parsedContent) && parsedContent.length > 0) ||
+    (typeof post.text === "string" && post.text.trim().length > 0);
 
   return (
     <article className="max-w-3xl space-y-6">
@@ -122,10 +130,16 @@ export default async function BlogPostPage({
         </p>
       </header>
 
-      <div className="prose prose-invert max-w-none">
-        {post.text
-          ? post.text.split("\n").map((p, i) => <p key={i}>{p}</p>)
-          : <p className="text-white/60">No content.</p>}
+      <div className={Array.isArray(parsedContent) && parsedContent.length > 0 ? "space-y-8" : "prose prose-invert max-w-none"}>
+        {Array.isArray(parsedContent) && parsedContent.length > 0 ? (
+          <BlogContentRenderer content={parsedContent} />
+        ) : typeof post.text === "string" && post.text.trim().length > 0 ? (
+          <LegacyTextRenderer text={post.text} />
+        ) : !hasContent ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/60">
+            Этот пост опубликован, но контент пока не добавлен.
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-4">

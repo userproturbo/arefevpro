@@ -42,6 +42,7 @@ export default async function AdminBlogSection({ createMode, editId }: Props) {
         title: string;
         slug: string;
         text: string | null;
+        content: unknown;
         isPublished: boolean;
       }
     | null = null;
@@ -55,6 +56,7 @@ export default async function AdminBlogSection({ createMode, editId }: Props) {
           title: true,
           slug: true,
           text: true,
+          content: true,
           isPublished: true,
         },
       });
@@ -105,6 +107,7 @@ export default async function AdminBlogSection({ createMode, editId }: Props) {
                 title: postToEdit.title,
                 slug: postToEdit.slug,
                 body: postToEdit.text ?? "",
+                content: postToEdit.content,
                 isPublished: postToEdit.isPublished,
               }}
             />

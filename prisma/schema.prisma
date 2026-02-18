@@ -42,6 +42,7 @@ model Post {
   title       String
   type        PostType
   text        String?
+  content     Json?
   coverImage  String?
   mediaUrl    String?
   isPublished Boolean   @default(false)

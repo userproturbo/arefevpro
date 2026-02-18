@@ -6,6 +6,9 @@ import PostCard from "@/app/components/PostCard";
 import LikeButton from "@/app/components/buttons/LikeButton";
 import CommentsPanel from "@/app/components/comments/CommentsPanel";
 import PostMedia from "@/app/post/PostMedia";
+import BlogContentRenderer from "@/app/components/blog/BlogContentRenderer";
+import LegacyTextRenderer from "@/app/components/blog/LegacyTextRenderer";
+import { parseBlogContent } from "@/lib/blogBlocks";
 
 type ApiPost = {
   id: number;
@@ -13,6 +16,7 @@ type ApiPost = {
   title: string;
   type: string;
   text: string | null;
+  content?: unknown;
   coverImage: string | null;
   mediaUrl: string | null;
   isPublished: boolean;
@@ -48,6 +52,7 @@ function mapApiPost(post: ApiPost): UiPost {
     title: post.title,
     type: normalizePostType(post.type),
     text: post.text ?? null,
+    content: post.content,
     coverImage: post.coverImage ?? null,
     mediaUrl: post.mediaUrl ?? null,
     isPublished: !!post.isPublished,
@@ -57,14 +62,6 @@ function mapApiPost(post: ApiPost): UiPost {
     commentsCount: post.commentsCount ?? post._count?.comments ?? 0,
     liked: !!post.liked,
   };
-}
-
-function splitIntoParagraphs(rawText: string | null): string[] {
-  if (!rawText) return [];
-  return rawText
-    .split(/\n{2,}/g)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
 }
 
 function isButtonTarget(target: EventTarget | null): boolean {
@@ -98,7 +95,9 @@ export default function StationBlogModule() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as { posts?: unknown };
         const rawPosts = Array.isArray(data.posts) ? (data.posts as ApiPost[]) : [];
-        const mappedPosts = rawPosts.map(mapApiPost);
+        const mappedPosts = rawPosts
+          .map(mapApiPost)
+          .filter((post) => post.isPublished);
 
         if (!cancelled) {
           setPosts(mappedPosts);
@@ -178,7 +177,10 @@ export default function StationBlogModule() {
   const view: StationBlogView = activeSlug ? "post" : "list";
 
   if (view === "post") {
-    const paragraphs = splitIntoParagraphs(activePost?.text ?? null);
+    const parsedContent = parseBlogContent(activePost?.content);
+    const hasContent =
+      (Array.isArray(parsedContent) && parsedContent.length > 0) ||
+      (typeof activePost?.text === "string" && activePost.text.trim().length > 0);
 
     return (
       <div className="space-y-4">
@@ -222,16 +224,16 @@ export default function StationBlogModule() {
               title={activePost.title}
             />
 
-            {paragraphs.length > 0 ? (
-              <div className="space-y-3 text-sm text-[#9ed7ad]">
-                {paragraphs.map((paragraph, index) => (
-                  <p key={`${activePost.slug}-${index}`} className="whitespace-pre-wrap leading-7">
-                    {paragraph}
-                  </p>
-                ))}
+            {Array.isArray(parsedContent) && parsedContent.length > 0 ? (
+              <BlogContentRenderer content={parsedContent} />
+            ) : typeof activePost.text === "string" && activePost.text.trim().length > 0 ? (
+              <LegacyTextRenderer text={activePost.text} className="space-y-3 text-sm text-[#9ed7ad]" />
+            ) : !hasContent ? (
+              <div className="rounded-md border border-[#275636] bg-[#0b1711] p-3 text-sm text-[#8ec99c]">
+                This post has no content yet.
               </div>
             ) : (
-              <p className="text-sm text-[#8ec99c]">No content yet.</p>
+              null
             )}
 
             <div className="flex flex-wrap items-center gap-3 border-t border-[#1a4028] pt-3">
