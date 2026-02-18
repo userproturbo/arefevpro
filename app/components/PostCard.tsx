@@ -4,7 +4,7 @@ import { UiPost } from "../types";
 import Link from "next/link";
 import LikeButton from "./buttons/LikeButton";
 import { motion } from "framer-motion";
-import { getPostExcerpt } from "@/lib/postExcerpt";
+import { getPostCover, getPostExcerpt, getPostTitle } from "@/lib/postPreview";
 
 type Props = {
   post: UiPost;
@@ -28,7 +28,9 @@ function getBadge(type: UiPost["type"]) {
 }
 
 export default function PostCard({ post }: Props) {
+  const title = getPostTitle(post);
   const excerpt = getPostExcerpt(post);
+  const cover = getPostCover(post);
 
   return (
     <motion.div
@@ -40,15 +42,20 @@ export default function PostCard({ post }: Props) {
           <div
             className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 transition duration-500 group-hover:scale-105"
             style={
-              post.coverImage
+              cover.kind === "image"
                 ? {
-                    backgroundImage: `url(${post.coverImage})`,
+                    backgroundImage: `url(${cover.src})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }
                 : undefined
             }
           />
+          {cover.kind === "fallback" ? (
+            <div
+              className={`absolute inset-0 bg-gradient-to-br ${cover.gradientClass}`}
+            />
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
           <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/60 border border-white/15 text-xs uppercase tracking-[0.12em]">
             {getBadge(post.type)}
@@ -63,7 +70,7 @@ export default function PostCard({ post }: Props) {
               href={`/post/${post.slug}`}
               className="text-lg font-semibold leading-tight hover:text-white"
             >
-              {post.title}
+              {title}
             </Link>
             {excerpt && (
               <p className="mt-2 text-sm text-white/60 line-clamp-2">

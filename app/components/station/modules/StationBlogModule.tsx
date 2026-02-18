@@ -9,6 +9,7 @@ import PostMedia from "@/app/post/PostMedia";
 import BlogContentRenderer from "@/app/components/blog/BlogContentRenderer";
 import LegacyTextRenderer from "@/app/components/blog/LegacyTextRenderer";
 import { parseBlogContent } from "@/lib/blogBlocks";
+import { getPostTitle } from "@/lib/postPreview";
 
 type ApiPost = {
   id: number;
@@ -181,6 +182,7 @@ export default function StationBlogModule() {
     const hasContent =
       (Array.isArray(parsedContent) && parsedContent.length > 0) ||
       (typeof activePost?.text === "string" && activePost.text.trim().length > 0);
+    const displayTitle = activePost ? getPostTitle(activePost) : "";
 
     return (
       <div className="space-y-4">
@@ -207,7 +209,7 @@ export default function StationBlogModule() {
         {activePost && (
           <article className="space-y-4 rounded-md border border-[#275636] bg-[#09120d] p-3">
             <header className="space-y-1 border-b border-[#1a4028] pb-2">
-              <h2 className="text-lg font-semibold tracking-wide text-[#9ef6b2]">{activePost.title}</h2>
+              <h2 className="text-lg font-semibold tracking-wide text-[#9ef6b2]">{displayTitle}</h2>
               <p className="text-xs text-[#7dad8a]">
                 {new Date(activePost.createdAt).toLocaleDateString("en-US", {
                   year: "numeric",
