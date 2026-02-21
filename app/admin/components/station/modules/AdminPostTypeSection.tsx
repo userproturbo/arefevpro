@@ -56,6 +56,8 @@ export default async function AdminPostTypeSection({
         title: string;
         type: PostType;
         text: string | null;
+        mediaId: number | null;
+        media: { url: string } | null;
         coverImage: string | null;
         mediaUrl: string | null;
         isPublished: boolean;
@@ -71,6 +73,8 @@ export default async function AdminPostTypeSection({
           title: true,
           type: true,
           text: true,
+          mediaId: true,
+          media: { select: { url: true } },
           coverImage: true,
           mediaUrl: true,
           isPublished: true,
@@ -133,7 +137,8 @@ export default async function AdminPostTypeSection({
                 title: postToEdit.title,
                 text: postToEdit.text,
                 coverImage: postToEdit.coverImage,
-                mediaUrl: postToEdit.mediaUrl,
+                mediaUrl: postToEdit.media?.url ?? postToEdit.mediaUrl,
+                mediaId: postToEdit.mediaId,
                 isPublished: postToEdit.isPublished,
               }}
             />

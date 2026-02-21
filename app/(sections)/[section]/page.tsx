@@ -30,6 +30,7 @@ export default async function SectionPage({
     title: string;
     createdAt: Date;
     coverImage: string | null;
+    coverMedia: { url: string } | null;
   }> = [];
 
   try {
@@ -41,6 +42,7 @@ export default async function SectionPage({
         slug: true,
         title: true,
         createdAt: true,
+        coverMedia: { select: { url: true } },
         coverImage: true,
       },
     });
@@ -73,10 +75,10 @@ export default async function SectionPage({
             key={post.id}
             className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex gap-4 items-center"
           >
-            {post.coverImage ? (
+            {post.coverMedia?.url || post.coverImage ? (
               <div
                 className="h-16 w-24 rounded-lg bg-cover bg-center border border-white/10"
-                style={{ backgroundImage: `url(${post.coverImage})` }}
+                style={{ backgroundImage: `url(${post.coverMedia?.url ?? post.coverImage})` }}
               />
             ) : (
               <div className="h-16 w-24 rounded-lg border border-white/10 bg-white/5" />

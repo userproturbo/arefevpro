@@ -52,13 +52,13 @@ export default async function PhotoAlbumPage({
         title: true,
         slug: true,
         description: true,
-        coverPhoto: { select: { url: true, deletedAt: true } },
+        coverPhoto: { select: { media: { select: { url: true } }, deletedAt: true } },
         photos: {
           orderBy: [{ order: "asc" }, { createdAt: "asc" }],
           where: { deletedAt: null },
           select: {
             id: true,
-            url: true,
+            media: { select: { url: true } },
             width: true,
             height: true,
             _count: { select: { likes: true } },
@@ -89,10 +89,10 @@ export default async function PhotoAlbumPage({
         description: rawAlbum.description,
         coverImage: rawAlbum.coverPhoto?.deletedAt
           ? null
-          : rawAlbum.coverPhoto?.url ?? null,
+          : rawAlbum.coverPhoto?.media?.url ?? null,
         photos: rawAlbum.photos.map((photo) => ({
           id: photo.id,
-          url: photo.url,
+          url: photo.media?.url ?? "",
           width: photo.width,
           height: photo.height,
           likesCount: photo._count.likes,

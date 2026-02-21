@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUser } from "@/lib/auth";
 import { getStorageAdapter } from "@/lib/storage";
+import { MediaType } from "@prisma/client";
+import { resolveMediaReference, toMediaDTO } from "@/lib/media";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -23,6 +25,13 @@ function normalizeStringUpdate(value: unknown) {
     return trimmed.length ? trimmed : null;
   }
   return undefined;
+}
+
+function parseOptionalInt(value: unknown): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return Math.floor(value);
 }
 
 function isAdminUser(user: { id: number; role: string }) {
@@ -54,12 +63,26 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: "Некорректный id" }, { status: 400 });
     }
 
-    const video = await prisma.video.findUnique({ where: { id } });
+    const video = await prisma.video.findUnique({
+      where: { id },
+      include: {
+        media: true,
+        thumbnailMedia: true,
+      },
+    });
     if (!video) {
       return NextResponse.json({ error: "Видео не найдено" }, { status: 404 });
     }
 
-    return NextResponse.json({ video });
+    return NextResponse.json({
+      video: {
+        ...video,
+        media: toMediaDTO(video.media),
+        thumbnailMedia: toMediaDTO(video.thumbnailMedia),
+        videoUrl: video.media?.url ?? video.videoUrl ?? null,
+        thumbnailUrl: video.thumbnailMedia?.url ?? video.thumbnailUrl ?? null,
+      },
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
@@ -105,12 +128,13 @@ export async function PATCH(
     const description = normalizeStringUpdate(body.description);
     const thumbnailUrl = normalizeStringUpdate(body.thumbnailUrl);
     const videoUrl = normalizeStringUpdate(body.videoUrl);
+    const mediaIdInput = parseOptionalInt(body.mediaId);
+    const thumbnailMediaIdInput = parseOptionalInt(body.thumbnailMediaId);
     const embedUrl = normalizeStringUpdate(body.embedUrl);
     const isPublished =
       typeof body.isPublished === "boolean" ? body.isPublished : undefined;
 
-    const nextVideoUrl =
-      videoUrl === undefined ? existing.videoUrl : videoUrl;
+    const nextVideoUrl = videoUrl === undefined ? existing.videoUrl : videoUrl;
     const nextEmbedUrl =
       embedUrl === undefined ? existing.embedUrl : embedUrl;
 
@@ -121,21 +145,64 @@ export async function PATCH(
       );
     }
 
+    const nextMediaId =
+      mediaIdInput === undefined
+        ? await resolveMediaReference(prisma, {
+            mediaId: existing.mediaId,
+            url: nextVideoUrl,
+            type: MediaType.VIDEO,
+            storageKeyPrefix: `legacy/video/${id}`,
+          })
+        : await resolveMediaReference(prisma, {
+            mediaId: mediaIdInput,
+            url: nextVideoUrl,
+            type: MediaType.VIDEO,
+            storageKeyPrefix: `legacy/video/${id}`,
+          });
+
+    const nextThumbnailMediaId =
+      thumbnailMediaIdInput === undefined
+        ? await resolveMediaReference(prisma, {
+            mediaId: existing.thumbnailMediaId,
+            url: thumbnailUrl === undefined ? existing.thumbnailUrl : thumbnailUrl,
+            type: MediaType.IMAGE,
+            storageKeyPrefix: `legacy/video-thumbnail/${id}`,
+          })
+        : await resolveMediaReference(prisma, {
+            mediaId: thumbnailMediaIdInput,
+            url: thumbnailUrl,
+            type: MediaType.IMAGE,
+            storageKeyPrefix: `legacy/video-thumbnail/${id}`,
+          });
+
     const video = await prisma.video.update({
       where: { id },
       data: {
         title: titleValue !== undefined ? titleValue : existing.title,
         description: description === undefined ? existing.description : description,
-        thumbnailUrl:
-          thumbnailUrl === undefined ? existing.thumbnailUrl : thumbnailUrl,
-        videoUrl: nextVideoUrl,
+        mediaId: nextMediaId,
+        thumbnailMediaId: nextThumbnailMediaId,
+        thumbnailUrl: null,
+        videoUrl: null,
         embedUrl: nextEmbedUrl,
         isPublished:
           isPublished === undefined ? existing.isPublished : isPublished,
       },
+      include: {
+        media: true,
+        thumbnailMedia: true,
+      },
     });
 
-    return NextResponse.json({ video });
+    return NextResponse.json({
+      video: {
+        ...video,
+        media: toMediaDTO(video.media),
+        thumbnailMedia: toMediaDTO(video.thumbnailMedia),
+        videoUrl: video.media?.url ?? null,
+        thumbnailUrl: video.thumbnailMedia?.url ?? null,
+      },
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
@@ -165,13 +232,22 @@ export async function DELETE(
       return NextResponse.json({ error: "Некорректный id" }, { status: 400 });
     }
 
-    const existing = await prisma.video.findUnique({ where: { id } });
+    const existing = await prisma.video.findUnique({
+      where: { id },
+      include: {
+        media: true,
+        thumbnailMedia: true,
+      },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Видео не найдено" }, { status: 404 });
     }
 
     const storage = getStorageAdapter();
-    const cleanupTargets = [existing.videoUrl, existing.thumbnailUrl].filter(
+    const cleanupTargets = [
+      existing.media?.url ?? existing.videoUrl,
+      existing.thumbnailMedia?.url ?? existing.thumbnailUrl,
+    ].filter(
       (value): value is string => !!value
     );
     await Promise.all(

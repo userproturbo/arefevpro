@@ -31,13 +31,13 @@ export async function GET(
         slug: true,
         description: true,
         published: true,
-        coverPhoto: { select: { url: true, deletedAt: true } },
+        coverPhoto: { select: { media: { select: { url: true } }, deletedAt: true } },
         photos: {
           orderBy: [{ order: "asc" }, { createdAt: "asc" }],
           where: { deletedAt: null },
           select: {
             id: true,
-            url: true,
+            media: { select: { url: true } },
             width: true,
             height: true,
             _count: { select: { likes: true } },
@@ -69,10 +69,12 @@ export async function GET(
         title: album.title,
         slug: album.slug,
         description: album.description,
-        coverImage: album.coverPhoto?.deletedAt ? null : album.coverPhoto?.url ?? null,
+        coverImage: album.coverPhoto?.deletedAt
+          ? null
+          : album.coverPhoto?.media?.url ?? null,
         photos: album.photos.map((photo) => ({
           id: photo.id,
-          url: photo.url,
+          url: photo.media?.url ?? "",
           width: photo.width,
           height: photo.height,
           likesCount: photo._count.likes,

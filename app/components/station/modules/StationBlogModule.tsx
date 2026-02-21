@@ -10,6 +10,7 @@ import BlogContentRenderer from "@/app/components/blog/BlogContentRenderer";
 import LegacyTextRenderer from "@/app/components/blog/LegacyTextRenderer";
 import { parseBlogContent } from "@/lib/blogBlocks";
 import { getPostTitle } from "@/lib/postPreview";
+import type { MediaDTO } from "@/types/media";
 
 type ApiPost = {
   id: number;
@@ -18,6 +19,7 @@ type ApiPost = {
   type: string;
   text: string | null;
   content?: unknown;
+  coverMedia?: MediaDTO | null;
   coverImage: string | null;
   mediaUrl: string | null;
   isPublished: boolean;
@@ -54,6 +56,7 @@ function mapApiPost(post: ApiPost): UiPost {
     type: normalizePostType(post.type),
     text: post.text ?? null,
     content: post.content,
+    coverMedia: post.coverMedia ?? null,
     coverImage: post.coverImage ?? null,
     mediaUrl: post.mediaUrl ?? null,
     isPublished: !!post.isPublished,
@@ -221,8 +224,7 @@ export default function StationBlogModule() {
 
             <PostMedia
               type={activePost.type as PostMediaType}
-              mediaUrl={activePost.mediaUrl}
-              coverImage={activePost.coverImage}
+              media={activePost.coverMedia}
               title={activePost.title}
             />
 

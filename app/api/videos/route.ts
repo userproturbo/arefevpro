@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { toMediaDTO } from "@/lib/media";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -21,6 +22,8 @@ export async function GET(_req: NextRequest) {
         id: true,
         title: true,
         description: true,
+        media: true,
+        thumbnailMedia: true,
         thumbnailUrl: true,
         videoUrl: true,
         embedUrl: true,
@@ -43,8 +46,10 @@ export async function GET(_req: NextRequest) {
         id: video.id,
         title: video.title,
         description: video.description,
-        thumbnailUrl: video.thumbnailUrl,
-        videoUrl: video.videoUrl,
+        media: toMediaDTO(video.media),
+        thumbnailMedia: toMediaDTO(video.thumbnailMedia),
+        thumbnailUrl: video.thumbnailMedia?.url ?? video.thumbnailUrl,
+        videoUrl: video.media?.url ?? video.videoUrl,
         embedUrl: video.embedUrl,
         likesCount: video._count.likes,
         isLikedByMe: authUser ? likedByMeSet.has(video.id) : false,

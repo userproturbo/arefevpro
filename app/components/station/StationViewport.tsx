@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import StationBlogModule from "./modules/StationBlogModule";
 import StationPhotoModule from "./modules/StationPhotoModule";
+import StationAudioModule from "./modules/StationAudioModule";
 import StationVideoModule from "./modules/StationVideoModule";
 import type { StationMode } from "./types";
 
@@ -58,11 +59,11 @@ const VIEWPORT_CONTENT: Record<StationMode, ViewportConfig> = {
   },
   audio: {
     title: "Audio Bay",
-    subtitle: "Audio controls are in stub mode for now.",
+    subtitle: "Published music posts and playback controls.",
     cards: [
-      { title: "Now Playing", description: "No active track" },
-      { title: "Queue", description: "Queue is empty" },
-      { title: "Library", description: "Connect source to load tracks" },
+      { title: "Now Playing", description: "Select a track to start playback." },
+      { title: "Queue", description: "Track selection list is loaded from posts." },
+      { title: "Library", description: "MUSIC posts with linked media files." },
     ],
   },
   blog: {
@@ -93,6 +94,8 @@ export default function StationViewport({ mode }: StationViewportProps) {
             <StationPhotoModule />
           ) : mode === "video" ? (
             <StationVideoModule />
+          ) : mode === "audio" ? (
+            <StationAudioModule />
           ) : mode === "blog" ? (
             <StationBlogModule />
           ) : (

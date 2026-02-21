@@ -1,46 +1,32 @@
-export type BlogBlock =
-  | {
-      id: string;
-      type: "heading";
-      level: 1 | 2 | 3;
-      text: string;
-    }
-  | {
-      id: string;
-      type: "paragraph";
-      text: string;
-    }
-  | {
-      id: string;
-      type: "image";
-      src: string;
-      caption?: string;
-    }
-  | {
-      id: string;
-      type: "video";
-      videoUrl?: string;
-      embedUrl?: string;
-      caption?: string;
-    }
-  | {
-      id: string;
-      type: "audio";
-      src: string;
-      caption?: string;
-    }
-  | {
-      id: string;
-      type: "quote";
-      text: string;
-      author?: string;
-    }
-  | {
-      id: string;
-      type: "link";
-      href: string;
-      label: string;
-    };
+import type {
+  BlogAlign,
+  BlogAudioBlock,
+  BlogBlock,
+  BlogBlockBase,
+  BlogBlockType,
+  BlogHeadingBlock,
+  BlogImageBlock,
+  BlogLinkBlock,
+  BlogParagraphBlock,
+  BlogQuoteBlock,
+  BlogVideoBlock,
+  BlogVariant,
+} from "@/types/blogBlocks";
+
+export type {
+  BlogAlign,
+  BlogAudioBlock,
+  BlogBlock,
+  BlogBlockBase,
+  BlogBlockType,
+  BlogHeadingBlock,
+  BlogImageBlock,
+  BlogLinkBlock,
+  BlogParagraphBlock,
+  BlogQuoteBlock,
+  BlogVariant,
+  BlogVideoBlock,
+};
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -56,6 +42,76 @@ function asOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function asOptionalNumber(value: unknown): number | undefined {
+  if (typeof value !== "number") return undefined;
+  if (!Number.isFinite(value) || value <= 0) return undefined;
+  return Math.floor(value);
+}
+
+function asOptionalAlign(value: unknown): BlogAlign | undefined {
+  if (value === "normal" || value === "wide" || value === "full") {
+    return value;
+  }
+  return undefined;
+}
+
+function asOptionalVariant(value: unknown): BlogVariant | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function resolveData(raw: Record<string, unknown>, type: BlogBlockType): Record<string, unknown> {
+  const value = raw.data;
+  if (isObject(value)) return value;
+
+  // legacy flat format fallback
+  if (type === "heading") {
+    return {
+      level: raw.level,
+      text: raw.text,
+    };
+  }
+  if (type === "paragraph") {
+    return {
+      text: raw.text,
+    };
+  }
+  if (type === "image") {
+    return {
+      src: raw.src,
+      mediaId: raw.mediaId,
+      caption: raw.caption,
+      alt: raw.alt,
+    };
+  }
+  if (type === "video") {
+    return {
+      videoUrl: raw.videoUrl,
+      embedUrl: raw.embedUrl,
+      mediaId: raw.mediaId,
+      caption: raw.caption,
+    };
+  }
+  if (type === "audio") {
+    return {
+      src: raw.src,
+      mediaId: raw.mediaId,
+      caption: raw.caption,
+    };
+  }
+  if (type === "quote") {
+    return {
+      text: raw.text,
+      author: raw.author,
+    };
+  }
+  return {
+    href: raw.href,
+    label: raw.label,
+  };
 }
 
 export function isValidMediaUrl(value: unknown): value is string {
@@ -95,83 +151,121 @@ export function parseBlogBlock(raw: unknown): BlogBlock | null {
   if (!isObject(raw)) return null;
 
   const id = asNonEmptyString(raw.id);
-  const type = asNonEmptyString(raw.type);
+  const type = asNonEmptyString(raw.type) as BlogBlockType | null;
   if (!id || !type) return null;
 
+  const variant = asOptionalVariant(raw.variant);
+  const align = asOptionalAlign(raw.align);
+  const data = resolveData(raw, type);
+
+  const base: Pick<BlogBlockBase, "id" | "type" | "variant" | "align"> = {
+    id,
+    type,
+    ...(variant ? { variant } : {}),
+    ...(align ? { align } : {}),
+  };
+
   if (type === "heading") {
-    const levelRaw = raw.level;
+    const levelRaw = data.level;
     const level = levelRaw === 1 || levelRaw === 2 || levelRaw === 3 ? levelRaw : null;
-    const text = asNonEmptyString(raw.text);
+    const text = asNonEmptyString(data.text);
     if (!level || !text) return null;
-    return { id, type: "heading", level, text };
+    return {
+      ...base,
+      type: "heading",
+      data: { level, text },
+    } as BlogHeadingBlock;
   }
 
   if (type === "paragraph") {
-    const text = asNonEmptyString(raw.text);
+    const text = asNonEmptyString(data.text);
     if (!text) return null;
-    return { id, type: "paragraph", text };
+    return {
+      ...base,
+      type: "paragraph",
+      data: { text },
+    } as BlogParagraphBlock;
   }
 
   if (type === "image") {
-    const src = asNonEmptyString(raw.src);
-    if (!src || !isValidMediaUrl(src)) return null;
+    const src = asOptionalString(data.src);
+    const mediaId = asOptionalNumber(data.mediaId);
+    if (!src && !mediaId) return null;
+    if (src && !isValidMediaUrl(src)) return null;
+
     return {
-      id,
+      ...base,
       type: "image",
-      src,
-      caption: asOptionalString(raw.caption),
-    };
+      data: {
+        ...(src ? { src } : {}),
+        ...(mediaId ? { mediaId } : {}),
+        ...(asOptionalString(data.caption) ? { caption: asOptionalString(data.caption) } : {}),
+        ...(asOptionalString(data.alt) ? { alt: asOptionalString(data.alt) } : {}),
+      },
+    } as BlogImageBlock;
   }
 
   if (type === "video") {
-    const videoUrl = asOptionalString(raw.videoUrl);
-    const embedUrl = asOptionalString(raw.embedUrl);
+    const videoUrl = asOptionalString(data.videoUrl);
+    const embedUrl = asOptionalString(data.embedUrl);
+    const mediaId = asOptionalNumber(data.mediaId);
 
-    if (!videoUrl && !embedUrl) return null;
+    if (!videoUrl && !embedUrl && !mediaId) return null;
     if (videoUrl && !isValidMediaUrl(videoUrl)) return null;
     if (embedUrl && (!isValidMediaUrl(embedUrl) || !isAllowedVideoEmbedUrl(embedUrl))) {
       return null;
     }
 
     return {
-      id,
+      ...base,
       type: "video",
-      videoUrl,
-      embedUrl,
-      caption: asOptionalString(raw.caption),
-    };
+      data: {
+        ...(videoUrl ? { videoUrl } : {}),
+        ...(embedUrl ? { embedUrl } : {}),
+        ...(mediaId ? { mediaId } : {}),
+        ...(asOptionalString(data.caption) ? { caption: asOptionalString(data.caption) } : {}),
+      },
+    } as BlogVideoBlock;
   }
 
   if (type === "audio") {
-    const src = asNonEmptyString(raw.src);
-    if (!src || !isValidMediaUrl(src)) return null;
+    const src = asOptionalString(data.src);
+    const mediaId = asOptionalNumber(data.mediaId);
+    if (!src && !mediaId) return null;
+    if (src && !isValidMediaUrl(src)) return null;
+
     return {
-      id,
+      ...base,
       type: "audio",
-      src,
-      caption: asOptionalString(raw.caption),
-    };
+      data: {
+        ...(src ? { src } : {}),
+        ...(mediaId ? { mediaId } : {}),
+        ...(asOptionalString(data.caption) ? { caption: asOptionalString(data.caption) } : {}),
+      },
+    } as BlogAudioBlock;
   }
 
   if (type === "quote") {
-    const text = asNonEmptyString(raw.text);
+    const text = asNonEmptyString(data.text);
     if (!text) return null;
     return {
-      id,
+      ...base,
       type: "quote",
-      text,
-      author: asOptionalString(raw.author),
-    };
+      data: {
+        text,
+        ...(asOptionalString(data.author) ? { author: asOptionalString(data.author) } : {}),
+      },
+    } as BlogQuoteBlock;
   }
 
-  if (type === "link") {
-    const href = asNonEmptyString(raw.href);
-    const label = asNonEmptyString(raw.label);
-    if (!href || !label || !isValidMediaUrl(href)) return null;
-    return { id, type: "link", href, label };
-  }
-
-  return null;
+  const href = asNonEmptyString(data.href);
+  const label = asNonEmptyString(data.label);
+  if (!href || !label || !isValidMediaUrl(href)) return null;
+  return {
+    ...base,
+    type: "link",
+    data: { href, label },
+  } as BlogLinkBlock;
 }
 
 export function parseBlogContent(raw: unknown): BlogBlock[] | null {

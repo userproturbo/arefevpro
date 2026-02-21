@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       take,
       select: {
         id: true,
-        url: true,
+        media: { select: { url: true } },
         album: { select: { slug: true } },
       },
     });
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       photos: shuffled.map((photo) => ({
         id: photo.id,
-        url: photo.url,
+        url: photo.media?.url ?? "",
         albumSlug: photo.album.slug,
       })),
     });

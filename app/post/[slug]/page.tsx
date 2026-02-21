@@ -15,6 +15,7 @@ import PageContainer from "../../components/PageContainer";
 import BlogContentRenderer from "@/app/components/blog/BlogContentRenderer";
 import LegacyTextRenderer from "@/app/components/blog/LegacyTextRenderer";
 import { parseBlogContent } from "@/lib/blogBlocks";
+import { toMediaDTO } from "@/lib/media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ const getPostBase = cache(async (slug: string) => {
         type: true,
         text: true,
         content: true,
+        media: true,
+        coverMedia: true,
         coverImage: true,
         mediaUrl: true,
         isPublished: true,
@@ -57,12 +60,12 @@ function extractMetaTextFromContent(rawContent: unknown): string {
 
   return parsed
     .map((block) => {
-      if (block.type === "heading") return block.text;
-      if (block.type === "paragraph") return block.text;
-      if (block.type === "quote") return block.text;
-      if (block.type === "link") return block.label;
+      if (block.type === "heading") return block.data.text;
+      if (block.type === "paragraph") return block.data.text;
+      if (block.type === "quote") return block.data.text;
+      if (block.type === "link") return block.data.label;
       if (block.type === "image" || block.type === "audio" || block.type === "video") {
-        return block.caption ?? "";
+        return block.data.caption ?? "";
       }
       return "";
     })
@@ -110,9 +113,9 @@ export default async function PostPage({
     (Array.isArray(parsedContent) && parsedContent.length > 0) ||
     (typeof post.text === "string" && post.text.trim().length > 0);
   const hasAnyMedia =
-    (post.type === PostType.PHOTO && !!(post.mediaUrl || post.coverImage)) ||
-    (post.type === PostType.VIDEO && !!post.mediaUrl) ||
-    (post.type === PostType.MUSIC && !!post.mediaUrl);
+    (post.type === PostType.PHOTO && !!(post.coverMedia?.url || post.mediaUrl || post.coverImage)) ||
+    (post.type === PostType.VIDEO && !!(post.coverMedia?.url || post.mediaUrl)) ||
+    (post.type === PostType.MUSIC && !!(post.media?.url || post.mediaUrl));
   const typeLabel = getTypeLabel(post.type);
   const sectionInfo = getSectionByType(post.type);
   const backHref = sectionInfo?.href ?? "/";
@@ -254,14 +257,14 @@ export default async function PostPage({
             <div className="text-sm text-white/60">Опубликовано {createdAtText}</div>
           </header>
 
-          {post.coverImage ? (
+          {post.coverMedia?.url ? (
             <div
               className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]"
               style={{ aspectRatio: "16 / 9" }}
             >
               <div
                 className="h-full w-full bg-cover bg-center"
-                style={{ backgroundImage: `url(${post.coverImage})` }}
+                style={{ backgroundImage: `url(${post.coverMedia.url})` }}
               />
             </div>
             ) : null}
@@ -345,10 +348,12 @@ export default async function PostPage({
       </header>
 
       <article className="space-y-4 text-white/90">
+        {/*
+          MUSIC uses primary media, while PHOTO/VIDEO continue to use cover media.
+        */}
         <PostMedia
           type={post.type}
-          mediaUrl={post.mediaUrl}
-          coverImage={post.coverImage}
+          media={toMediaDTO(post.type === PostType.MUSIC ? post.media : post.coverMedia) ?? null}
           title={post.title}
         />
 

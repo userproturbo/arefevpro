@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { PostType, Prisma } from "@prisma/client";
+import { MediaType, PostType, Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { generateUniqueSlug } from "@/lib/slug";
 import { parseBlogContent } from "@/lib/blogBlocks";
+import { resolveMediaReference, toMediaDTO } from "@/lib/media";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -13,6 +14,19 @@ import { bannedUserResponse, isBannedUser } from "@/lib/api/banned";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function parseOptionalInt(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.floor(value);
+}
+
+function resolvePostMediaType(type: PostType) {
+  if (type === PostType.VIDEO) return MediaType.VIDEO;
+  if (type === PostType.MUSIC) return MediaType.AUDIO;
+  return MediaType.IMAGE;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -46,6 +60,8 @@ export async function GET(req: NextRequest) {
         skip,
         take,
         include: {
+          media: true,
+          coverMedia: true,
           _count: {
             select: {
               likes: true,
@@ -57,7 +73,16 @@ export async function GET(req: NextRequest) {
       prisma.post.count({ where }),
     ]);
 
-    return NextResponse.json({ posts, total, take, skip });
+    return NextResponse.json({
+      posts: posts.map((post) => ({
+        ...post,
+        media: toMediaDTO(post.media),
+        coverMedia: toMediaDTO(post.coverMedia),
+      })),
+      total,
+      take,
+      skip,
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
@@ -112,6 +137,8 @@ export async function POST(req: NextRequest) {
     const finalSlug = await generateUniqueSlug(title, requestedSlug);
     const hasContent = Object.prototype.hasOwnProperty.call(body, "content");
     const parsedContent = hasContent ? parseBlogContent(body.content) : null;
+    const requestedCoverMediaId = parseOptionalInt(body.coverMediaId);
+    const requestedMediaId = parseOptionalInt(body.mediaId);
 
     if (type === PostType.BLOG && hasContent && !parsedContent) {
       return NextResponse.json(
@@ -119,6 +146,25 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const mediaUrl = typeof body.mediaUrl === "string" ? body.mediaUrl.trim() : "";
+    const coverImage = typeof body.coverImage === "string" ? body.coverImage.trim() : "";
+    const mediaCandidateUrl = coverImage || null;
+    const coverMediaId = await resolveMediaReference(prisma, {
+      mediaId: requestedCoverMediaId,
+      url: mediaCandidateUrl,
+      type: MediaType.IMAGE,
+      storageKeyPrefix: `legacy/post/${finalSlug}`,
+    });
+    const mediaId =
+      type === PostType.MUSIC
+        ? await resolveMediaReference(prisma, {
+            mediaId: requestedMediaId,
+            url: mediaUrl || null,
+            type: MediaType.AUDIO,
+            storageKeyPrefix: `legacy/post-audio/${finalSlug}`,
+          })
+        : null;
 
     const post = await prisma.post.create({
       data: {
@@ -130,13 +176,28 @@ export async function POST(req: NextRequest) {
           type === PostType.BLOG
             ? parsedContent ?? Prisma.DbNull
             : Prisma.DbNull,
-        coverImage: body.coverImage ?? null,
-        mediaUrl: body.mediaUrl ?? null,
+        mediaId,
+        coverMediaId,
+        coverImage: null,
+        mediaUrl: null,
         isPublished: body.isPublished ?? true,
+      },
+      include: {
+        media: true,
+        coverMedia: true,
       },
     });
 
-    return NextResponse.json({ post }, { status: 201 });
+    return NextResponse.json(
+      {
+        post: {
+          ...post,
+          media: toMediaDTO(post.media),
+          coverMedia: toMediaDTO(post.coverMedia),
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {

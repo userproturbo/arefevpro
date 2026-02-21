@@ -37,17 +37,17 @@ export default function AboutSection({ post }: Props) {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/[0.03] aspect-[4/3]"
         >
-          {post?.coverImage ? (
+          {post?.coverMedia?.url || post?.coverImage ? (
             <div
               className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${post.coverImage})` }}
+              style={{ backgroundImage: `url(${post?.coverMedia?.url ?? post?.coverImage ?? ""})` }}
             />
           ) : (
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.24),transparent_35%),radial-gradient(circle_at_70%_80%,rgba(255,120,200,0.22),transparent_35%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]" />
           )}
           <div className="absolute inset-0 bg-gradient-to-tr from-black via-transparent to-black/40" />
           <div className="absolute bottom-4 left-4 right-4 text-sm text-white/80">
-            <p>{post?.mediaUrl || "CRAZYLIFE • live visuals"}</p>
+            <p>{post?.coverMedia?.url || post?.mediaUrl || "CRAZYLIFE • live visuals"}</p>
           </div>
         </motion.div>
       </div>

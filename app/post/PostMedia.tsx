@@ -1,30 +1,27 @@
 /* eslint-disable @next/next/no-img-element */
 import { PostType } from "@prisma/client";
 import { transformYoutubeUrlToEmbed } from "@/lib/youtube";
+import type { MediaDTO } from "@/types/media";
 
 type Props = {
   type: PostType;
-  mediaUrl: string | null;
-  coverImage: string | null;
+  media: MediaDTO | null;
   title: string;
 };
 
-export default function PostMedia({ type, mediaUrl, coverImage, title }: Props) {
-  const safeMedia = mediaUrl?.trim() || "";
-  const safeCover = coverImage?.trim() || "";
+export default function PostMedia({ type, media, title }: Props) {
+  const mediaUrl = media?.url?.trim() || "";
 
-  if (!safeMedia && !safeCover) {
+  if (!mediaUrl) {
     return null;
   }
 
   switch (type) {
     case PostType.PHOTO: {
-      const src = safeMedia || safeCover;
-      if (!src) return null;
       return (
         <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
           <img
-            src={src}
+            src={mediaUrl}
             alt={title}
             className="h-auto w-full object-cover"
             loading="lazy"
@@ -33,8 +30,7 @@ export default function PostMedia({ type, mediaUrl, coverImage, title }: Props) 
       );
     }
     case PostType.VIDEO: {
-      if (!safeMedia) return null;
-      const embedUrl = transformYoutubeUrlToEmbed(safeMedia);
+      const embedUrl = transformYoutubeUrlToEmbed(mediaUrl);
       if (embedUrl) {
         return (
           <div className="mt-6 overflow-hidden rounded-2xl border border-white/10">
@@ -56,21 +52,19 @@ export default function PostMedia({ type, mediaUrl, coverImage, title }: Props) 
           <video
             controls
             className="w-full"
-            poster={safeCover || undefined}
             preload="metadata"
           >
-            <source src={safeMedia} />
+            <source src={mediaUrl} />
             Ваш браузер не поддерживает воспроизведение видео.
           </video>
         </div>
       );
     }
     case PostType.MUSIC: {
-      if (!safeMedia) return null;
       return (
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <audio controls className="w-full">
-            <source src={safeMedia} />
+            <source src={mediaUrl} />
             Ваш браузер не поддерживает воспроизведение аудио.
           </audio>
         </div>

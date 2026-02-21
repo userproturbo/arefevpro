@@ -1,11 +1,12 @@
-import type { BlogBlock } from "@/lib/blogBlocks";
+import type { BlogVideoBlock } from "@/lib/blogBlocks";
 import { isAllowedVideoEmbedUrl } from "@/lib/blogBlocks";
 import { transformYoutubeUrlToEmbed } from "@/lib/youtube";
-
-type VideoBlockData = Extract<BlogBlock, { type: "video" }>;
+import type { BlogAlign, BlogVariant } from "@/types/blogBlocks";
 
 type Props = {
-  block: VideoBlockData;
+  block: BlogVideoBlock;
+  variant: BlogVariant;
+  align: BlogAlign;
 };
 
 function toSafeEmbedUrl(rawUrl: string): string | null {
@@ -36,22 +37,29 @@ function toSafeEmbedUrl(rawUrl: string): string | null {
   return null;
 }
 
-export default function VideoBlock({ block }: Props) {
-  const embedSource = block.embedUrl ? toSafeEmbedUrl(block.embedUrl) : null;
-  const videoSource = block.videoUrl ?? null;
+export default function VideoBlock({ block, variant }: Props) {
+  const embedSource = block.data.embedUrl ? toSafeEmbedUrl(block.data.embedUrl) : null;
+  const videoSource = block.data.videoUrl ?? null;
 
   if (!embedSource && !videoSource) {
     return null;
   }
 
+  const isHero = variant === "hero";
+  const frameClass = isHero
+    ? "relative overflow-hidden rounded-2xl border border-cyan-300/25 bg-black/80 shadow-[0_0_0_1px_rgba(125,211,252,0.14),0_38px_72px_-44px_rgba(14,116,144,0.62)]"
+    : "relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/70 shadow-[0_0_0_1px_rgba(125,211,252,0.1),0_30px_60px_-40px_rgba(14,116,144,0.5)]";
+
+  const figureClass = isHero ? "mt-8 mb-12 space-y-3" : "my-8 space-y-3";
+
   return (
-    <figure className="mx-auto max-w-4xl space-y-3">
-      <div className="overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/70 shadow-[0_0_0_1px_rgba(125,211,252,0.1),0_30px_60px_-40px_rgba(14,116,144,0.5)]">
+    <figure className={figureClass}>
+      <div className={frameClass}>
         <div className="relative aspect-video">
           {embedSource ? (
             <iframe
               src={embedSource}
-              title={block.caption || "Embedded video"}
+              title={block.data.caption || "Embedded video"}
               className="absolute inset-0 h-full w-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -62,11 +70,14 @@ export default function VideoBlock({ block }: Props) {
               Ваш браузер не поддерживает воспроизведение видео.
             </video>
           )}
+          {isHero ? (
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+          ) : null}
         </div>
       </div>
-      {block.caption ? (
+      {block.data.caption ? (
         <figcaption className="text-center text-xs uppercase tracking-[0.1em] text-white/45">
-          {block.caption}
+          {block.data.caption}
         </figcaption>
       ) : null}
     </figure>

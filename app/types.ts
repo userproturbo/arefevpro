@@ -1,3 +1,5 @@
+import type { MediaDTO } from "@/types/media";
+
 export type UiPost = {
   id: number;
   slug: string;
@@ -5,6 +7,7 @@ export type UiPost = {
   type: "ABOUT" | "PHOTO" | "VIDEO" | "MUSIC" | "BLOG";
   text: string | null;
   content?: unknown;
+  coverMedia: MediaDTO | null;
   coverImage: string | null;
   mediaUrl: string | null;
   isPublished: boolean;

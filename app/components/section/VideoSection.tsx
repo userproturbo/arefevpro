@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import CommentsPanel from "../comments/CommentsPanel";
 import VideoLikeButton from "../video/VideoLikeButton";
+import type { MediaDTO } from "@/types/media";
 
 type VideoItem = {
   id: number;
   title: string;
   description: string | null;
+  media: MediaDTO | null;
+  thumbnailMedia: MediaDTO | null;
   thumbnailUrl: string | null;
   videoUrl: string | null;
   embedUrl: string | null;
@@ -93,7 +96,9 @@ export default function VideoSection() {
       {status === "ready" && videos.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {videos.map((video) => {
-            const hasPlayable = Boolean(video.embedUrl || video.videoUrl);
+            const playableUrl = video.media?.url ?? video.videoUrl;
+            const previewUrl = video.thumbnailMedia?.url ?? video.thumbnailUrl;
+            const hasPlayable = Boolean(video.embedUrl || playableUrl);
             return (
               <div
                 key={video.id}
@@ -106,7 +111,7 @@ export default function VideoSection() {
                   style={{ aspectRatio: "16 / 9" }}
                 >
                   <img
-                    src={video.thumbnailUrl || fallbackThumbnail}
+                    src={previewUrl || fallbackThumbnail}
                     alt={video.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                   />
@@ -190,9 +195,9 @@ export default function VideoSection() {
                 allowFullScreen
                 className="relative z-0 h-[60vh] w-full"
               />
-            ) : activeVideo.videoUrl ? (
+            ) : activeVideo.media?.url || activeVideo.videoUrl ? (
               <video
-                src={activeVideo.videoUrl}
+                src={activeVideo.media?.url ?? activeVideo.videoUrl ?? ""}
                 controls
                 autoPlay
                 className="relative z-0 h-[60vh] w-full bg-black"

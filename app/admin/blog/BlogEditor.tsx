@@ -58,24 +58,24 @@ function createBlock(type: NewBlockType): BlogBlock {
   const id = generateBlockId();
 
   if (type === "heading") {
-    return { id, type, level: 2, text: "" };
+    return { id, type, data: { level: 2, text: "" } };
   }
   if (type === "paragraph") {
-    return { id, type, text: "" };
+    return { id, type, data: { text: "" } };
   }
   if (type === "image") {
-    return { id, type, src: "", caption: "" };
+    return { id, type, data: { src: "", caption: "" } };
   }
   if (type === "video") {
-    return { id, type, embedUrl: "", videoUrl: "", caption: "" };
+    return { id, type, data: { embedUrl: "", videoUrl: "", caption: "" } };
   }
   if (type === "audio") {
-    return { id, type, src: "", caption: "" };
+    return { id, type, data: { src: "", caption: "" } };
   }
   if (type === "quote") {
-    return { id, type, text: "", author: "" };
+    return { id, type, data: { text: "", author: "" } };
   }
-  return { id, type, href: "", label: "" };
+  return { id, type, data: { href: "", label: "" } };
 }
 
 function mapLegacyBodyToBlocks(body: string): BlogBlock[] {
@@ -89,7 +89,7 @@ function mapLegacyBodyToBlocks(body: string): BlogBlock[] {
     .map((text) => ({
       id: generateBlockId(),
       type: "paragraph",
-      text,
+      data: { text },
     }));
 }
 
@@ -133,6 +133,21 @@ const BLOCK_LABELS: Record<NewBlockType, string> = {
   quote: "Quote",
   link: "Link",
 };
+
+const ALIGN_OPTIONS = [
+  { value: "", label: "Auto" },
+  { value: "normal", label: "Normal" },
+  { value: "wide", label: "Wide" },
+  { value: "full", label: "Full" },
+] as const;
+
+const VARIANT_OPTIONS = [
+  { value: "", label: "Auto" },
+  { value: "hero", label: "hero" },
+  { value: "pullquote", label: "pullquote" },
+  { value: "inline", label: "inline" },
+  { value: "default", label: "default" },
+] as const;
 
 export default function BlogEditor({
   mode,
@@ -253,10 +268,10 @@ export default function BlogEditor({
             return block;
           }
           if (field === "src" && (block.type === "image" || block.type === "audio")) {
-            return { ...block, src: uploadedUrl };
+            return { ...block, data: { ...block.data, src: uploadedUrl } };
           }
           if (field === "videoUrl" && block.type === "video") {
-            return { ...block, videoUrl: uploadedUrl };
+            return { ...block, data: { ...block.data, videoUrl: uploadedUrl } };
           }
           return block;
         }),
@@ -274,37 +289,37 @@ export default function BlogEditor({
       const block = blocks[index];
       const number = index + 1;
 
-      if (block.type === "heading" && !block.text.trim()) {
+      if (block.type === "heading" && !block.data.text.trim()) {
         return `Block ${number}: heading text is required`;
       }
-      if (block.type === "paragraph" && !block.text.trim()) {
+      if (block.type === "paragraph" && !block.data.text.trim()) {
         return `Block ${number}: paragraph text is required`;
       }
-      if (block.type === "image" && !block.src.trim()) {
+      if (block.type === "image" && !block.data.src?.trim()) {
         return `Block ${number}: image src is required`;
       }
       if (block.type === "video") {
-        const hasVideo = !!block.videoUrl?.trim();
-        const hasEmbed = !!block.embedUrl?.trim();
+        const hasVideo = !!block.data.videoUrl?.trim();
+        const hasEmbed = !!block.data.embedUrl?.trim();
         if (!hasVideo && !hasEmbed) {
           return `Block ${number}: videoUrl or embedUrl is required`;
         }
-        if (hasEmbed && !isAllowedVideoEmbedUrl(block.embedUrl!.trim())) {
+        if (hasEmbed && !isAllowedVideoEmbedUrl(block.data.embedUrl!.trim())) {
           return `Block ${number}: embed only supports YouTube or Vimeo`;
         }
       }
-      if (block.type === "audio" && !block.src.trim()) {
+      if (block.type === "audio" && !block.data.src?.trim()) {
         return `Block ${number}: audio src is required`;
       }
       if (block.type === "link") {
-        if (!block.label.trim()) {
+        if (!block.data.label.trim()) {
           return `Block ${number}: link label is required`;
         }
-        if (!block.href.trim()) {
+        if (!block.data.href.trim()) {
           return `Block ${number}: link href is required`;
         }
       }
-      if (block.type === "quote" && !block.text.trim()) {
+      if (block.type === "quote" && !block.data.text.trim()) {
         return `Block ${number}: quote text is required`;
       }
     }
@@ -518,14 +533,62 @@ export default function BlogEditor({
                     </div>
                   </div>
 
-                  {block.type === "heading" ? (
-                    <div className="grid gap-3 md:grid-cols-[120px_1fr]">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="space-y-1 text-xs text-white/60">
+                      <span className="block uppercase tracking-[0.08em]">Align</span>
                       <select
-                        value={block.level}
+                        value={block.align ?? ""}
                         onChange={(e) =>
                           updateBlock({
                             ...block,
-                            level: Number(e.target.value) as 1 | 2 | 3,
+                            align: (e.target.value || undefined) as
+                              | "normal"
+                              | "wide"
+                              | "full"
+                              | undefined,
+                          })
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none"
+                      >
+                        {ALIGN_OPTIONS.map((option) => (
+                          <option key={option.value || "auto"} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs text-white/60">
+                      <span className="block uppercase tracking-[0.08em]">Variant</span>
+                      <select
+                        value={block.variant ?? ""}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            variant: e.target.value || undefined,
+                          })
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none"
+                      >
+                        {VARIANT_OPTIONS.map((option) => (
+                          <option key={option.value || "auto"} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  {block.type === "heading" ? (
+                    <div className="grid gap-3 md:grid-cols-[120px_1fr]">
+                      <select
+                        value={block.data.level}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            data: {
+                              ...block.data,
+                              level: Number(e.target.value) as 1 | 2 | 3,
+                            },
                           })
                         }
                         className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none"
@@ -535,8 +598,10 @@ export default function BlogEditor({
                         <option value={3}>H3</option>
                       </select>
                       <input
-                        value={block.text}
-                        onChange={(e) => updateBlock({ ...block, text: e.target.value })}
+                        value={block.data.text}
+                        onChange={(e) =>
+                          updateBlock({ ...block, data: { ...block.data, text: e.target.value } })
+                        }
                         className="rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="Heading text"
                       />
@@ -545,8 +610,10 @@ export default function BlogEditor({
 
                   {block.type === "paragraph" ? (
                     <textarea
-                      value={block.text}
-                      onChange={(e) => updateBlock({ ...block, text: e.target.value })}
+                      value={block.data.text}
+                      onChange={(e) =>
+                        updateBlock({ ...block, data: { ...block.data, text: e.target.value } })
+                      }
                       className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-sm outline-none"
                       rows={5}
                       placeholder="Paragraph text"
@@ -556,8 +623,10 @@ export default function BlogEditor({
                   {block.type === "image" ? (
                     <div className="space-y-2">
                       <input
-                        value={block.src}
-                        onChange={(e) => updateBlock({ ...block, src: e.target.value })}
+                        value={block.data.src ?? ""}
+                        onChange={(e) =>
+                          updateBlock({ ...block, data: { ...block.data, src: e.target.value } })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="https://..."
                       />
@@ -568,8 +637,13 @@ export default function BlogEditor({
                         onSelect={(file) => uploadBlockFile(block.id, "src", file)}
                       />
                       <input
-                        value={block.caption ?? ""}
-                        onChange={(e) => updateBlock({ ...block, caption: e.target.value })}
+                        value={block.data.caption ?? ""}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            data: { ...block.data, caption: e.target.value },
+                          })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="Caption (optional)"
                       />
@@ -579,22 +653,22 @@ export default function BlogEditor({
                   {block.type === "video" ? (
                     <div className="space-y-2">
                       <input
-                        value={block.embedUrl ?? ""}
+                        value={block.data.embedUrl ?? ""}
                         onChange={(e) =>
                           updateBlock({
                             ...block,
-                            embedUrl: e.target.value,
+                            data: { ...block.data, embedUrl: e.target.value },
                           })
                         }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="Embed URL (YouTube / Vimeo)"
                       />
                       <input
-                        value={block.videoUrl ?? ""}
+                        value={block.data.videoUrl ?? ""}
                         onChange={(e) =>
                           updateBlock({
                             ...block,
-                            videoUrl: e.target.value,
+                            data: { ...block.data, videoUrl: e.target.value },
                           })
                         }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
@@ -609,8 +683,13 @@ export default function BlogEditor({
                         }
                       />
                       <input
-                        value={block.caption ?? ""}
-                        onChange={(e) => updateBlock({ ...block, caption: e.target.value })}
+                        value={block.data.caption ?? ""}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            data: { ...block.data, caption: e.target.value },
+                          })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="Caption (optional)"
                       />
@@ -620,8 +699,10 @@ export default function BlogEditor({
                   {block.type === "audio" ? (
                     <div className="space-y-2">
                       <input
-                        value={block.src}
-                        onChange={(e) => updateBlock({ ...block, src: e.target.value })}
+                        value={block.data.src ?? ""}
+                        onChange={(e) =>
+                          updateBlock({ ...block, data: { ...block.data, src: e.target.value } })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="Audio URL"
                       />
@@ -632,8 +713,13 @@ export default function BlogEditor({
                         onSelect={(file) => uploadBlockFile(block.id, "src", file)}
                       />
                       <input
-                        value={block.caption ?? ""}
-                        onChange={(e) => updateBlock({ ...block, caption: e.target.value })}
+                        value={block.data.caption ?? ""}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            data: { ...block.data, caption: e.target.value },
+                          })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="Caption (optional)"
                       />
@@ -643,15 +729,22 @@ export default function BlogEditor({
                   {block.type === "quote" ? (
                     <div className="space-y-2">
                       <textarea
-                        value={block.text}
-                        onChange={(e) => updateBlock({ ...block, text: e.target.value })}
+                        value={block.data.text}
+                        onChange={(e) =>
+                          updateBlock({ ...block, data: { ...block.data, text: e.target.value } })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-sm outline-none"
                         rows={4}
                         placeholder="Quote"
                       />
                       <input
-                        value={block.author ?? ""}
-                        onChange={(e) => updateBlock({ ...block, author: e.target.value })}
+                        value={block.data.author ?? ""}
+                        onChange={(e) =>
+                          updateBlock({
+                            ...block,
+                            data: { ...block.data, author: e.target.value },
+                          })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="Author (optional)"
                       />
@@ -661,14 +754,18 @@ export default function BlogEditor({
                   {block.type === "link" ? (
                     <div className="space-y-2">
                       <input
-                        value={block.label}
-                        onChange={(e) => updateBlock({ ...block, label: e.target.value })}
+                        value={block.data.label}
+                        onChange={(e) =>
+                          updateBlock({ ...block, data: { ...block.data, label: e.target.value } })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="Link label"
                       />
                       <input
-                        value={block.href}
-                        onChange={(e) => updateBlock({ ...block, href: e.target.value })}
+                        value={block.data.href}
+                        onChange={(e) =>
+                          updateBlock({ ...block, data: { ...block.data, href: e.target.value } })
+                        }
                         className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm outline-none"
                         placeholder="https://..."
                       />

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { MediaType } from "@prisma/client";
 import { getApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getStorageAdapter } from "@/lib/storage";
+import { createMediaRecord, toMediaDTO } from "@/lib/media";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -156,8 +158,9 @@ async function convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
 
 type UploadedPhotoDto = {
   id: number;
+  mediaId: number;
+  media: ReturnType<typeof toMediaDTO>;
   url: string;
-  storageKey: string;
   albumId: number;
   createdAt: string;
 };
@@ -259,18 +262,27 @@ export async function POST(req: NextRequest) {
         const storagePath = `${Date.now()}-${randomUUID()}${outputExtension}`;
         const url = await storage.uploadFile(uploadBuffer, storagePath);
 
+        const media = await createMediaRecord(prisma, {
+          type: MediaType.IMAGE,
+          url,
+          storageKey: storagePath,
+          mimeType: mimeType || null,
+          sizeBytes: uploadBuffer.byteLength,
+        });
+
         const photo = await prisma.photo.create({
           data: {
             albumId: album.id,
-            storageKey: storagePath,
-            url,
+            mediaId: media.id,
+            storageKey: null,
+            url: null,
             width: null,
             height: null,
           },
           select: {
             id: true,
-            url: true,
-            storageKey: true,
+            mediaId: true,
+            media: true,
             albumId: true,
             createdAt: true,
           },
@@ -278,8 +290,9 @@ export async function POST(req: NextRequest) {
 
         photos.push({
           id: photo.id,
-          url: photo.url,
-          storageKey: photo.storageKey,
+          mediaId: photo.mediaId,
+          media: toMediaDTO(photo.media),
+          url: photo.media?.url ?? "",
           albumId: photo.albumId,
           createdAt: photo.createdAt.toISOString(),
         });

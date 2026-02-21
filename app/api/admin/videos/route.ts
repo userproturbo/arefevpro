@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUser } from "@/lib/auth";
+import { MediaType } from "@prisma/client";
+import { resolveMediaReference, toMediaDTO } from "@/lib/media";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -13,6 +15,11 @@ export const dynamic = "force-dynamic";
 function normalizeString(value: unknown) {
   const str = typeof value === "string" ? value.trim() : "";
   return str.length ? str : null;
+}
+
+function parseOptionalInt(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return Math.floor(value);
 }
 
 function isAdminUser(user: { id: number; role: string }) {
@@ -44,6 +51,10 @@ export async function GET(_req: NextRequest) {
         id: true,
         title: true,
         description: true,
+        mediaId: true,
+        media: true,
+        thumbnailMediaId: true,
+        thumbnailMedia: true,
         thumbnailUrl: true,
         videoUrl: true,
         embedUrl: true,
@@ -53,7 +64,15 @@ export async function GET(_req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ videos });
+    return NextResponse.json({
+      videos: videos.map((video) => ({
+        ...video,
+        media: toMediaDTO(video.media),
+        thumbnailMedia: toMediaDTO(video.thumbnailMedia),
+        videoUrl: video.media?.url ?? video.videoUrl ?? null,
+        thumbnailUrl: video.thumbnailMedia?.url ?? video.thumbnailUrl ?? null,
+      })),
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
@@ -83,6 +102,8 @@ export async function POST(req: NextRequest) {
     const description = normalizeString(body.description);
     const thumbnailUrl = normalizeString(body.thumbnailUrl);
     const videoUrl = normalizeString(body.videoUrl);
+    const mediaId = parseOptionalInt(body.mediaId);
+    const thumbnailMediaId = parseOptionalInt(body.thumbnailMediaId);
     const embedUrl = normalizeString(body.embedUrl);
     const isPublished =
       typeof body.isPublished === "boolean" ? body.isPublished : true;
@@ -94,18 +115,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const resolvedVideoMediaId = await resolveMediaReference(prisma, {
+      mediaId,
+      url: videoUrl,
+      type: MediaType.VIDEO,
+      storageKeyPrefix: "legacy/video",
+    });
+    const resolvedThumbnailMediaId = await resolveMediaReference(prisma, {
+      mediaId: thumbnailMediaId,
+      url: thumbnailUrl,
+      type: MediaType.IMAGE,
+      storageKeyPrefix: "legacy/video-thumbnail",
+    });
+
     const video = await prisma.video.create({
       data: {
         title,
         description,
-        thumbnailUrl,
-        videoUrl,
+        mediaId: resolvedVideoMediaId,
+        thumbnailMediaId: resolvedThumbnailMediaId,
+        thumbnailUrl: null,
+        videoUrl: null,
         embedUrl,
         isPublished,
       },
+      include: {
+        media: true,
+        thumbnailMedia: true,
+      },
     });
 
-    return NextResponse.json({ video }, { status: 201 });
+    return NextResponse.json(
+      {
+        video: {
+          ...video,
+          media: toMediaDTO(video.media),
+          thumbnailMedia: toMediaDTO(video.thumbnailMedia),
+          videoUrl: video.media?.url ?? null,
+          thumbnailUrl: video.thumbnailMedia?.url ?? null,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {

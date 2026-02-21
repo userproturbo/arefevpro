@@ -2,10 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getApiUser } from "@/lib/auth";
+import { MediaType } from "@prisma/client";
+import { createMediaRecord, toMediaDTO } from "@/lib/media";
+import { prisma } from "@/lib/prisma";
 import { getStorageAdapter } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function resolveMediaType(folder: string, mimeType: string): MediaType {
+  if (folder === "videos" || mimeType.startsWith("video/")) return MediaType.VIDEO;
+  if (folder === "audio" || mimeType.startsWith("audio/")) return MediaType.AUDIO;
+  return MediaType.IMAGE;
+}
 
 export async function POST(req: NextRequest) {
   const user = await getApiUser();
@@ -82,8 +91,15 @@ export async function POST(req: NextRequest) {
     const objectPath = `${folderPrefix}${filename}`;
 
     const url = await storage.uploadFile(buffer, objectPath);
+    const media = await createMediaRecord(prisma, {
+      type: resolveMediaType(normalizedFolder, file.type.toLowerCase()),
+      url,
+      storageKey: objectPath,
+      mimeType: file.type || null,
+      sizeBytes: buffer.byteLength,
+    });
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url, mediaId: media.id, media: toMediaDTO(media) });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(

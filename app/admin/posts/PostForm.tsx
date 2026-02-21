@@ -9,6 +9,7 @@ type FormValues = {
   text: string | null;
   coverImage: string | null;
   mediaUrl: string | null;
+  mediaId?: number | null;
   isPublished: boolean;
 };
 
@@ -90,6 +91,7 @@ export default function PostForm({
   const [text, setText] = useState(initialValues?.text ?? "");
   const [coverImage, setCoverImage] = useState(initialValues?.coverImage ?? "");
   const [mediaUrl, setMediaUrl] = useState(initialValues?.mediaUrl ?? "");
+  const [mediaId, setMediaId] = useState<number | null>(initialValues?.mediaId ?? null);
   const [isPublished, setIsPublished] = useState(
     initialValues?.isPublished ?? true
   );
@@ -98,6 +100,8 @@ export default function PostForm({
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [storageMode, setStorageMode] = useState<"s3" | "local" | null>(null);
+  const storageModePromiseRef = useRef<Promise<"s3" | "local" | null> | null>(null);
 
   const selectedType = ADMIN_POST_TYPES[typeKey];
   const showMedia = typeKey === "photo" || typeKey === "video" || typeKey === "music";
@@ -142,10 +146,148 @@ export default function PostForm({
 
   const buttonLabel = mode === "create" ? "Создать пост" : "Сохранить изменения";
 
+  async function loadStorageMode(): Promise<"s3" | "local" | null> {
+    if (storageMode) return storageMode;
+    if (storageModePromiseRef.current) return storageModePromiseRef.current;
+
+    const promise = (async () => {
+      try {
+        const res = await fetch("/api/admin/storage/mode");
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || "Не удалось определить режим хранения");
+        if (json?.mode === "s3" || json?.mode === "local") {
+          setStorageMode(json.mode);
+          return json.mode as "s3" | "local";
+        }
+        throw new Error("Некорректный ответ режима хранения");
+      } catch {
+        return null;
+      }
+    })();
+
+    storageModePromiseRef.current = promise;
+    const resolved = await promise;
+    storageModePromiseRef.current = null;
+    return resolved;
+  }
+
+  async function uploadMusicViaCompleteS3(file: File) {
+    const contentType = file.type || "audio/mpeg";
+    const presignRes = await fetch("/api/upload/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType,
+        folder: "audio",
+      }),
+    });
+    const presignJson = await presignRes.json().catch(() => ({}));
+    if (!presignRes.ok || !presignJson?.uploadUrl || !presignJson?.publicUrl) {
+      throw new Error(presignJson?.error || "Не удалось подготовить загрузку аудио");
+    }
+
+    const putRes = await fetch(presignJson.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body: file,
+    });
+    if (!putRes.ok) {
+      throw new Error("Не удалось загрузить аудио файл");
+    }
+
+    const completeRes = await fetch("/api/upload/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "AUDIO",
+        folder: "audio",
+        key: presignJson.key,
+        url: presignJson.publicUrl,
+        contentType,
+        sizeBytes: file.size,
+      }),
+    });
+    const completeJson = await completeRes.json().catch(() => ({}));
+    if (!completeRes.ok || typeof completeJson?.mediaId !== "number") {
+      throw new Error(completeJson?.error || "Не удалось завершить загрузку аудио");
+    }
+
+    return {
+      mediaId: completeJson.mediaId as number,
+      url:
+        (typeof completeJson?.media?.url === "string" && completeJson.media.url) ||
+        (typeof presignJson.publicUrl === "string" && presignJson.publicUrl) ||
+        "",
+    };
+  }
+
+  async function uploadMusicViaCompleteLocal(file: File) {
+    const form = new FormData();
+    form.append("file", file);
+
+    const uploadRes = await fetch("/api/upload", {
+      method: "POST",
+      body: form,
+    });
+    const uploadJson = await uploadRes.json().catch(() => ({}));
+    if (!uploadRes.ok || typeof uploadJson?.url !== "string") {
+      throw new Error(uploadJson?.error || "Не удалось загрузить аудио файл");
+    }
+
+    const completeRes = await fetch("/api/upload/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "AUDIO",
+        folder: "audio",
+        url: uploadJson.url,
+        storageKey:
+          typeof uploadJson.storageKey === "string" ? uploadJson.storageKey : undefined,
+        mimeType:
+          typeof uploadJson.mimeType === "string"
+            ? uploadJson.mimeType
+            : file.type || undefined,
+        sizeBytes:
+          typeof uploadJson.sizeBytes === "number" ? uploadJson.sizeBytes : file.size,
+      }),
+    });
+    const completeJson = await completeRes.json().catch(() => ({}));
+    if (!completeRes.ok || typeof completeJson?.mediaId !== "number") {
+      throw new Error(completeJson?.error || "Не удалось завершить загрузку аудио");
+    }
+
+    return {
+      mediaId: completeJson.mediaId as number,
+      url:
+        (typeof completeJson?.media?.url === "string" && completeJson.media.url) ||
+        uploadJson.url,
+    };
+  }
+
   async function uploadFile(field: "coverImage" | "mediaUrl", file: File) {
     try {
       setUploading(true);
       setUploadError(null);
+
+      if (field === "mediaUrl" && typeKey === "music") {
+        const mode = await loadStorageMode();
+        let uploaded: { mediaId: number; url: string };
+        if (mode === "local") {
+          uploaded = await uploadMusicViaCompleteLocal(file);
+        } else if (mode === "s3") {
+          uploaded = await uploadMusicViaCompleteS3(file);
+        } else {
+          try {
+            uploaded = await uploadMusicViaCompleteS3(file);
+          } catch {
+            uploaded = await uploadMusicViaCompleteLocal(file);
+          }
+        }
+        setMediaId(uploaded.mediaId);
+        setMediaUrl(uploaded.url);
+        return;
+      }
 
       const data = new FormData();
       data.append("file", file);
@@ -170,6 +312,7 @@ export default function PostForm({
       if (field === "coverImage") {
         setCoverImage(uploadedUrl);
       } else {
+        setMediaId(null);
         setMediaUrl(uploadedUrl);
       }
     } catch (err: unknown) {
@@ -216,6 +359,7 @@ export default function PostForm({
         text: cleanedText ? cleanedText : null,
         coverImage: cleanedCover || null,
         mediaUrl: showMedia ? cleanedMedia || null : null,
+        mediaId: typeKey === "music" ? mediaId : null,
         isPublished,
       };
 
@@ -331,7 +475,12 @@ export default function PostForm({
           <input
             className="w-full rounded-lg border border-white/10 bg-black/40 p-3"
             value={mediaUrl}
-            onChange={(e) => setMediaUrl(e.target.value)}
+            onChange={(e) => {
+              setMediaUrl(e.target.value);
+              if (typeKey === "music") {
+                setMediaId(null);
+              }
+            }}
             type={mediaUrl.startsWith("/") ? "text" : "url"}
             placeholder={mediaPlaceholder[typeKey]}
             disabled={loading || deleting || uploading}

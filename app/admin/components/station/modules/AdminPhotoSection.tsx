@@ -32,7 +32,7 @@ type AlbumEditorData = {
   description: string | null;
   published: boolean;
   coverPhotoId: number | null;
-  photos: { id: number; url: string }[];
+  photos: { id: number; media: { url: string } | null }[];
 } | null;
 
 export default async function AdminPhotoSection({ createMode, editSlug }: Props) {
@@ -83,7 +83,7 @@ export default async function AdminPhotoSection({ createMode, editSlug }: Props)
             orderBy: [{ order: "asc" }, { createdAt: "asc" }],
             select: {
               id: true,
-              url: true,
+              media: { select: { url: true } },
             },
           },
         },
@@ -151,7 +151,10 @@ export default async function AdminPhotoSection({ createMode, editSlug }: Props)
 
               <PhotosGrid
                 albumSlug={albumToEdit.slug}
-                photos={albumToEdit.photos}
+                photos={albumToEdit.photos.map((photo) => ({
+                  id: photo.id,
+                  url: photo.media?.url ?? "",
+                }))}
                 coverPhotoId={albumToEdit.coverPhotoId}
               />
             </div>

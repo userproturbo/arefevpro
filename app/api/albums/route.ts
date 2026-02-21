@@ -26,7 +26,7 @@ export async function GET() {
         description: true,
         coverPhoto: {
           select: {
-            url: true,
+            media: { select: { url: true } },
             deletedAt: true,
           },
         },
@@ -39,7 +39,9 @@ export async function GET() {
         title: album.title,
         slug: album.slug, // slug NOT NULL, без fallback
         description: album.description,
-        coverImage: album.coverPhoto?.deletedAt ? null : album.coverPhoto?.url ?? null,
+        coverImage: album.coverPhoto?.deletedAt
+          ? null
+          : album.coverPhoto?.media?.url ?? null,
       })),
     });
   } catch (error) {

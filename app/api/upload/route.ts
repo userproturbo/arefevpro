@@ -39,6 +39,10 @@ export async function POST(request: Request) {
   await fs.writeFile(filePath, buffer);
 
   const url = `/uploads/${fileName}`;
-
-  return NextResponse.json({ url });
+  return NextResponse.json({
+    url,
+    storageKey: fileName,
+    mimeType: file.type || null,
+    sizeBytes: buffer.byteLength,
+  });
 }

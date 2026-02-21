@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { PostType, Prisma } from "@prisma/client";
+import { MediaType, PostType, Prisma } from "@prisma/client";
 import { parseBlogContent } from "@/lib/blogBlocks";
+import { resolveMediaReference, toMediaDTO } from "@/lib/media";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -13,6 +14,19 @@ import { bannedUserResponse, isBannedUser } from "@/lib/api/banned";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function parseOptionalInt(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.floor(value);
+}
+
+function resolvePostMediaType(type: PostType) {
+  if (type === PostType.VIDEO) return MediaType.VIDEO;
+  if (type === PostType.MUSIC) return MediaType.AUDIO;
+  return MediaType.IMAGE;
+}
+
 export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ slug: string }> }
@@ -22,6 +36,8 @@ export async function GET(
     const authUser = await getCurrentUser();
 
     const include = {
+      media: true,
+      coverMedia: true,
       _count: {
         select: {
           likes: true,
@@ -49,7 +65,13 @@ export async function GET(
       return NextResponse.json({ error: "Пост не найден" }, { status: 404 });
     }
 
-    return NextResponse.json({ post });
+    return NextResponse.json({
+      post: {
+        ...post,
+        media: toMediaDTO(post.media),
+        coverMedia: toMediaDTO(post.coverMedia),
+      },
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
@@ -93,6 +115,8 @@ export async function PUT(
 
     const body = await req.json();
     const title = String(body.title || "").trim();
+    const requestedCoverMediaId = parseOptionalInt(body.coverMediaId);
+    const requestedMediaId = parseOptionalInt(body.mediaId);
     const hasContent = Object.prototype.hasOwnProperty.call(body, "content");
     const parsedContent = hasContent ? parseBlogContent(body.content) : null;
 
@@ -109,6 +133,25 @@ export async function PUT(
       );
     }
 
+    const mediaUrl = typeof body.mediaUrl === "string" ? body.mediaUrl.trim() : "";
+    const coverImage = typeof body.coverImage === "string" ? body.coverImage.trim() : "";
+    const mediaCandidateUrl = coverImage || null;
+    const coverMediaId = await resolveMediaReference(prisma, {
+      mediaId: requestedCoverMediaId,
+      url: mediaCandidateUrl,
+      type: MediaType.IMAGE,
+      storageKeyPrefix: `legacy/post/${post.id}`,
+    });
+    const mediaId =
+      post.type === PostType.MUSIC
+        ? await resolveMediaReference(prisma, {
+            mediaId: requestedMediaId,
+            url: mediaUrl || null,
+            type: MediaType.AUDIO,
+            storageKeyPrefix: `legacy/post-audio/${post.id}`,
+          })
+        : null;
+
     const updated = await prisma.post.update({
       where: { id: post.id },
       data: {
@@ -120,16 +163,28 @@ export async function PUT(
             : hasContent
             ? parsedContent ?? Prisma.DbNull
             : undefined,
-        mediaUrl: body.mediaUrl ?? null,
-        coverImage: body.coverImage ?? null,
+        mediaId,
+        coverMediaId,
+        mediaUrl: null,
+        coverImage: null,
         isPublished:
           typeof body.isPublished === "boolean"
             ? body.isPublished
             : post.isPublished,
       },
+      include: {
+        media: true,
+        coverMedia: true,
+      },
     });
 
-    return NextResponse.json({ post: updated });
+    return NextResponse.json({
+      post: {
+        ...updated,
+        media: toMediaDTO(updated.media),
+        coverMedia: toMediaDTO(updated.coverMedia),
+      },
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {

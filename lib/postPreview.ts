@@ -5,6 +5,7 @@ type PreviewPost = {
   slug?: string | null;
   content?: unknown;
   text?: string | null;
+  coverMedia?: { url: string } | null;
   coverImage?: string | null;
 };
 
@@ -119,10 +120,12 @@ export function getPostTitle(post: PreviewPost): string {
   if (parsedContent?.length) {
     const heading = parsedContent.find(
       (block): block is Extract<(typeof parsedContent)[number], { type: "heading" }> =>
-        block.type === "heading" && block.level === 1 && block.text.trim().length > 0
+        block.type === "heading" &&
+        block.data.level === 1 &&
+        block.data.text.trim().length > 0
     );
     if (heading) {
-      return heading.text.trim();
+      return heading.data.text.trim();
     }
   }
 
@@ -135,10 +138,10 @@ export function getPostExcerpt(post: PreviewPost, maxLength = 160): string {
   if (parsedContent?.length) {
     const paragraph = parsedContent.find(
       (block): block is Extract<(typeof parsedContent)[number], { type: "paragraph" }> =>
-        block.type === "paragraph" && block.text.trim().length > 0
+        block.type === "paragraph" && block.data.text.trim().length > 0
     );
     if (paragraph) {
-      return trimAndLimit(paragraph.text, maxLength);
+      return trimAndLimit(paragraph.data.text, maxLength);
     }
   }
 
@@ -151,10 +154,12 @@ export function getPostCover(post: PreviewPost): PostCoverPreview {
   if (parsedContent?.length) {
     const image = parsedContent.find(
       (block): block is Extract<(typeof parsedContent)[number], { type: "image" }> =>
-        block.type === "image" && block.src.trim().length > 0
+        block.type === "image" &&
+        typeof block.data.src === "string" &&
+        block.data.src.trim().length > 0
     );
     if (image) {
-      return { kind: "image", src: image.src.trim() };
+      return { kind: "image", src: blockSafeTrim(image.data.src) };
     }
 
     const video = parsedContent.find(
@@ -163,16 +168,25 @@ export function getPostCover(post: PreviewPost): PostCoverPreview {
     );
 
     if (video) {
-      const embedThumb = video.embedUrl ? getVideoThumbnail(video.embedUrl.trim()) : null;
+      const embedThumb = video.data.embedUrl
+        ? getVideoThumbnail(video.data.embedUrl.trim())
+        : null;
       if (embedThumb) {
         return { kind: "image", src: embedThumb };
       }
 
-      const urlThumb = video.videoUrl ? getVideoThumbnail(video.videoUrl.trim()) : null;
+      const urlThumb = video.data.videoUrl
+        ? getVideoThumbnail(video.data.videoUrl.trim())
+        : null;
       if (urlThumb) {
         return { kind: "image", src: urlThumb };
       }
     }
+  }
+
+  const mediaCover = toCleanString(post.coverMedia?.url);
+  if (mediaCover) {
+    return { kind: "image", src: mediaCover };
   }
 
   const legacyCover = toCleanString(post.coverImage);
@@ -185,4 +199,8 @@ export function getPostCover(post: PreviewPost): PostCoverPreview {
     kind: "fallback",
     gradientClass: getFallbackGradient(seed || "blog"),
   };
+}
+
+function blockSafeTrim(value: string): string {
+  return value.trim();
 }

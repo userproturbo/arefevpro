@@ -13,6 +13,7 @@ export default async function BlogIndexPage() {
     title: string;
     text: string | null;
     content: unknown;
+    coverMedia: { url: string } | null;
     coverImage: string | null;
     isPublished: boolean;
     createdAt: Date;
@@ -28,6 +29,7 @@ export default async function BlogIndexPage() {
         title: true,
         text: true,
         content: true,
+        coverMedia: { select: { url: true } },
         coverImage: true,
         isPublished: true,
         createdAt: true,

@@ -37,19 +37,26 @@ model User {
 }
 
 model Post {
-  id          Int       @id @default(autoincrement())
-  slug        String    @unique
-  title       String
-  type        PostType
-  text        String?
-  content     Json?
-  coverImage  String?
-  mediaUrl    String?
-  isPublished Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  comments    Comment[]
-  likes       Like[]
+  id           Int      @id @default(autoincrement())
+  slug         String   @unique
+  title        String
+  type         PostType
+  text         String?
+  content      Json?
+  coverImage   String?  // legacy: read-only during soft migration
+  mediaUrl     String?  // legacy: read-only during soft migration
+  mediaId      Int?
+  media        Media?   @relation("PostMedia", fields: [mediaId], references: [id])
+  coverMediaId Int?
+  coverMedia   Media?   @relation("PostCover", fields: [coverMediaId], references: [id])
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  comments     Comment[]
+  likes        Like[]
+
+  @@index([mediaId])
+  @@index([coverMediaId])
 }
 
 model Comment {
@@ -126,20 +133,23 @@ model Album {
 model Photo {
   id         Int      @id @default(autoincrement())
   albumId    Int
-  storageKey String
+  storageKey String?  // legacy: read-only during soft migration
+  url        String?  // legacy: read-only during soft migration
+  mediaId    Int
+  media      Media    @relation("PhotoMedia", fields: [mediaId], references: [id])
   width      Int?
   height     Int?
   deletedAt  DateTime?
   createdAt  DateTime @default(now())
   order      Int      @default(0)
   updatedAt  DateTime @updatedAt
-  url        String
   coverFor   Album?   @relation("AlbumCoverPhoto")
   album      Album    @relation("AlbumPhotos", fields: [albumId], references: [id], onDelete: Cascade)
   likes      PhotoLike[]
   comments   PhotoComment[]
 
   @@index([albumId])
+  @@index([mediaId])
 }
 
 model PhotoLike {
@@ -192,17 +202,46 @@ model PhotoCommentLike {
 }
 
 model Video {
-  id           Int      @id @default(autoincrement())
-  title        String
-  description  String?
-  thumbnailUrl String?
-  videoUrl     String?
-  embedUrl     String?
-  isPublished  Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  likes        VideoLike[]
-  comments     VideoComment[]
+  id               Int      @id @default(autoincrement())
+  title            String
+  description      String?
+  thumbnailUrl     String?  // legacy: read-only during soft migration
+  videoUrl         String?  // legacy: read-only during soft migration
+  mediaId          Int?
+  media            Media?   @relation("VideoMedia", fields: [mediaId], references: [id])
+  thumbnailMediaId Int?
+  thumbnailMedia   Media?   @relation("VideoThumbnail", fields: [thumbnailMediaId], references: [id])
+  embedUrl         String?
+  isPublished      Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  likes            VideoLike[]
+  comments         VideoComment[]
+
+  @@index([mediaId])
+  @@index([thumbnailMediaId])
+}
+
+model Media {
+  id          Int       @id @default(autoincrement())
+  type        MediaType
+  url         String
+  storageKey  String
+  mimeType    String?
+  sizeBytes   Int?
+  width       Int?
+  height      Int?
+  durationSec Int?
+  alt         String?
+  caption     String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  photos      Photo[]   @relation("PhotoMedia")
+  videos      Video[]   @relation("VideoMedia")
+  thumbnails  Video[]   @relation("VideoThumbnail")
+  postMedia   Post[]    @relation("PostMedia")
+  postCovers  Post[]    @relation("PostCover")
 }
 
 model VideoLike {
@@ -295,4 +334,10 @@ enum UserStatus {
 enum NotificationType {
   COMMENT_REPLY
   PHOTO_COMMENT_REPLY
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
 }

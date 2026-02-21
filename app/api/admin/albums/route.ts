@@ -38,7 +38,7 @@ export async function GET() {
         title: true,
         description: true,
         createdAt: true,
-        coverPhoto: { select: { url: true, deletedAt: true } },
+        coverPhoto: { select: { media: { select: { url: true } }, deletedAt: true } },
         photos: { where: { deletedAt: null }, select: { id: true } },
       },
     });
@@ -49,7 +49,9 @@ export async function GET() {
         title: album.title,
         description: album.description,
         createdAt: album.createdAt.toISOString(),
-        coverUrl: album.coverPhoto?.deletedAt ? null : album.coverPhoto?.url ?? null,
+        coverUrl: album.coverPhoto?.deletedAt
+          ? null
+          : album.coverPhoto?.media?.url ?? null,
         photosCount: album.photos.length,
       })),
     });
@@ -110,7 +112,7 @@ export async function POST(req: NextRequest) {
         title: true,
         description: true,
         createdAt: true,
-        coverPhoto: { select: { url: true } },
+        coverPhoto: { select: { media: { select: { url: true } } } },
       },
     });
 
@@ -124,7 +126,7 @@ export async function POST(req: NextRequest) {
           slug: album.slug,
           title: album.title,
           description: album.description,
-          coverUrl: album.coverPhoto?.url ?? null,
+          coverUrl: album.coverPhoto?.media?.url ?? null,
           createdAt: album.createdAt.toISOString(),
         },
       },
