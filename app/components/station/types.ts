@@ -1,10 +1,6 @@
-export type StationMode = "idle" | "projects" | "photo" | "video" | "audio" | "blog";
+import type { StationSceneId } from "@/types/stationScene";
+import { SCENES } from "./scenes/sceneRegistry";
 
-export const STATION_MODES: StationMode[] = [
-  "idle",
-  "projects",
-  "photo",
-  "video",
-  "audio",
-  "blog",
-];
+export type StationMode = StationSceneId;
+
+export const STATION_MODES: StationMode[] = Object.values(SCENES).map((scene) => scene.id);

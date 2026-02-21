@@ -2,7 +2,7 @@
 
 import type { StationMode } from "./types";
 import { motion } from "framer-motion";
-import { STATION_MODES } from "./types";
+import { SCENES } from "./scenes/sceneRegistry";
 import { useHoverSound } from "@/app/hooks/useHoverSound";
 
 type ModeSelectProps = {
@@ -10,45 +10,37 @@ type ModeSelectProps = {
   setMode: (mode: StationMode) => void;
 };
 
-function toLabel(mode: StationMode): string {
-  return mode.toUpperCase();
-}
-
 export default function ModeSelect({ mode, setMode }: ModeSelectProps) {
   const playHoverSound = useHoverSound({
     src: "/audio/preloader-2s-001.mp3",
     volume: 0.3,
   });
 
+  const sceneTabs = Object.values(SCENES);
+
   return (
     <nav
-      className="mb-3 flex flex-wrap gap-1.5 rounded-lg border border-[#1d442b] bg-[#060e0a] p-1.5"
+      className="mb-3 flex flex-wrap gap-1.5 rounded-xl border border-white/10 bg-[#060e0a]/90 p-1.5 shadow-[inset_0_0_0_1px_rgba(115,255,140,0.05),0_0_18px_rgba(0,255,255,0.04)]"
       aria-label="Station Mode Select"
     >
-      {STATION_MODES.map((item) => {
-        const isActive = item === mode;
+      {sceneTabs.map((scene) => {
+        const isActive = scene.id === mode;
 
         return (
           <motion.button
-            key={item}
+            key={scene.id}
             type="button"
-            onClick={() => setMode(item)}
+            onClick={() => setMode(scene.id)}
             onPointerEnter={() => playHoverSound()}
             aria-pressed={isActive}
-            className={`station-mode-btn rounded-md border px-3 py-1.5 text-xs uppercase tracking-[0.16em] focus:outline-none ${
-              isActive
-                ? "is-active border-[#3a7352] bg-[#0e1b14] text-[#c4fcd2] shadow-[0_0_0_1px_rgba(115,255,140,0.16),0_0_10px_rgba(115,255,140,0.18)]"
-                : "border-[#274a35] bg-[#08120d] text-[#86b896]"
-            }`}
+            data-state={isActive ? "active" : "inactive"}
+            className="station-mode-btn rounded-md border border-transparent bg-transparent px-3 py-1 text-xs uppercase tracking-[0.12em] text-white/45 shadow-none transition-colors duration-200 focus:outline-none hover:border-white/20 hover:text-white/80 data-[state=active]:border-white/20 data-[state=active]:text-white/80 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:!bg-transparent data-[state=active]:!shadow-none data-[state=active]:after:content-none"
             initial={false}
-            animate={isActive ? { opacity: [0.9, 1, 0.9] } : { opacity: 0.62 }}
-            transition={
-              isActive
-                ? { duration: 10, ease: "easeInOut", repeat: Infinity }
-                : { duration: 0 }
-            }
+            animate={{ opacity: isActive ? 1 : 0.64 }}
+            whileHover={{ opacity: isActive ? 1 : 0.9 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            {toLabel(item)}
+            <span>{scene.label}</span>
           </motion.button>
         );
       })}

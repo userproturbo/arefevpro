@@ -11,7 +11,7 @@ type StationShellProps = {
   initialMode?: StationMode;
 };
 
-export default function StationShell({ initialMode = "idle" }: StationShellProps) {
+export default function StationShell({ initialMode = "home" }: StationShellProps) {
   const [mode, setMode] = useState<StationMode>(initialMode);
 
   return (

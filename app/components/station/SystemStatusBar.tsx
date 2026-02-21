@@ -2,12 +2,11 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import type { StationMode } from "./types";
 import { motion } from "framer-motion";
 import { useAuth } from "@/app/providers";
 
 type SystemStatusBarProps = {
-  mode: StationMode;
+  mode: string;
   stationLabel?: string;
   scopeLabel?: string;
 };
