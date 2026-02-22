@@ -11,7 +11,6 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import AlbumsList from "@/app/photos/AlbumsList";
-import PhotoViewer from "@/app/components/photo/PhotoViewer";
 import PhotoLikeButton from "@/app/components/photo/PhotoLikeButton";
 import PhotoComments from "@/app/components/comments/PhotoComments";
 import { usePhotoLikesStore } from "@/app/components/photo/photoLikesStore";
@@ -39,6 +38,24 @@ type AlbumDetails = AlbumSummary & {
 
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type StationPhotoView = "albums" | "album" | "viewer";
+
+function CommentIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none">
+      <path d="M3.5 4.5h13v8h-7l-3.5 3v-3h-2.5z" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none">
+      <path d="M7 6h7v7" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M6.5 13.5l7-7" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M4 9.5v6h6" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
 
 function getAnchorTarget(target: EventTarget | null): HTMLAnchorElement | null {
   if (!(target instanceof HTMLElement)) return null;
@@ -110,6 +127,8 @@ export default function StationPhotoModule() {
   const [activePhotoId, setActivePhotoId] = useState<number | null>(null);
   const [albumCache, setAlbumCache] = useState<Record<string, AlbumDetails>>({});
   const [activeAlbum, setActiveAlbum] = useState<AlbumDetails | null>(null);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [commentsCountByPhoto, setCommentsCountByPhoto] = useState<Record<number, number>>({});
 
   const seedPhotoLikes = usePhotoLikesStore((state) => state.seedPhotos);
 
@@ -269,11 +288,13 @@ export default function StationPhotoModule() {
   const openViewer = useCallback((photoId: number) => {
     setActivePhotoId(photoId);
     setView("viewer");
+    setIsCommentsOpen(false);
   }, []);
 
   const backToAlbum = useCallback(() => {
     setView("album");
     setActivePhotoId(null);
+    setIsCommentsOpen(false);
   }, []);
 
   const handleAlbumsClickCapture = (event: MouseEvent<HTMLDivElement>) => {
@@ -288,11 +309,6 @@ export default function StationPhotoModule() {
     event.stopPropagation();
     void openAlbum(decodeURIComponent(match[1]));
   };
-
-  const viewerPhotos = useMemo(
-    () => activeAlbum?.photos.map((photo) => ({ id: photo.id, url: photo.url })) ?? [],
-    [activeAlbum]
-  );
 
   const activeViewerPhoto = useMemo(() => {
     if (!activeAlbum || !activePhotoId) return null;
@@ -316,6 +332,59 @@ export default function StationPhotoModule() {
     return activeAlbum.photos[activeViewerIndex + 1] ?? null;
   }, [activeAlbum, activeViewerIndex]);
 
+  const activeCommentsCount = activePhotoId ? (commentsCountByPhoto[activePhotoId] ?? 0) : 0;
+
+  useEffect(() => {
+    if (view !== "viewer" || !activePhotoId) return;
+    if (typeof commentsCountByPhoto[activePhotoId] === "number") return;
+
+    let cancelled = false;
+    async function loadCommentsCount() {
+      try {
+        const res = await fetch(`/api/photos/${activePhotoId}/comments`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { comments?: Array<unknown> };
+        const count = Array.isArray(data.comments) ? data.comments.length : 0;
+        if (!cancelled) {
+          setCommentsCountByPhoto((prev) => ({ ...prev, [activePhotoId]: count }));
+        }
+      } catch {
+        if (!cancelled) {
+          setCommentsCountByPhoto((prev) => ({ ...prev, [activePhotoId]: 0 }));
+        }
+      }
+    }
+
+    void loadCommentsCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [activePhotoId, commentsCountByPhoto, view]);
+
+  const sharePhoto = useCallback(async () => {
+    if (!activeAlbum || !activePhotoId) return;
+    const url = `/photo/${encodeURIComponent(activeAlbum.slug)}/${activePhotoId}`;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${activeAlbum.title} / Photo ${activePhotoId}`,
+          url,
+        });
+        return;
+      } catch {
+        // user canceled share
+      }
+    }
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        const absolute = `${window.location.origin}${url}`;
+        await navigator.clipboard.writeText(absolute);
+      } catch {
+        // ignore clipboard failure silently in station module
+      }
+    }
+  }, [activeAlbum, activePhotoId]);
+
   // Keyboard navigation (desktop/tablet viewer)
   useEffect(() => {
     if (view !== "viewer" || !activeAlbum) return;
@@ -325,6 +394,10 @@ export default function StationPhotoModule() {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
+        if (isCommentsOpen) {
+          setIsCommentsOpen(false);
+          return;
+        }
         backToAlbum();
         return;
       }
@@ -349,7 +422,7 @@ export default function StationPhotoModule() {
     return () => {
       window.removeEventListener("keydown", onKeyDownCapture, { capture: true });
     };
-  }, [activeAlbum, backToAlbum, nextPhoto, previousPhoto, view]);
+  }, [activeAlbum, backToAlbum, isCommentsOpen, nextPhoto, previousPhoto, view]);
 
   // Lock body scroll when mobile fullscreen viewer is active
   const isMobileFullscreen = isMounted && isMobile && view === "viewer";
@@ -467,14 +540,6 @@ export default function StationPhotoModule() {
   if (view === "album") {
     return (
       <div className="space-y-4">
-        <button
-          type="button"
-          onClick={backToAlbums}
-          className="rounded-md border border-[#275636] bg-[#09120d] px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-[#8ec99c]"
-        >
-          Back To Albums
-        </button>
-
         {albumStatus === "error" && (
           <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
             Failed to load album.
@@ -490,11 +555,24 @@ export default function StationPhotoModule() {
 
         {albumStatus === "ready" && activeAlbum && (
           <div className="space-y-4">
-            <div className="border-b border-[#1a4028] pb-2">
-              <h3 className="text-base font-semibold tracking-wide text-[#9ef6b2]">{activeAlbum.title}</h3>
-              {activeAlbum.description ? (
-                <p className="text-sm text-[#8bc99b]">{activeAlbum.description}</p>
-              ) : null}
+            <div className="sticky top-0 z-20 -mx-1 rounded-md border border-[#204a31] bg-[#070f0b]/95 px-2 py-1.5 shadow-[0_0_0_1px_rgba(115,255,140,0.08)]">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={backToAlbums}
+                  className="shrink-0 rounded-md border border-[#275636] bg-[#09120d] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-[#9ad8ab]"
+                >
+                  Back To Albums
+                </button>
+                <div className="min-w-0 text-xs uppercase tracking-[0.12em] text-[#77b089]">
+                  <span className="block truncate text-[#8fd4a3]">{activeAlbum.title}</span>
+                  {activeAlbum.description ? (
+                    <span className="mt-0.5 block truncate text-[10px] text-[#6f9f7c]">
+                      {activeAlbum.description}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
 
             {activeAlbum.photos.length === 0 ? (
@@ -566,13 +644,78 @@ export default function StationPhotoModule() {
           onTouchEnd={handleViewerTouchEnd}
           onTouchCancel={resetSwipe}
         >
-          <PhotoViewer
-            slug={activeAlbum.slug}
-            photos={viewerPhotos}
-            activeId={activePhotoId}
-            likesCount={activeViewerPhoto.likesCount}
-            likedByMe={activeViewerPhoto.likedByMe}
-          />
+          <div className="relative h-full w-full overflow-hidden bg-[#020705]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={activeViewerPhoto.url}
+              alt=""
+              className="h-full w-full object-contain"
+              loading="eager"
+            />
+
+            <div className="pointer-events-none absolute inset-x-2 top-2 z-20">
+              <div className="pointer-events-auto flex items-center gap-1 rounded-md border border-[#214b32] bg-[#060f0b]/88 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[#8ecb9d] shadow-[0_0_10px_rgba(115,255,140,0.12)]">
+                <PhotoLikeButton
+                  photoId={activePhotoId}
+                  initialCount={activeViewerPhoto.likesCount}
+                  initialLiked={activeViewerPhoto.likedByMe}
+                  size="sm"
+                />
+                <button
+                  type="button"
+                  aria-label="Back to albums"
+                  onClick={backToAlbums}
+                  className="rounded border border-[#2a5c3c] bg-transparent px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#95d8a8]"
+                >
+                  Albums
+                </button>
+                <button
+                  type="button"
+                  aria-label="Back to grid"
+                  onClick={backToAlbum}
+                  className="rounded border border-[#2a5c3c] bg-transparent px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#95d8a8]"
+                >
+                  Back To Grid
+                </button>
+                <button
+                  type="button"
+                  aria-label="Toggle comments"
+                  onClick={() => setIsCommentsOpen((prev) => !prev)}
+                  className="ml-auto inline-flex items-center gap-1 rounded border border-[#2a5c3c] bg-transparent px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#7ebc8f]"
+                >
+                  <CommentIcon />
+                  <span>{activeCommentsCount}</span>
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Previous photo"
+              onClick={() => previousPhoto && setActivePhotoId(previousPhoto.id)}
+              disabled={!previousPhoto}
+              className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-md border border-[#2b5f3e] bg-[#041009]/72 p-2 text-[#9ae0ae] disabled:opacity-30"
+            >
+              <span aria-hidden="true">←</span>
+            </button>
+            <button
+              type="button"
+              aria-label="Next photo"
+              onClick={() => nextPhoto && setActivePhotoId(nextPhoto.id)}
+              disabled={!nextPhoto}
+              className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-md border border-[#2b5f3e] bg-[#041009]/72 p-2 text-[#9ae0ae] disabled:opacity-30"
+            >
+              <span aria-hidden="true">→</span>
+            </button>
+
+            {isCommentsOpen ? (
+              <div className="absolute inset-x-2 bottom-2 z-30 h-[52%] rounded-md border border-[#29563a] bg-[#070f0b]/95 p-2">
+                <div className="h-full overflow-y-auto">
+                  <PhotoComments photoId={activePhotoId} />
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     );
@@ -582,60 +725,94 @@ export default function StationPhotoModule() {
 
   // ===== Desktop / tablet viewer (Station UI) =====
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={backToAlbums}
-          className="rounded-md border border-[#275636] bg-[#09120d] px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-[#8ec99c]"
-        >
-          Albums
-        </button>
-        <button
-          type="button"
-          onClick={backToAlbum}
-          className="rounded-md border border-[#275636] bg-[#09120d] px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-[#8ec99c]"
-        >
-          Back To Grid
-        </button>
-        <div className="text-xs uppercase tracking-[0.12em] text-[#7dad8a]">
-          {activeAlbum.title} / Photo {activePhotoId}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => previousPhoto && setActivePhotoId(previousPhoto.id)}
-          disabled={!previousPhoto}
-          className="rounded-md border border-[#275636] bg-[#09120d] px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-[#8ec99c] disabled:opacity-50"
-        >
-          Prev
-        </button>
-        <button
-          type="button"
-          onClick={() => nextPhoto && setActivePhotoId(nextPhoto.id)}
-          disabled={!nextPhoto}
-          className="rounded-md border border-[#275636] bg-[#09120d] px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-[#8ec99c] disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
-
+    <div className="space-y-3">
       <div className="relative overflow-hidden rounded-md border border-[#275636] bg-[#09120d]">
-        <div className="h-[58vh] min-h-[360px] max-h-[680px]">
-          <PhotoViewer
-            slug={activeAlbum.slug}
-            photos={viewerPhotos}
-            activeId={activePhotoId}
-            likesCount={activeViewerPhoto.likesCount}
-            likedByMe={activeViewerPhoto.likedByMe}
+        <div className="relative h-[68vh] min-h-[420px] max-h-[760px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            key={activeViewerPhoto.id}
+            src={activeViewerPhoto.url}
+            alt=""
+            className="h-full w-full object-contain"
+            loading="eager"
           />
-        </div>
-      </div>
 
-      <div className="rounded-md border border-[#275636] bg-[#09120d] p-3">
-        <PhotoComments photoId={activePhotoId} />
+          <div className="pointer-events-none absolute inset-x-3 top-3 z-30">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-md border border-[#234f34] bg-[#06100b]/85 px-2 py-1.5 text-[10px] uppercase tracking-[0.12em] text-[#8ecb9d] shadow-[0_0_12px_rgba(115,255,140,0.12)]">
+              <PhotoLikeButton
+                photoId={activePhotoId}
+                initialCount={activeViewerPhoto.likesCount}
+                initialLiked={activeViewerPhoto.likedByMe}
+                size="sm"
+              />
+
+              <button
+                type="button"
+                aria-label="Go to albums"
+                onClick={backToAlbums}
+                className="rounded border border-[#2b5e3f] bg-transparent px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#8fcfa0]"
+              >
+                Albums
+              </button>
+              <button
+                type="button"
+                aria-label="Back to grid"
+                onClick={backToAlbum}
+                className="rounded border border-[#2b5e3f] bg-transparent px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#8fcfa0]"
+              >
+                Back To Grid
+              </button>
+
+              <div className="ml-auto flex items-center gap-1.5">
+                <button
+                  type="button"
+                  aria-label={isCommentsOpen ? "Close comments panel" : "Open comments panel"}
+                  onClick={() => setIsCommentsOpen((prev) => !prev)}
+                  className="inline-flex items-center gap-1 rounded border border-[#2b5e3f] bg-transparent px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#7fbd90]"
+                >
+                  <CommentIcon />
+                  <span>{activeCommentsCount}</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Share photo"
+                  onClick={() => void sharePhoto()}
+                  className="inline-flex items-center gap-1 rounded border border-[#2b5e3f] bg-transparent px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#7fbd90]"
+                >
+                  <ShareIcon />
+                  <span>0</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Previous photo"
+            onClick={() => previousPhoto && setActivePhotoId(previousPhoto.id)}
+            disabled={!previousPhoto}
+            className="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-md border border-[#2d6342] bg-[#05120b]/70 px-2 py-2 text-[#9ae1b0] transition hover:bg-[#0a1912] disabled:opacity-35"
+          >
+            <span aria-hidden="true">←</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Next photo"
+            onClick={() => nextPhoto && setActivePhotoId(nextPhoto.id)}
+            disabled={!nextPhoto}
+            className="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-md border border-[#2d6342] bg-[#05120b]/70 px-2 py-2 text-[#9ae1b0] transition hover:bg-[#0a1912] disabled:opacity-35"
+          >
+            <span aria-hidden="true">→</span>
+          </button>
+
+          {isCommentsOpen ? (
+            <aside className="absolute bottom-3 right-3 top-16 z-40 w-[min(30rem,42%)] rounded-md border border-[#2a5b3b] bg-[#07110c]/95 p-3 shadow-[0_0_18px_rgba(115,255,140,0.12)]">
+              <div className="h-full overflow-y-auto">
+                <PhotoComments photoId={activePhotoId} />
+              </div>
+            </aside>
+          ) : null}
+        </div>
       </div>
     </div>
   );
