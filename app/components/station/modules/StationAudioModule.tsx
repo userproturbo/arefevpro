@@ -85,102 +85,102 @@ export default function StationAudioModule() {
   );
 
   return (
-    <div className="space-y-3">
-      <div className="border-b border-[#1a4028] pb-2">
-        <h2 className="text-lg font-semibold tracking-wide text-[#9ef6b2]">Audio Bay</h2>
-        <p className="text-sm text-[#8bc99b]">Published music posts with instant playback.</p>
-      </div>
+    <>
+      <h2 className="sr-only">Audio Bay</h2>
+      <p className="sr-only">Published music posts with instant playback.</p>
+      <div className="space-y-3">
 
-      {status === "loading" && (
-        <div className="grid gap-3 md:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={`audio-skeleton-${index}`}
-              className="h-24 rounded-md border border-[#275636] bg-[#09120d]"
-            />
-          ))}
-        </div>
-      )}
-
-      {status === "error" && (
-        <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
-          Failed to load audio tracks.
-        </div>
-      )}
-
-      {status === "ready" && tracks.length === 0 && (
-        <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
-          No published tracks yet.
-        </div>
-      )}
-
-      {status === "ready" && tracks.length > 0 && (
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-          <div className="space-y-2">
-            {tracks.map((track) => {
-              const isActive = track.id === activeTrackId;
-              const cover = track.coverMedia?.url ?? FALLBACK_COVER;
-              return (
-                <button
-                  key={track.id}
-                  type="button"
-                  onClick={() => setActiveTrackId(track.id)}
-                  className={`flex w-full items-center gap-3 rounded-md border p-2 text-left transition ${
-                    isActive
-                      ? "border-[#5cab77] bg-[#102016]"
-                      : "border-[#275636] bg-[#09120d] hover:bg-[#0e1b14]"
-                  }`}
-                >
-                  <img
-                    src={cover}
-                    alt={track.title}
-                    className="h-14 w-14 shrink-0 rounded object-cover"
-                  />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-[#b4fdc3]">{track.title}</div>
-                    {track.text ? (
-                      <div className="line-clamp-1 text-xs text-[#8ec99c]">{track.text}</div>
-                    ) : null}
-                  </div>
-                </button>
-              );
-            })}
+        {status === "loading" && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`audio-skeleton-${index}`}
+                className="h-24 rounded-md border border-[#275636] bg-[#09120d]"
+              />
+            ))}
           </div>
+        )}
 
-          <div className="rounded-md border border-[#275636] bg-[#09120d] p-3">
-            {activeTrack ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={activeTrack.coverMedia?.url ?? FALLBACK_COVER}
-                    alt={activeTrack.title}
-                    className="h-20 w-20 rounded object-cover"
-                  />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-base font-semibold text-[#b4fdc3]">
-                      {activeTrack.title}
-                    </h3>
-                    {activeTrack.text ? (
-                      <p className="line-clamp-2 text-sm text-[#8ec99c]">{activeTrack.text}</p>
-                    ) : null}
+        {status === "error" && (
+          <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
+            Failed to load audio tracks.
+          </div>
+        )}
+
+        {status === "ready" && tracks.length === 0 && (
+          <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
+            No published tracks yet.
+          </div>
+        )}
+
+        {status === "ready" && tracks.length > 0 && (
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <div className="space-y-2">
+              {tracks.map((track) => {
+                const isActive = track.id === activeTrackId;
+                const cover = track.coverMedia?.url ?? FALLBACK_COVER;
+                return (
+                  <button
+                    key={track.id}
+                    type="button"
+                    onClick={() => setActiveTrackId(track.id)}
+                    className={`flex w-full items-center gap-3 rounded-md border p-2 text-left transition ${
+                      isActive
+                        ? "border-[#5cab77] bg-[#102016]"
+                        : "border-[#275636] bg-[#09120d] hover:bg-[#0e1b14]"
+                    }`}
+                  >
+                    <img
+                      src={cover}
+                      alt={track.title}
+                      className="h-14 w-14 shrink-0 rounded object-cover"
+                    />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-[#b4fdc3]">{track.title}</div>
+                      {track.text ? (
+                        <div className="line-clamp-1 text-xs text-[#8ec99c]">{track.text}</div>
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="rounded-md border border-[#275636] bg-[#09120d] p-3">
+              {activeTrack ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={activeTrack.coverMedia?.url ?? FALLBACK_COVER}
+                      alt={activeTrack.title}
+                      className="h-20 w-20 rounded object-cover"
+                    />
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-semibold text-[#b4fdc3]">
+                        {activeTrack.title}
+                      </h3>
+                      {activeTrack.text ? (
+                        <p className="line-clamp-2 text-sm text-[#8ec99c]">{activeTrack.text}</p>
+                      ) : null}
+                    </div>
                   </div>
+                  <audio
+                    key={activeTrack.id}
+                    controls
+                    preload="metadata"
+                    className="w-full"
+                    src={activeTrack.media?.url ?? undefined}
+                  >
+                    Ваш браузер не поддерживает воспроизведение аудио.
+                  </audio>
                 </div>
-                <audio
-                  key={activeTrack.id}
-                  controls
-                  preload="metadata"
-                  className="w-full"
-                  src={activeTrack.media?.url ?? undefined}
-                >
-                  Ваш браузер не поддерживает воспроизведение аудио.
-                </audio>
-              </div>
-            ) : (
-              <div className="text-sm text-[#8ec99c]">Select a track to play.</div>
-            )}
+              ) : (
+                <div className="text-sm text-[#8ec99c]">Select a track to play.</div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

@@ -441,11 +441,6 @@ export default function StationPhotoModule() {
   if (view === "albums") {
     return (
       <div className="space-y-3">
-        <div className="border-b border-[#1a4028] pb-2">
-          <h2 className="text-lg font-semibold tracking-wide text-[#9ef6b2]">Photo Archive</h2>
-          <p className="text-sm text-[#8bc99b]">Open albums and inspect photos inside station mode.</p>
-        </div>
-
         {(albumsStatus === "idle" || albumsStatus === "loading") && (
           <div className="space-y-2">
             <div className="h-24 rounded-md border border-[#275636] bg-[#09120d]" />

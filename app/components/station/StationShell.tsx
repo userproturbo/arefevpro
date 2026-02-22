@@ -20,6 +20,7 @@ export default function StationShell({ initialMode = "home" }: StationShellProps
         <StationFrame
           className="flex h-full min-h-0 flex-col"
           innerClassName="flex h-full min-h-0 flex-col"
+          withInnerFrame={false}
         >
           <SystemStatusBar mode={mode} />
           <ModeSelect mode={mode} setMode={setMode} />

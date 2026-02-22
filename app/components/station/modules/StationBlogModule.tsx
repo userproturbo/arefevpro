@@ -263,52 +263,52 @@ export default function StationBlogModule() {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="border-b border-[#1a4028] pb-2">
-        <h2 className="text-lg font-semibold tracking-wide text-[#9ef6b2]">Blog Stream</h2>
-        <p className="text-sm text-[#8bc99b]">Published blog posts inside station mode.</p>
+    <>
+      <h2 className="sr-only">Blog Stream</h2>
+      <p className="sr-only">Published blog posts inside station mode.</p>
+      <div className="space-y-3">
+
+        {(listStatus === "idle" || listStatus === "loading") && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`station-blog-skeleton-${index}`}
+                className="h-60 rounded-md border border-[#275636] bg-[#09120d]"
+              />
+            ))}
+          </div>
+        )}
+
+        {listStatus === "error" && (
+          <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
+            Failed to load blog posts.
+          </div>
+        )}
+
+        {listStatus === "ready" && posts.length === 0 && (
+          <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
+            No published posts yet.
+          </div>
+        )}
+
+        {listStatus === "ready" && posts.length > 0 && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {posts.map((post) => (
+              <div
+                key={post.id}
+                onClickCapture={(event) => handleCardClickCapture(event, post.slug)}
+                onClick={(event) => {
+                  if (isButtonTarget(event.target)) return;
+                  void openPost(post.slug);
+                }}
+                className="rounded-3xl border border-[#1a4028] bg-[#050b07] p-1"
+              >
+                <PostCard post={post} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {(listStatus === "idle" || listStatus === "loading") && (
-        <div className="grid gap-3 md:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={`station-blog-skeleton-${index}`}
-              className="h-60 rounded-md border border-[#275636] bg-[#09120d]"
-            />
-          ))}
-        </div>
-      )}
-
-      {listStatus === "error" && (
-        <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
-          Failed to load blog posts.
-        </div>
-      )}
-
-      {listStatus === "ready" && posts.length === 0 && (
-        <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
-          No published posts yet.
-        </div>
-      )}
-
-      {listStatus === "ready" && posts.length > 0 && (
-        <div className="grid gap-3 md:grid-cols-2">
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              onClickCapture={(event) => handleCardClickCapture(event, post.slug)}
-              onClick={(event) => {
-                if (isButtonTarget(event.target)) return;
-                void openPost(post.slug);
-              }}
-              className="rounded-3xl border border-[#1a4028] bg-[#050b07] p-1"
-            >
-              <PostCard post={post} />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
