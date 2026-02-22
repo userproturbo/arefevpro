@@ -29,11 +29,13 @@ export default function ModeSelect({ mode, setMode }: ModeSelectProps) {
 
   return (
     <nav
-      className="mb-3 rounded-xl border border-white/10 bg-[#060e0a]/90 p-1.5 shadow-[inset_0_0_0_1px_rgba(115,255,140,0.05),0_0_18px_rgba(0,255,255,0.04)]"
+      className="mb-3 rounded-lg border border-white/8 bg-[#060e0a]/90 p-1 shadow-[inset_0_0_0_1px_rgba(115,255,140,0.04),0_0_12px_rgba(0,255,255,0.03)] md:rounded-xl md:p-1.5"
       aria-label="Station Mode Select"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-stretch">
-        <div className="no-scrollbar flex min-w-0 flex-[0_0_auto] flex-nowrap items-center gap-1.5 overflow-x-auto [-webkit-overflow-scrolling:touch]">
+        <div
+          className="flex min-w-0 flex-[0_0_auto] flex-nowrap items-center gap-[3px] whitespace-nowrap md:gap-1.5"
+        >
           {sceneTabs.map((scene) => {
             const isActive = scene.id === mode;
 
@@ -45,13 +47,13 @@ export default function ModeSelect({ mode, setMode }: ModeSelectProps) {
                 onPointerEnter={() => playHoverSound()}
                 aria-pressed={isActive}
                 data-state={isActive ? "active" : "inactive"}
-                className="station-mode-btn shrink-0 rounded-md border border-transparent bg-transparent px-3 py-1 text-xs uppercase tracking-[0.12em] text-white/45 shadow-none transition-colors duration-200 focus:outline-none hover:border-white/20 hover:text-white/80 data-[state=active]:border-white/20 data-[state=active]:text-white/80 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:!bg-transparent data-[state=active]:!shadow-none data-[state=active]:after:content-none"
+                className="station-mode-btn min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[10px] uppercase tracking-[0.04em] whitespace-nowrap text-white/45 shadow-none transition-colors duration-200 focus:outline-none hover:border-white/20 hover:text-white/80 data-[state=active]:border-white/20 data-[state=active]:text-white/80 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:!bg-transparent data-[state=active]:!shadow-none data-[state=active]:after:content-none md:flex-none md:px-3 md:py-1 md:text-xs md:tracking-[0.12em]"
                 initial={false}
                 animate={{ opacity: isActive ? 1 : 0.64 }}
                 whileHover={{ opacity: isActive ? 1 : 0.9 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                <span>{scene.label}</span>
+                <span className="block truncate text-center">{scene.label}</span>
               </motion.button>
             );
           })}

@@ -426,6 +426,10 @@ body,
   box-shadow: 0 0 0 2px rgba(141, 255, 185, 0.45), 0 0 14px rgba(141, 255, 185, 0.4);
 }
 
+.station-mode-btn:active {
+  opacity: 0.82;
+}
+
 .station-ticker {
   position: relative;
   min-width: 0;
