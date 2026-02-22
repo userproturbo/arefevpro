@@ -346,10 +346,12 @@ export default function StationPhotoModule() {
         const data = (await res.json()) as { comments?: Array<unknown> };
         const count = Array.isArray(data.comments) ? data.comments.length : 0;
         if (!cancelled) {
+          if (!activePhotoId) return;
           setCommentsCountByPhoto((prev) => ({ ...prev, [activePhotoId]: count }));
         }
       } catch {
         if (!cancelled) {
+          if (!activePhotoId) return;
           setCommentsCountByPhoto((prev) => ({ ...prev, [activePhotoId]: 0 }));
         }
       }
