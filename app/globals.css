@@ -548,16 +548,6 @@ body,
   }
 }
 
-@media (max-width: 420px) {
-  .station-ticker-scroll-area {
-    display: none;
-  }
-
-  .station-ticker {
-    justify-content: flex-end;
-  }
-}
-
 .frame-svg {
   display: block;
   width: 100%;

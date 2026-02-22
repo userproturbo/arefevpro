@@ -33,7 +33,7 @@ export default function ModeSelect({ mode, setMode }: ModeSelectProps) {
       aria-label="Station Mode Select"
     >
       <div className="flex flex-col gap-2 md:flex-row md:items-stretch">
-        <div className="flex min-w-0 flex-[0_1_auto] flex-wrap items-center gap-1.5">
+        <div className="no-scrollbar flex min-w-0 flex-[0_0_auto] flex-nowrap items-center gap-1.5 overflow-x-auto [-webkit-overflow-scrolling:touch]">
           {sceneTabs.map((scene) => {
             const isActive = scene.id === mode;
 
@@ -45,7 +45,7 @@ export default function ModeSelect({ mode, setMode }: ModeSelectProps) {
                 onPointerEnter={() => playHoverSound()}
                 aria-pressed={isActive}
                 data-state={isActive ? "active" : "inactive"}
-                className="station-mode-btn rounded-md border border-transparent bg-transparent px-3 py-1 text-xs uppercase tracking-[0.12em] text-white/45 shadow-none transition-colors duration-200 focus:outline-none hover:border-white/20 hover:text-white/80 data-[state=active]:border-white/20 data-[state=active]:text-white/80 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:!bg-transparent data-[state=active]:!shadow-none data-[state=active]:after:content-none"
+                className="station-mode-btn shrink-0 rounded-md border border-transparent bg-transparent px-3 py-1 text-xs uppercase tracking-[0.12em] text-white/45 shadow-none transition-colors duration-200 focus:outline-none hover:border-white/20 hover:text-white/80 data-[state=active]:border-white/20 data-[state=active]:text-white/80 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:!bg-transparent data-[state=active]:!shadow-none data-[state=active]:after:content-none"
                 initial={false}
                 animate={{ opacity: isActive ? 1 : 0.64 }}
                 whileHover={{ opacity: isActive ? 1 : 0.9 }}
