@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import CoverImage from "./components/CoverImage";
 
 type Album = {
   id: number;
@@ -49,7 +49,7 @@ export default function AlbumsList({ albums }: Props) {
         return (
           <article
             key={album.id}
-            className="bg-[#050b07] p-4 text-[#c0f6cf]"
+            className="group bg-[#050b07] p-4 text-[#c0f6cf]"
           >
             {/* Header */}
             <div className="mb-3 flex items-center justify-between border-b border-[#1f4630] pb-2">
@@ -64,15 +64,11 @@ export default function AlbumsList({ albums }: Props) {
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
               {/* Cover */}
               <div className="bg-[#08110d] p-2">
-                <div className="relative aspect-[16/9] overflow-hidden rounded-sm">
-                  <Image
-                    src={album.coverImage ?? PLACEHOLDER_COVER}
-                    alt={album.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                </div>
+                <CoverImage
+                  src={album.coverImage ?? PLACEHOLDER_COVER}
+                  alt={album.title}
+                  priority={index < 2}
+                />
 
                 <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-[#7fb08d]">
                   <span>VIEWPORT</span>

@@ -541,6 +541,12 @@ body,
   }
 }
 
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @media (max-width: 960px) {
   .station-ticker {
     --station-ticker-duration: 24s;
