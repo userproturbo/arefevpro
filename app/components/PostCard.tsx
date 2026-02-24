@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentPropsWithoutRef } from "react";
 import { UiPost } from "../types";
 import Link from "next/link";
 import LikeButton from "./buttons/LikeButton";
@@ -8,7 +9,7 @@ import { getPostCover, getPostExcerpt, getPostTitle } from "@/lib/postPreview";
 
 type Props = {
   post: UiPost;
-};
+} & Omit<ComponentPropsWithoutRef<"div">, "children">;
 
 function getBadge(type: UiPost["type"]) {
   switch (type) {
@@ -27,7 +28,7 @@ function getBadge(type: UiPost["type"]) {
   }
 }
 
-export default function PostCard({ post }: Props) {
+export default function PostCard({ post, className, ...divProps }: Props) {
   const title = getPostTitle(post);
   const excerpt = getPostExcerpt(post);
   const cover = getPostCover(post);
@@ -35,7 +36,10 @@ export default function PostCard({ post }: Props) {
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur"
+      className={`group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur${
+        className ? ` ${className}` : ""
+      }`}
+      {...divProps}
     >
       <Link href={`/post/${post.slug}`} className="block">
         <div className="relative h-56 overflow-hidden">

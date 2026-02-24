@@ -294,17 +294,15 @@ export default function StationBlogModule() {
         {listStatus === "ready" && posts.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
             {posts.map((post) => (
-              <div
+              <PostCard
                 key={post.id}
+                post={post}
                 onClickCapture={(event) => handleCardClickCapture(event, post.slug)}
                 onClick={(event) => {
                   if (isButtonTarget(event.target)) return;
                   void openPost(post.slug);
                 }}
-                className="rounded-3xl border border-[#1a4028] bg-[#050b07] p-1"
-              >
-                <PostCard post={post} />
-              </div>
+              />
             ))}
           </div>
         )}
