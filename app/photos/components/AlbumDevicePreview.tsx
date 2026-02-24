@@ -40,10 +40,10 @@ export default function AlbumDevicePreview({
       <div
         className="absolute overflow-hidden"
         style={{
-          left: "9.43%",
-          top: "17.23%",
-          width: "79.48%",
-          height: "49.62%",
+          left: "8.2%",
+          top: "14%",
+          width: "84%",
+          height: "56%",
         }}
       >
         <Image
