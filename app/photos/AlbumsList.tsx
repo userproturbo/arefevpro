@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AlbumDevicePreview from "./components/AlbumDevicePreview";
+import styles from "./AlbumsList.module.css";
 
 type Album = {
   id: number;
@@ -27,13 +28,13 @@ export default function AlbumsList({ albums }: Props) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className={styles.grid}>
       {albums.map((album, index) => {
         return (
           <Link
             key={album.id}
             href={`/photo/${album.slug}`}
-            className="group block"
+            className={`group ${styles.item}`}
           >
             <AlbumDevicePreview
               src={album.coverImage ?? PLACEHOLDER_COVER}
