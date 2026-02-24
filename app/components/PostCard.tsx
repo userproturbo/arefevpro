@@ -19,7 +19,7 @@ function getBadge(type: UiPost["type"]) {
     case "MUSIC":
       return "Музыка";
     case "BLOG":
-      return "Блог";
+      return null;
     case "ABOUT":
       return "Обо мне";
     default:
@@ -31,6 +31,7 @@ export default function PostCard({ post, className, ...divProps }: Props) {
   const title = getPostTitle(post);
   const excerpt = getPostExcerpt(post);
   const cover = getPostCover(post);
+  const badge = getBadge(post.type);
 
   return (
     <motion.div
@@ -60,9 +61,11 @@ export default function PostCard({ post, className, ...divProps }: Props) {
             />
           ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-          <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/60 border border-white/15 text-xs uppercase tracking-[0.12em]">
-            {getBadge(post.type)}
-          </div>
+          {badge ? (
+            <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/60 border border-white/15 text-xs uppercase tracking-[0.12em]">
+              {badge}
+            </div>
+          ) : null}
         </div>
       </Link>
 
