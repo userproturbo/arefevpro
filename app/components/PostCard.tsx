@@ -1,15 +1,14 @@
 "use client";
 
-import type { ComponentPropsWithoutRef } from "react";
 import { UiPost } from "../types";
 import Link from "next/link";
 import LikeButton from "./buttons/LikeButton";
-import { motion } from "framer-motion";
+import { motion, type HTMLMotionProps } from "framer-motion";
 import { getPostCover, getPostExcerpt, getPostTitle } from "@/lib/postPreview";
 
 type Props = {
   post: UiPost;
-} & Omit<ComponentPropsWithoutRef<"div">, "children">;
+} & Omit<HTMLMotionProps<"div">, "children">;
 
 function getBadge(type: UiPost["type"]) {
   switch (type) {
