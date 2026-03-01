@@ -2,6 +2,7 @@ import "./globals.css";
 import Providers from "./providers";
 import Script from "next/script";
 import SiteChrome from "./components/navigation/SiteChrome";
+import ParticleTransition from "./components/home/ParticleTransition";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <Providers>
           <SiteChrome>{children}</SiteChrome>
+          <ParticleTransition />
         </Providers>
       </body>
     </html>

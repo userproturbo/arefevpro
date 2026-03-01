@@ -10,7 +10,8 @@ type SiteChromeProps = {
 
 export default function SiteChrome({ children }: SiteChromeProps) {
   const pathname = usePathname();
-  const showNav = !pathname.startsWith("/admin");
+  const isHome = pathname === "/";
+  const showNav = !pathname.startsWith("/admin") && !isHome;
 
   return (
     <>
