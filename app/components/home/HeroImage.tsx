@@ -12,7 +12,7 @@ export default function HeroImage({ onClick }: HeroImageProps) {
     <motion.button
       type="button"
       onClick={onClick}
-      className="group relative block w-full max-w-[min(82vw,720px)] rounded-[18px] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+      className="group relative flex w-full items-center justify-center overflow-hidden bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
       initial={{ opacity: 0, scale: 0.95, y: 18 }}
       animate={{
         opacity: 1,
@@ -29,7 +29,7 @@ export default function HeroImage({ onClick }: HeroImageProps) {
       aria-label="Open site navigation"
     >
       <motion.div
-        className="overflow-hidden rounded-[18px] border border-white/8 bg-black"
+        className="flex items-center justify-center overflow-hidden bg-transparent"
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 7, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       >
@@ -39,7 +39,12 @@ export default function HeroImage({ onClick }: HeroImageProps) {
           width={1400}
           height={900}
           priority
-          className="h-auto w-full select-none object-contain transition duration-500 group-hover:brightness-110"
+          className="select-none object-contain transition duration-500 group-hover:brightness-110"
+          style={{
+            height: "min(80vh, 900px)",
+            width: "auto",
+            maxWidth: "90vw",
+          }}
         />
       </motion.div>
     </motion.button>
