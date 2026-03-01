@@ -1,12 +1,12 @@
 import "./globals.css";
 import Providers from "./providers";
 import Script from "next/script";
-
+import SiteChrome from "./components/navigation/SiteChrome";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="relative h-screen overflow-hidden bg-[#04050a] text-white antialiased">
+      <body className="relative min-h-screen bg-black text-white antialiased">
         <Script
           id="clear-dev-overlay"
           strategy="beforeInteractive"
@@ -15,9 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <Providers>
-          {children}
-        </Providers>  
+          <SiteChrome>{children}</SiteChrome>
+        </Providers>
       </body>
-    </html> 
+    </html>
   );
 }
