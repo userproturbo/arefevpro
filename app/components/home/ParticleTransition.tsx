@@ -2,161 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Particle = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  alpha: number;
-  life: number;
-  maxLife: number;
-  targetX?: number;
-  targetY?: number;
-  startX?: number;
-  startY?: number;
-  color: string;
+type DissolveSnapshot = {
+  src: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 };
 
-type ParticleController = {
-  dissolve: (imageEl: HTMLImageElement) => Promise<boolean>;
+type TransitionController = {
+  dissolve: (imageEl: HTMLImageElement, awaitCompletion?: boolean) => Promise<boolean>;
   reform: (imageEl: HTMLImageElement) => Promise<boolean>;
 };
 
 const REFORM_STORAGE_KEY = "particle-transition:reform-image";
 
-let controller: ParticleController | null = null;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function easeOutCubic(value: number) {
-  return 1 - (1 - value) ** 3;
-}
-
-function getCanvasContext(canvas: HTMLCanvasElement) {
-  return canvas.getContext("2d", { alpha: true });
-}
-
-function resizeCanvas(canvas: HTMLCanvasElement) {
-  const dpr = window.devicePixelRatio || 1;
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-
-  canvas.width = Math.round(width * dpr);
-  canvas.height = Math.round(height * dpr);
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
-
-  const context = getCanvasContext(canvas);
-  if (context) {
-    context.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-}
-
-function createOffscreenCanvas(width: number, height: number) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  return canvas;
-}
-
-function sampleImageParticles(imageEl: HTMLImageElement) {
-  const bounds = imageEl.getBoundingClientRect();
-  const naturalWidth = imageEl.naturalWidth;
-  const naturalHeight = imageEl.naturalHeight;
-
-  if (!naturalWidth || !naturalHeight || bounds.width === 0 || bounds.height === 0) {
-    return null;
-  }
-
-  const sampleCanvas = createOffscreenCanvas(naturalWidth, naturalHeight);
-  const sampleContext = sampleCanvas.getContext("2d", { willReadFrequently: true });
-  if (!sampleContext) {
-    return null;
-  }
-
-  sampleContext.drawImage(imageEl, 0, 0, naturalWidth, naturalHeight);
-  const imageData = sampleContext.getImageData(0, 0, naturalWidth, naturalHeight).data;
-
-  const area = naturalWidth * naturalHeight;
-  const estimatedStep = Math.sqrt(area / 280);
-  const step = clamp(Math.round(estimatedStep), 4, 6);
-  const points: Array<{ x: number; y: number; alpha: number }> = [];
-
-  for (let y = 0; y < naturalHeight; y += step) {
-    for (let x = 0; x < naturalWidth; x += step) {
-      const alpha = imageData[(y * naturalWidth + x) * 4 + 3] ?? 0;
-      if (alpha > 48) {
-        points.push({ x, y, alpha });
-      }
-    }
-  }
-
-  if (points.length === 0) {
-    return null;
-  }
-
-  const maxParticles = 320;
-  const sampledPoints =
-    points.length > maxParticles
-      ? points.filter((_, index) => index % Math.ceil(points.length / maxParticles) === 0)
-      : points;
-
-  return { bounds, naturalWidth, naturalHeight, points: sampledPoints.slice(0, 340) };
-}
-
-function createDissolveParticles(imageEl: HTMLImageElement): Particle[] | null {
-  const sampled = sampleImageParticles(imageEl);
-  if (!sampled) {
-    return null;
-  }
-
-  const { bounds, naturalWidth, naturalHeight, points } = sampled;
-
-  return points.map((point, index) => ({
-    x: bounds.left + (point.x / naturalWidth) * bounds.width,
-    y: bounds.top + (point.y / naturalHeight) * bounds.height,
-    vx: (Math.random() * 6 - 3) + Math.sin(index * 0.25) * 0.4,
-    vy: -2 - Math.random() * 4,
-    size: 1 + Math.random() * 2.2,
-    alpha: 0.72,
-    life: 0,
-    maxLife: 700 + Math.random() * 200,
-    color: Math.random() > 0.7 ? "rgba(186, 226, 255, 0.82)" : "rgba(255, 255, 255, 0.74)",
-  }));
-}
-
-function createReformParticles(imageEl: HTMLImageElement): Particle[] | null {
-  const sampled = sampleImageParticles(imageEl);
-  if (!sampled) {
-    return null;
-  }
-
-  const { bounds, naturalWidth, naturalHeight, points } = sampled;
-
-  return points.map((point, index) => {
-    const targetX = bounds.left + (point.x / naturalWidth) * bounds.width;
-    const targetY = bounds.top + (point.y / naturalHeight) * bounds.height;
-
-    return {
-      x: targetX + (Math.random() * 240 - 120),
-      y: targetY + (Math.random() * 200 - 100) - 30,
-      vx: 0,
-      vy: 0,
-      size: 1 + Math.random() * 2,
-      alpha: 0,
-      life: 0,
-      maxLife: 720 + Math.random() * 160,
-      targetX,
-      targetY,
-      startX: targetX + (Math.random() * 240 - 120),
-      startY: targetY + (Math.random() * 200 - 100) - 30,
-      color: index % 5 === 0 ? "rgba(186, 226, 255, 0.8)" : "rgba(255, 255, 255, 0.72)",
-    };
-  });
-}
+let controller: TransitionController | null = null;
 
 export function setPendingParticleReform(imageSrc: string) {
   if (typeof window === "undefined") {
@@ -180,12 +41,15 @@ export function consumePendingParticleReform(imageSrc: string) {
   return true;
 }
 
-export async function triggerParticleDissolve(imageEl: HTMLImageElement) {
+export async function triggerParticleDissolve(
+  imageEl: HTMLImageElement,
+  options?: { awaitCompletion?: boolean },
+) {
   if (!controller) {
     return false;
   }
 
-  return controller.dissolve(imageEl);
+  return controller.dissolve(imageEl, options?.awaitCompletion);
 }
 
 export async function triggerParticleReform(imageEl: HTMLImageElement) {
@@ -197,154 +61,115 @@ export async function triggerParticleReform(imageEl: HTMLImageElement) {
 }
 
 export default function ParticleTransition() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const particlesRef = useRef<Particle[]>([]);
-  const frameRef = useRef<number | null>(null);
-  const lastTimeRef = useRef<number | null>(null);
+  const [snapshot, setSnapshot] = useState<DissolveSnapshot | null>(null);
+  const [phase, setPhase] = useState<"idle" | "dissolve">("idle");
   const completionRef = useRef<(() => void) | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const cleanupTimerRef = useRef<number | null>(null);
+  const activeImageRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
-    resizeCanvas(canvas);
-    const handleResize = () => resizeCanvas(canvas);
-    window.addEventListener("resize", handleResize);
-
-    const stopAnimation = () => {
-      if (frameRef.current !== null) {
-        window.cancelAnimationFrame(frameRef.current);
-        frameRef.current = null;
+    const clearTransition = () => {
+      if (cleanupTimerRef.current !== null) {
+        window.clearTimeout(cleanupTimerRef.current);
+        cleanupTimerRef.current = null;
       }
-      lastTimeRef.current = null;
-    };
 
-    const finishAnimation = () => {
-      stopAnimation();
-      particlesRef.current = [];
-      setIsVisible(false);
+      const image = activeImageRef.current;
+      if (image) {
+        image.style.opacity = "";
+      }
+
+      activeImageRef.current = null;
+      setSnapshot(null);
+      setPhase("idle");
       completionRef.current?.();
       completionRef.current = null;
     };
 
-    const renderLoop = (timestamp: number, mode: "dissolve" | "reform") => {
-      const context = getCanvasContext(canvas);
-      if (!context) {
-        finishAnimation();
-        return;
-      }
-
-      const previous = lastTimeRef.current ?? timestamp;
-      const delta = Math.min(32, timestamp - previous);
-      lastTimeRef.current = timestamp;
-
-      context.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-      let aliveCount = 0;
-
-      for (const particle of particlesRef.current) {
-        particle.life += delta;
-        const progress = clamp(particle.life / particle.maxLife, 0, 1);
-
-        if (mode === "dissolve") {
-          particle.x += particle.vx * (delta / 16.7);
-          particle.y += particle.vy * (delta / 16.7);
-          particle.alpha = (1 - progress) * 0.72;
-          particle.size = Math.max(0.4, particle.size * (1 - 0.012 * (delta / 16.7)));
-        } else {
-          const eased = easeOutCubic(progress);
-          const startX = particle.startX ?? particle.x;
-          const startY = particle.startY ?? particle.y;
-          particle.x = startX + ((particle.targetX ?? startX) - startX) * eased;
-          particle.y = startY + ((particle.targetY ?? startY) - startY) * eased;
-          particle.alpha = progress * 0.72;
-        }
-
-        if (progress < 1) {
-          aliveCount += 1;
-        }
-
-        context.beginPath();
-        context.fillStyle = particle.color.replace(/[\d.]+\)$/, `${particle.alpha})`);
-        context.shadowColor = particle.color.replace(/[\d.]+\)$/, `${Math.min(0.35, particle.alpha)})`);
-        context.shadowBlur = 6;
-        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        context.fill();
-      }
-
-      if (aliveCount === 0) {
-        context.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        finishAnimation();
-        return;
-      }
-
-      frameRef.current = window.requestAnimationFrame((nextTimestamp) =>
-        renderLoop(nextTimestamp, mode),
-      );
-    };
-
     controller = {
-      dissolve: async (imageEl) => {
-        const particles = createDissolveParticles(imageEl);
-        if (!particles) {
+      dissolve: async (imageEl, awaitCompletion = true) => {
+        const bounds = imageEl.getBoundingClientRect();
+        const src = imageEl.currentSrc || imageEl.src;
+
+        if (!src || bounds.width === 0 || bounds.height === 0) {
           return false;
         }
 
-        particlesRef.current = particles;
-        setIsVisible(true);
+        if (cleanupTimerRef.current !== null) {
+          window.clearTimeout(cleanupTimerRef.current);
+        }
+
+        activeImageRef.current = imageEl;
         imageEl.style.opacity = "0";
+        setSnapshot({
+          src,
+          left: bounds.left,
+          top: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+        });
+        setPhase("dissolve");
+        cleanupTimerRef.current = window.setTimeout(clearTransition, 720);
+
+        if (!awaitCompletion) {
+          return true;
+        }
 
         return new Promise<boolean>((resolve) => {
-          completionRef.current = () => {
-            imageEl.style.opacity = "";
-            resolve(true);
-          };
-          stopAnimation();
-          lastTimeRef.current = null;
-          frameRef.current = window.requestAnimationFrame((timestamp) =>
-            renderLoop(timestamp, "dissolve"),
-          );
+          completionRef.current = () => resolve(true);
         });
       },
-      reform: async (imageEl) => {
-        const particles = createReformParticles(imageEl);
-        if (!particles) {
-          return false;
-        }
-
-        particlesRef.current = particles;
-        setIsVisible(true);
-        imageEl.style.opacity = "0";
-
-        return new Promise<boolean>((resolve) => {
-          completionRef.current = () => {
-            imageEl.style.opacity = "";
-            resolve(true);
-          };
-          stopAnimation();
-          lastTimeRef.current = null;
-          frameRef.current = window.requestAnimationFrame((timestamp) =>
-            renderLoop(timestamp, "reform"),
-          );
-        });
+      reform: async () => {
+        return false;
       },
     };
 
     return () => {
-      window.removeEventListener("resize", handleResize);
-      stopAnimation();
       controller = null;
+      if (cleanupTimerRef.current !== null) {
+        window.clearTimeout(cleanupTimerRef.current);
+      }
     };
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       aria-hidden="true"
-      className={`pointer-events-none fixed inset-0 z-[100] ${isVisible ? "opacity-100" : "opacity-0"}`}
-    />
+      className={`pointer-events-none fixed inset-0 z-[100] ${snapshot ? "opacity-100" : "opacity-0"}`}
+    >
+      {snapshot ? (
+        <div
+          className="absolute will-change-[transform,opacity,filter] [filter:brightness(1)]"
+          style={{
+            left: snapshot.left,
+            top: snapshot.top,
+            width: snapshot.width,
+            height: snapshot.height,
+            backgroundImage: `url("${snapshot.src}")`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center",
+            backgroundSize: "contain",
+            transform: "translate3d(0,0,0) scale(1)",
+            opacity: 1,
+            transition: [
+              "transform 680ms cubic-bezier(0.22, 1, 0.36, 1)",
+              "opacity 620ms cubic-bezier(0.22, 1, 0.36, 1)",
+              "filter 200ms ease",
+            ].join(", "),
+          }}
+          ref={(node) => {
+            if (!node || phase !== "dissolve") {
+              return;
+            }
+
+            window.requestAnimationFrame(() => {
+              node.style.filter = "brightness(1.25) blur(2px)";
+              node.style.transform = "translate3d(0,0,0) scale(1.04)";
+              node.style.opacity = "0";
+            });
+          }}
+        />
+      ) : null}
+    </div>
   );
 }
