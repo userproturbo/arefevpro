@@ -1,5 +1,3 @@
-import StationShell from "./components/station/StationShell";
-
 export default function HomePage() {
-  return <StationShell />;
+  return <main className="min-h-[calc(100vh-4rem)] w-full bg-black m-0 p-0" />;
 }
