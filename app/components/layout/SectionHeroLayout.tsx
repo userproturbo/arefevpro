@@ -44,18 +44,14 @@ export default function SectionHeroLayout({
           animate={{ opacity: 1, x: 0, scale: 1 }}
           transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="absolute inset-[-6%] -z-10 rounded-[32px] bg-white/8 blur-3xl" aria-hidden="true" />
-          <div
-            ref={imageShellRef}
-            className="overflow-hidden rounded-[28px] border border-white/10 bg-black/70 shadow-[0_0_80px_rgba(255,255,255,0.06)]"
-          >
+          <div ref={imageShellRef} className="overflow-visible bg-transparent shadow-none">
             <Image
               src={imageSrc}
               alt={imageAlt}
               width={1200}
               height={1500}
               priority
-              className="h-auto w-full object-contain"
+              className="h-auto w-full object-contain [filter:drop-shadow(0_0_30px_rgba(0,0,0,0.8))]"
             />
           </div>
         </motion.aside>

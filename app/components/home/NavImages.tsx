@@ -9,7 +9,14 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import {
   setPendingParticleReform,
   triggerParticleDissolve,
@@ -40,6 +47,7 @@ type CharacterItemProps = {
   index: number;
   total: number;
   hoveredLabel: string | null;
+  activeLabel: string | null;
   selectedLabel: string | null;
   pointerInsideRef: MutableRefObject<boolean>;
   pointerClientX: ReturnType<typeof useMotionValue<number>>;
@@ -58,6 +66,7 @@ function CharacterItem({
   index,
   total,
   hoveredLabel,
+  activeLabel,
   selectedLabel,
   pointerInsideRef,
   pointerClientX,
@@ -77,17 +86,22 @@ function CharacterItem({
   const lookRotateY = useMotionValue(0);
   const lookTranslateX = useMotionValue(0);
   const lookTranslateY = useMotionValue(0);
+  const proximityScale = useMotionValue(1);
+  const proximityLift = useMotionValue(0);
 
   const lookSpringConfig = useMemo(() => ({ stiffness: 90, damping: 22, mass: 0.8 }), []);
   const springRotateX = useSpring(lookRotateX, lookSpringConfig);
   const springRotateY = useSpring(lookRotateY, lookSpringConfig);
   const springTranslateX = useSpring(lookTranslateX, lookSpringConfig);
   const springTranslateY = useSpring(lookTranslateY, lookSpringConfig);
+  const springProximityScale = useSpring(proximityScale, { stiffness: 80, damping: 20, mass: 0.9 });
+  const springProximityLift = useSpring(proximityLift, { stiffness: 80, damping: 20, mass: 0.9 });
 
   const isHovered = hoveredLabel === item.label;
+  const isActive = activeLabel === item.label;
   const isSelected = selectedLabel === item.label;
-  const hasHoveredCharacter = hoveredLabel !== null;
-  const dimOthers = hasHoveredCharacter && !isHovered;
+  const hasActiveCharacter = activeLabel !== null;
+  const dimOthers = hasActiveCharacter && !isActive;
   const hideForSelection = selectedLabel !== null && !isSelected;
 
   const centerIndex = (total - 1) / 2;
@@ -97,6 +111,7 @@ function CharacterItem({
   const depthX = useTransform(cameraX, (value) => value * depth * -1);
   const depthY = useTransform(cameraY, (value) => value * depth * -1);
   const depthScale = useTransform(cameraNormX, (value) => 1 + depth * 0.015 * value);
+  const layeredScale = useTransform(() => depthScale.get() * springProximityScale.get());
 
   useEffect(() => {
     const updateBaseLook = () => {
@@ -158,9 +173,16 @@ function CharacterItem({
       const cursorX = Math.max(-1, Math.min(1, deltaX / 320));
       const cursorY = Math.max(-1, Math.min(1, deltaY / 320));
       const strength = isHovered ? 1 : distance < 220 ? 0.5 : 0.2;
+      const maxDistance = 700;
+      const depth = Math.max(0, Math.min(1, 1 - distance / maxDistance));
 
       normalizedX += cursorX * strength;
       normalizedY += cursorY * strength;
+      proximityScale.set(1 + depth * 0.04);
+      proximityLift.set(-depth * 8);
+    } else {
+      proximityScale.set(1);
+      proximityLift.set(0);
     }
 
     normalizedX = Math.max(-1, Math.min(1, normalizedX));
@@ -200,19 +222,31 @@ function CharacterItem({
             ? 1.12
             : isHovered
               ? 1.06
+              : isActive
+                ? 1.02
               : hideForSelection
                 ? 0.8
                 : dimOthers
                   ? 0.94
-                  : 1,
+              : 1,
           y: isSelected ? -20 : isHovered ? -12 : 0,
-          filter: hideForSelection ? "blur(0px)" : dimOthers ? "blur(1px)" : "blur(0px)",
+          filter: hideForSelection
+            ? "blur(0px) brightness(1)"
+            : dimOthers
+              ? "blur(1.5px) brightness(0.9)"
+              : "blur(0px) brightness(1)",
         }}
         transition={{
-          opacity: { duration: hideForSelection ? 0.25 : 0.18, ease: "easeOut" },
-          scale: { duration: isSelected ? 0.35 : 0.18, ease: [0.22, 1, 0.36, 1] },
+          opacity: {
+            duration: hideForSelection ? 0.25 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
+            ease: activeLabel && !hoveredLabel ? [0.22, 1, 0.36, 1] : "easeOut",
+          },
+          scale: {
+            duration: isSelected ? 0.35 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
+            ease: [0.22, 1, 0.36, 1],
+          },
           y: { duration: isSelected ? 0.35 : 0.18, ease: [0.22, 1, 0.36, 1] },
-          filter: { duration: 0.18, ease: "easeOut" },
+          filter: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
         }}
         whileTap={{ scale: isSelected ? 1.12 : 1.02 }}
         aria-label={item.label}
@@ -246,7 +280,12 @@ function CharacterItem({
             },
             filter: { duration: 0.18, ease: "easeOut" },
           }}
-          style={{ transformStyle: "preserve-3d", scale: depthScale }}
+          style={{
+            transformStyle: "preserve-3d",
+            scale: layeredScale,
+            y: springProximityLift,
+            willChange: "transform",
+          }}
         >
           <motion.div
             style={{
@@ -255,6 +294,7 @@ function CharacterItem({
               x: springTranslateX,
               y: springTranslateY,
               transformStyle: "preserve-3d",
+              willChange: "transform",
             }}
           >
             <Image
@@ -262,7 +302,7 @@ function CharacterItem({
               alt={item.label}
               width={720}
               height={900}
-              className="h-auto w-full select-none object-contain"
+              className="h-auto w-full select-none object-contain [filter:drop-shadow(0_0_30px_rgba(0,0,0,0.8))]"
             />
           </motion.div>
         </motion.div>
@@ -275,8 +315,13 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   const router = useRouter();
   const items = navItems(onReturnHome);
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  const [idleFocusedLabel, setIdleFocusedLabel] = useState<string | null>(null);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
+  const idleStartTimerRef = useRef<number | null>(null);
+  const idleCycleTimerRef = useRef<number | null>(null);
+  const idleCycleRef = useRef<((previousLabel?: string | null) => void) | null>(null);
+  const idleSeedRef = useRef(137);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const pointerInsideRef = useRef(false);
 
@@ -287,30 +332,95 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   const cameraBiasX = useMotionValue(0);
   const cameraBiasY = useMotionValue(0);
   const cameraNormXBase = useMotionValue(0);
+  const driftX = useMotionValue(0);
+  const driftY = useMotionValue(0);
 
   const cameraTargetX = useTransform(() => cameraBaseX.get() + cameraBiasX.get());
   const cameraTargetY = useTransform(() => cameraBaseY.get() + cameraBiasY.get());
   const cameraNormX = useSpring(cameraNormXBase, { stiffness: 40, damping: 20, mass: 1 });
   const cameraX = useSpring(cameraTargetX, { stiffness: 40, damping: 20, mass: 1 });
   const cameraY = useSpring(cameraTargetY, { stiffness: 40, damping: 20, mass: 1 });
-
-  const backgroundX = useTransform(cameraX, (value) => value * 0.15);
-  const backgroundY = useTransform(cameraY, (value) => value * 0.1);
+  const stageDriftX = useTransform(() => driftX.get() + cameraBaseX.get() * 0.066);
+  const stageDriftY = useTransform(() => driftY.get() + cameraBaseY.get() * 0.1);
 
   const interactionLocked = selectedLabel !== null;
+  const activeLabel = hoveredLabel ?? idleFocusedLabel;
+
+  const nextIdleValue = useCallback(() => {
+    idleSeedRef.current = (idleSeedRef.current * 48271) % 2147483647;
+    return idleSeedRef.current / 2147483647;
+  }, []);
+
+  const clearIdleTimers = useCallback(() => {
+    if (idleStartTimerRef.current !== null) {
+      window.clearTimeout(idleStartTimerRef.current);
+      idleStartTimerRef.current = null;
+    }
+    if (idleCycleTimerRef.current !== null) {
+      window.clearTimeout(idleCycleTimerRef.current);
+      idleCycleTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleIdleCycle = useCallback((previousLabel?: string | null) => {
+    if (interactionLocked || hoveredLabel) {
+      return;
+    }
+
+    const availableItems = items.filter((item) => item.label !== previousLabel);
+    const nextPool = availableItems.length > 0 ? availableItems : items;
+    const nextItem = nextPool[Math.floor(nextIdleValue() * nextPool.length)] ?? nextPool[0];
+
+    setIdleFocusedLabel(nextItem?.label ?? null);
+    idleCycleTimerRef.current = window.setTimeout(
+      () => idleCycleRef.current?.(nextItem?.label ?? null),
+      6000 + Math.round(nextIdleValue() * 4000),
+    );
+  }, [hoveredLabel, interactionLocked, items, nextIdleValue]);
 
   useEffect(() => {
+    idleCycleRef.current = scheduleIdleCycle;
+  }, [scheduleIdleCycle]);
+
+  const startIdleCountdown = useCallback(() => {
+    clearIdleTimers();
+
+    if (interactionLocked || hoveredLabel) {
+      return;
+    }
+
+    idleStartTimerRef.current = window.setTimeout(() => {
+      scheduleIdleCycle(null);
+    }, 5000);
+  }, [clearIdleTimers, hoveredLabel, interactionLocked, scheduleIdleCycle]);
+
+  const stopIdleFocus = useCallback(() => {
+    clearIdleTimers();
+    setIdleFocusedLabel(null);
+  }, [clearIdleTimers]);
+
+  useAnimationFrame((time) => {
+    driftX.set(Math.sin(time * 0.00025) * 2);
+    driftY.set(Math.cos(time * 0.00018) * 1.5);
+  });
+
+  useEffect(() => {
+    startIdleCountdown();
+
     return () => {
       if (hoverTimerRef.current !== null) {
         window.clearTimeout(hoverTimerRef.current);
       }
+      clearIdleTimers();
     };
-  }, []);
+  }, [clearIdleTimers, startIdleCountdown]);
 
   const scheduleHover = (label: string) => {
     if (interactionLocked) {
       return;
     }
+
+    stopIdleFocus();
 
     if (hoverTimerRef.current !== null) {
       window.clearTimeout(hoverTimerRef.current);
@@ -350,6 +460,8 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         const offsetX = event.clientX - (bounds.left + bounds.width / 2);
         const offsetY = event.clientY - (bounds.top + bounds.height / 2);
 
+        stopIdleFocus();
+        startIdleCountdown();
         pointerInsideRef.current = true;
         pointerClientX.set(event.clientX);
         pointerClientY.set(event.clientY);
@@ -365,15 +477,13 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         cameraBiasX.set(0);
         cameraBiasY.set(0);
         clearHover();
+        startIdleCountdown();
       }}
     >
       <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-[14%] top-[18%] h-[48%] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.015)_28%,rgba(255,255,255,0)_68%)]"
-        style={{ x: backgroundX, y: backgroundY }}
-      />
-
-      <div className="relative flex w-full flex-wrap items-end justify-center gap-5 sm:gap-6 lg:flex-nowrap lg:gap-3 xl:gap-6">
+        className="relative flex w-full flex-wrap items-end justify-center gap-5 sm:gap-6 lg:flex-nowrap lg:gap-3 xl:gap-6"
+        style={{ x: stageDriftX, y: stageDriftY, willChange: "transform" }}
+      >
         {items.map((item, index) => (
           <CharacterItem
             key={item.label}
@@ -381,6 +491,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
             index={index}
             total={items.length}
             hoveredLabel={hoveredLabel}
+            activeLabel={activeLabel}
             selectedLabel={selectedLabel}
             pointerInsideRef={pointerInsideRef}
             pointerClientX={pointerClientX}
@@ -396,6 +507,8 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
             }}
             onSelect={async (selectedItem, imageEl) => {
               setSelectedLabel(selectedItem.label);
+              clearIdleTimers();
+              setIdleFocusedLabel(null);
               pointerInsideRef.current = false;
               cameraBaseX.set(0);
               cameraBaseY.set(0);
@@ -427,7 +540,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
             }}
           />
         ))}
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
