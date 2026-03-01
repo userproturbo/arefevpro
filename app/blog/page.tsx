@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { logServerError } from "@/lib/db";
 import BlogPostCard from "@/app/components/blog/BlogPostCard";
+import SectionHeroLayout from "@/app/components/layout/SectionHeroLayout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,18 +40,20 @@ export default async function BlogIndexPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8">
-      {posts.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-sm text-white/60">
-          Опубликованных постов пока нет.
-        </div>
-      ) : (
-        <section className="grid gap-5 md:grid-cols-2">
-          {posts.map((post, index) => (
-            <BlogPostCard key={post.id} post={post} featured={index === 0} />
-          ))}
-        </section>
-      )}
-    </div>
+    <SectionHeroLayout imageSrc="/img/Blog.png" imageAlt="Blog section">
+      <div className="mx-auto w-full max-w-6xl space-y-8">
+        {posts.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-sm text-white/60">
+            Опубликованных постов пока нет.
+          </div>
+        ) : (
+          <section className="grid gap-5 md:grid-cols-2">
+            {posts.map((post, index) => (
+              <BlogPostCard key={post.id} post={post} featured={index === 0} />
+            ))}
+          </section>
+        )}
+      </div>
+    </SectionHeroLayout>
   );
 }
