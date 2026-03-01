@@ -482,6 +482,8 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
     >
       <motion.div
         className="relative flex w-full flex-wrap items-end justify-center gap-5 sm:gap-6 lg:flex-nowrap lg:gap-3 xl:gap-6"
+        animate={{ scale: interactionLocked ? 1.03 : 1 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         style={{ x: stageDriftX, y: stageDriftY, willChange: "transform" }}
       >
         {items.map((item, index) => (
@@ -517,11 +519,17 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
               cameraBiasY.set(0);
               clearHover();
 
-              const transitionWorked = imageEl ? await triggerParticleDissolve(imageEl) : false;
+              const transitionWorked = imageEl
+                ? await triggerParticleDissolve(imageEl, { awaitCompletion: false })
+                : false;
 
               if (!transitionWorked) {
                 await new Promise<void>((resolve) => {
                   window.setTimeout(() => resolve(), 220);
+                });
+              } else {
+                await new Promise<void>((resolve) => {
+                  window.setTimeout(() => resolve(), 260);
                 });
               }
 
