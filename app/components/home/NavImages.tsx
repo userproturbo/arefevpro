@@ -21,10 +21,13 @@ import {
   setPendingParticleReform,
   triggerParticleDissolve,
 } from "@/app/components/home/ParticleTransition";
+import DroneNavCharacter from "./DroneNavCharacter";
+import PhotoNavCharacter from "./PhotoNavCharacter";
 
 type NavItem = {
   label: string;
   imageSrc: string;
+  reformKey?: string;
   href?: string;
   onClick?: () => void;
   idleDelay: number;
@@ -32,8 +35,14 @@ type NavItem = {
 
 const navItems = (onReturnHome: () => void): NavItem[] => [
   { label: "Start", imageSrc: "/img/Start.png", onClick: onReturnHome, idleDelay: 0.15 },
-  { label: "Photo", imageSrc: "/img/Photo.png", href: "/photo", idleDelay: 0.8 },
-  { label: "Video", imageSrc: "/img/Video.png", href: "/video", idleDelay: 1.35 },
+  { label: "Photo", imageSrc: "/img/Photo.png", reformKey: "/img/Photo.png", href: "/photo", idleDelay: 0.8 },
+  {
+    label: "Drone",
+    imageSrc: "/img/Drone-action.png",
+    reformKey: "/img/Drone-action.png",
+    href: "/drone",
+    idleDelay: 1.35,
+  },
   { label: "Music", imageSrc: "/img/Music.png", href: "/music", idleDelay: 0.45 },
   { label: "Blog", imageSrc: "/img/Blog.png", href: "/blog", idleDelay: 1.7 },
 ];
@@ -432,7 +441,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
     }, 80);
   };
 
-  const clearHover = (label?: string) => {
+  const clearHover = useCallback((label?: string) => {
     if (hoverTimerRef.current !== null) {
       window.clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
@@ -448,7 +457,50 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
 
       return current === label ? null : current;
     });
-  };
+  }, [cameraBiasX, cameraBiasY]);
+
+  const handleSelect = useCallback(
+    async (selectedItem: NavItem, imageEl: HTMLImageElement | null) => {
+      setSelectedLabel(selectedItem.label);
+      clearIdleTimers();
+      setIdleFocusedLabel(null);
+      pointerInsideRef.current = false;
+      cameraBaseX.set(0);
+      cameraBaseY.set(0);
+      cameraNormXBase.set(0);
+      cameraBiasX.set(0);
+      cameraBiasY.set(0);
+      clearHover();
+
+      const transitionWorked = imageEl
+        ? await triggerParticleDissolve(imageEl, { awaitCompletion: false })
+        : false;
+
+      if (!transitionWorked) {
+        await new Promise<void>((resolve) => {
+          window.setTimeout(() => resolve(), 220);
+        });
+      } else {
+        await new Promise<void>((resolve) => {
+          window.setTimeout(() => resolve(), 260);
+        });
+      }
+
+      if (selectedItem.href) {
+        setPendingParticleReform(selectedItem.reformKey ?? selectedItem.imageSrc);
+      }
+
+      if (selectedItem.onClick) {
+        selectedItem.onClick();
+        return;
+      }
+
+      if (selectedItem.href) {
+        router.push(selectedItem.href);
+      }
+    },
+    [cameraBaseX, cameraBaseY, cameraBiasX, cameraBiasY, cameraNormXBase, clearHover, clearIdleTimers, router],
+  );
 
   return (
     <motion.div
@@ -487,66 +539,84 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         style={{ x: stageDriftX, y: stageDriftY, willChange: "transform" }}
       >
         {items.map((item, index) => (
-          <CharacterItem
-            key={item.label}
-            item={item}
-            index={index}
-            total={items.length}
-            hoveredLabel={hoveredLabel}
-            activeLabel={activeLabel}
-            selectedLabel={selectedLabel}
-            pointerInsideRef={pointerInsideRef}
-            pointerClientX={pointerClientX}
-            pointerClientY={pointerClientY}
-            cameraX={cameraX}
-            cameraY={cameraY}
-            cameraNormX={cameraNormX}
-            onScheduleHover={scheduleHover}
-            onClearHover={clearHover}
-            onSetCameraBias={(x, y) => {
-              cameraBiasX.set(x);
-              cameraBiasY.set(y);
-            }}
-            onSelect={async (selectedItem, imageEl) => {
-              setSelectedLabel(selectedItem.label);
-              clearIdleTimers();
-              setIdleFocusedLabel(null);
-              pointerInsideRef.current = false;
-              cameraBaseX.set(0);
-              cameraBaseY.set(0);
-              cameraNormXBase.set(0);
-              cameraBiasX.set(0);
-              cameraBiasY.set(0);
-              clearHover();
-
-              const transitionWorked = imageEl
-                ? await triggerParticleDissolve(imageEl, { awaitCompletion: false })
-                : false;
-
-              if (!transitionWorked) {
-                await new Promise<void>((resolve) => {
-                  window.setTimeout(() => resolve(), 220);
-                });
-              } else {
-                await new Promise<void>((resolve) => {
-                  window.setTimeout(() => resolve(), 260);
-                });
-              }
-
-              if (selectedItem.href) {
-                setPendingParticleReform(selectedItem.imageSrc);
-              }
-
-              if (selectedItem.onClick) {
-                selectedItem.onClick();
-                return;
-              }
-
-              if (selectedItem.href) {
-                router.push(selectedItem.href);
-              }
-            }}
-          />
+          item.label === "Photo" ? (
+            <PhotoNavCharacter
+              key={item.label}
+              label={item.label}
+              index={index}
+              total={items.length}
+              hoveredLabel={hoveredLabel}
+              activeLabel={activeLabel}
+              selectedLabel={selectedLabel}
+              idleDelay={item.idleDelay}
+              pointerInsideRef={pointerInsideRef}
+              pointerClientX={pointerClientX}
+              pointerClientY={pointerClientY}
+              cameraX={cameraX}
+              cameraY={cameraY}
+              cameraNormX={cameraNormX}
+              onScheduleHover={scheduleHover}
+              onClearHover={clearHover}
+              onSetCameraBias={(x, y) => {
+                cameraBiasX.set(x);
+                cameraBiasY.set(y);
+              }}
+              onSelect={async (imageEl) => {
+                await handleSelect(item, imageEl);
+              }}
+            />
+          ) : item.label === "Drone" ? (
+            <DroneNavCharacter
+              key={item.label}
+              label={item.label}
+              index={index}
+              total={items.length}
+              hoveredLabel={hoveredLabel}
+              activeLabel={activeLabel}
+              selectedLabel={selectedLabel}
+              idleDelay={item.idleDelay}
+              pointerInsideRef={pointerInsideRef}
+              pointerClientX={pointerClientX}
+              pointerClientY={pointerClientY}
+              cameraX={cameraX}
+              cameraY={cameraY}
+              cameraNormX={cameraNormX}
+              onScheduleHover={scheduleHover}
+              onClearHover={clearHover}
+              onSetCameraBias={(x, y) => {
+                cameraBiasX.set(x);
+                cameraBiasY.set(y);
+              }}
+              onSelect={async (imageEl) => {
+                await handleSelect(item, imageEl);
+              }}
+            />
+          ) : (
+            <CharacterItem
+              key={item.label}
+              item={item}
+              index={index}
+              total={items.length}
+              hoveredLabel={hoveredLabel}
+              activeLabel={activeLabel}
+              selectedLabel={selectedLabel}
+              pointerInsideRef={pointerInsideRef}
+              pointerClientX={pointerClientX}
+              pointerClientY={pointerClientY}
+              cameraX={cameraX}
+              cameraY={cameraY}
+              cameraNormX={cameraNormX}
+              onScheduleHover={scheduleHover}
+              onClearHover={clearHover}
+              onSetCameraBias={(x, y) => {
+                cameraBiasX.set(x);
+                cameraBiasY.set(y);
+              }}
+              onSelect={async (selectedItem, imageEl) => {
+                await handleSelect(selectedItem, imageEl);
+              }}
+            />
+          )
         ))}
       </motion.div>
     </motion.div>
