@@ -8,7 +8,7 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
-import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { flushSync } from "react-dom";
 import useCharacterMotion from "@/app/components/character/useCharacterMotion";
 
@@ -18,6 +18,10 @@ type SpringValue = ReturnType<typeof useSpring>;
 type MotionStyle = {
   wrapperTransform: string;
   actionOpacity: number;
+  idleOpacity?: number;
+  wrapperFilter?: string;
+  wrapperTransition?: string;
+  wrapperTransformOrigin?: string;
 };
 
 export type LayeredNavCharacterBaseProps = {
@@ -28,6 +32,13 @@ export type LayeredNavCharacterBaseProps = {
   activeLabel: string | null;
   selectedLabel: string | null;
   idleDelay: number;
+  disableStageDepthEffects?: boolean;
+  disableButtonYMotion?: boolean;
+  disableIdleBobYMotion?: boolean;
+  disableProximityLift?: boolean;
+  disableLookMotion?: boolean;
+  idleImageClassName?: string;
+  actionImageClassName?: string;
   pointerInsideRef: MutableRefObject<boolean>;
   pointerClientX: PointerValue;
   pointerClientY: PointerValue;
@@ -53,7 +64,7 @@ type LayeredNavCharacterProps = LayeredNavCharacterBaseProps & {
     leaveSpeed: number;
     microMotionProgress: number;
   };
-  getMotionStyle: (progress: number) => MotionStyle;
+  getMotionStyle: (progress: number, timeMs: number) => MotionStyle;
 };
 
 export default function LayeredNavCharacter({
@@ -64,6 +75,13 @@ export default function LayeredNavCharacter({
   activeLabel,
   selectedLabel,
   idleDelay,
+  disableStageDepthEffects = false,
+  disableButtonYMotion = false,
+  disableIdleBobYMotion = false,
+  disableProximityLift = false,
+  disableLookMotion = false,
+  idleImageClassName,
+  actionImageClassName,
   idleSrc,
   actionSrc,
   audioSrc,
@@ -86,6 +104,9 @@ export default function LayeredNavCharacter({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const actionImageRef = useRef<HTMLImageElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const poseRef = useRef<HTMLDivElement | null>(null);
+  const idleLayerRef = useRef<HTMLDivElement | null>(null);
+  const actionLayerRef = useRef<HTMLDivElement | null>(null);
   const playedRef = useRef(false);
   const baseLookXRef = useRef(0);
   const baseLookYRef = useRef(0);
@@ -127,9 +148,30 @@ export default function LayeredNavCharacter({
   const depthX = useTransform(cameraX, (value) => value * depth * -1);
   const depthY = useTransform(cameraY, (value) => value * depth * -1);
   const depthScale = useTransform(cameraNormX, (value) => 1 + depth * 0.015 * value);
-  const layeredScale = useTransform(() => depthScale.get() * springProximityScale.get());
+  const layeredScale = useTransform(() =>
+    disableStageDepthEffects ? 1 : depthScale.get() * springProximityScale.get(),
+  );
 
-  const motionStyle = getMotionStyle(progress);
+  const applyMotionStyle = useCallback((timeMs: number) => {
+    const motionStyle = getMotionStyle(progress, timeMs);
+
+    if (poseRef.current) {
+      poseRef.current.style.transform = motionStyle.wrapperTransform;
+      poseRef.current.style.filter = motionStyle.wrapperFilter ?? "";
+      poseRef.current.style.transition = disableStageDepthEffects
+        ? "none"
+        : motionStyle.wrapperTransition ?? "";
+      poseRef.current.style.transformOrigin = motionStyle.wrapperTransformOrigin ?? "";
+    }
+
+    if (idleLayerRef.current) {
+      idleLayerRef.current.style.opacity = `${motionStyle.idleOpacity ?? 1 - motionStyle.actionOpacity}`;
+    }
+
+    if (actionLayerRef.current) {
+      actionLayerRef.current.style.opacity = `${motionStyle.actionOpacity}`;
+    }
+  }, [disableStageDepthEffects, getMotionStyle, progress]);
 
   useEffect(() => {
     const updateBaseLook = () => {
@@ -157,6 +199,10 @@ export default function LayeredNavCharacter({
       audioRef.current = null;
     };
   }, [audioSrc, audioVolume]);
+
+  useEffect(() => {
+    applyMotionStyle(0);
+  }, [applyMotionStyle]);
 
   useEffect(() => {
     if (progress >= soundThreshold && !playedRef.current) {
@@ -230,7 +276,9 @@ export default function LayeredNavCharacter({
     };
   }, [isHovered, onSetCameraBias]);
 
-  useAnimationFrame(() => {
+  useAnimationFrame((time) => {
+    applyMotionStyle(time);
+
     const bounds = boundsRef.current;
     if (!bounds) {
       return;
@@ -250,8 +298,8 @@ export default function LayeredNavCharacter({
 
       normalizedX += cursorX * strength;
       normalizedY += cursorY * strength;
-      proximityScale.set(1 + cursorDepth * 0.04);
-      proximityLift.set(-cursorDepth * 8);
+      proximityScale.set(disableStageDepthEffects ? 1 : 1 + cursorDepth * 0.04);
+      proximityLift.set(disableProximityLift ? 0 : -cursorDepth * 8);
     } else {
       proximityScale.set(1);
       proximityLift.set(0);
@@ -260,16 +308,21 @@ export default function LayeredNavCharacter({
     normalizedX = Math.max(-1, Math.min(1, normalizedX));
     normalizedY = Math.max(-1, Math.min(1, normalizedY));
 
-    lookRotateY.set(normalizedX * 3);
-    lookRotateX.set(normalizedY * -2);
-    lookTranslateX.set(normalizedX * 4);
-    lookTranslateY.set(normalizedY * 2);
+    lookRotateY.set(disableLookMotion ? 0 : normalizedX * 3);
+    lookRotateX.set(disableLookMotion ? 0 : normalizedY * -2);
+    lookTranslateX.set(disableLookMotion ? 0 : normalizedX * 4);
+    lookTranslateY.set(disableLookMotion ? 0 : normalizedY * 2);
   });
 
   return (
     <motion.div
       className="relative"
-      style={{ zIndex: isHovered || isSelected ? 20 : 1, perspective: 1200, x: depthX, y: depthY }}
+      style={{
+        zIndex: isHovered || isSelected ? 20 : 1,
+        perspective: 1600,
+        x: disableStageDepthEffects ? 0 : depthX,
+        y: disableStageDepthEffects ? 0 : depthY,
+      }}
       initial={{ y: -400, scale: 1.2, opacity: 0 }}
       animate={{ y: 0, scale: 1, opacity: 1 }}
       transition={{
@@ -304,11 +357,23 @@ export default function LayeredNavCharacter({
           });
           onSelect(actionImageRef.current);
         }}
-        className="group relative block w-[min(72vw,228px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:w-[190px] lg:w-[16.5vw] lg:max-w-[235px] xl:w-[17vw]"
+        className="group relative block w-[clamp(210px,18vw,320px)] max-w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         animate={{
           opacity: hideForSelection ? 0 : dimOthers ? 0.45 : 1,
-          scale: isSelected ? 1.12 : isHovered ? 1.06 : isActive ? 1.02 : hideForSelection ? 0.8 : dimOthers ? 0.94 : 1,
-          y: isSelected ? -20 : isHovered ? -12 : 0,
+          scale: disableStageDepthEffects
+            ? 1
+            : isSelected
+              ? 1.12
+              : isHovered
+                ? 1.06
+                : isActive
+                  ? 1.02
+                  : hideForSelection
+                    ? 0.8
+                    : dimOthers
+                      ? 0.94
+                      : 1,
+          y: disableButtonYMotion ? 0 : isSelected ? -20 : isHovered ? -12 : 0,
           filter: hideForSelection
             ? "blur(0px) brightness(1)"
             : dimOthers
@@ -327,15 +392,15 @@ export default function LayeredNavCharacter({
           y: { duration: isSelected ? 0.35 : 0.18, ease: [0.22, 1, 0.36, 1] },
           filter: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
         }}
-        whileTap={{ scale: isSelected ? 1.12 : 1.02 }}
+        whileTap={disableStageDepthEffects ? { scale: 1 } : { scale: isSelected ? 1.12 : 1.02 }}
         aria-label={label}
       >
         <motion.div
           className="relative"
           animate={{
-            y: [0, -6, 0],
-            scaleY: [1, 1.015, 1],
-            scaleX: [1, 0.995, 1],
+            y: disableIdleBobYMotion ? 0 : [0, -6, 0],
+            scaleY: disableStageDepthEffects ? 1 : [1, 1.015, 1],
+            scaleX: disableStageDepthEffects ? 1 : [1, 0.995, 1],
             filter: isHovered ? "brightness(1.08)" : "brightness(1)",
           }}
           transition={{
@@ -362,7 +427,7 @@ export default function LayeredNavCharacter({
           style={{
             transformStyle: "preserve-3d",
             scale: layeredScale,
-            y: springProximityLift,
+            y: disableProximityLift ? 0 : springProximityLift,
             willChange: "transform",
           }}
         >
@@ -377,21 +442,27 @@ export default function LayeredNavCharacter({
             }}
           >
             <div
+              ref={poseRef}
               className="relative aspect-[4/5] w-full"
-              style={{ transform: motionStyle.wrapperTransform, transformStyle: "preserve-3d", willChange: "transform" }}
+              style={{
+                transform: "translate3d(0,0,0)",
+                transformStyle: "preserve-3d",
+                willChange: "transform, filter",
+              }}
             >
-              <div className="absolute inset-0" style={{ opacity: 1 - motionStyle.actionOpacity, willChange: "opacity" }}>
+              <div ref={idleLayerRef} className="absolute inset-0" style={{ opacity: 1, willChange: "opacity" }}>
                 <Image
                   src={idleSrc}
                   alt={label}
                   fill
                   sizes="(max-width: 640px) min(72vw, 228px), (max-width: 1024px) 190px, (max-width: 1280px) 16.5vw, 17vw"
-                  className="h-full w-full select-none object-contain [filter:drop-shadow(0_0_30px_rgba(0,0,0,0.8))]"
+                  className={`h-full w-full select-none object-contain [filter:drop-shadow(0_0_30px_rgba(0,0,0,0.8))] ${idleImageClassName ?? ""}`}
                 />
               </div>
               <div
+                ref={actionLayerRef}
                 className="pointer-events-none absolute inset-0"
-                style={{ opacity: motionStyle.actionOpacity, willChange: "opacity" }}
+                style={{ opacity: 0, willChange: "opacity" }}
               >
                 <Image
                   ref={actionImageRef}
@@ -400,7 +471,7 @@ export default function LayeredNavCharacter({
                   aria-hidden="true"
                   fill
                   sizes="(max-width: 640px) min(72vw, 228px), (max-width: 1024px) 190px, (max-width: 1280px) 16.5vw, 17vw"
-                  className="h-full w-full select-none object-contain [filter:drop-shadow(0_0_30px_rgba(0,0,0,0.8))]"
+                  className={`h-full w-full select-none object-contain [filter:drop-shadow(0_0_30px_rgba(0,0,0,0.8))] ${actionImageClassName ?? ""}`}
                 />
               </div>
             </div>

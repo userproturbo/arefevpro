@@ -21,7 +21,9 @@ import {
   setPendingParticleReform,
   triggerParticleDissolve,
 } from "@/app/components/home/ParticleTransition";
+import BlogNavCharacter from "./BlogNavCharacter";
 import DroneNavCharacter from "./DroneNavCharacter";
+import MusicNavCharacter from "./MusicNavCharacter";
 import PhotoNavCharacter from "./PhotoNavCharacter";
 
 type NavItem = {
@@ -43,7 +45,13 @@ const navItems = (onReturnHome: () => void): NavItem[] => [
     href: "/drone",
     idleDelay: 1.35,
   },
-  { label: "Music", imageSrc: "/img/Music.png", href: "/music", idleDelay: 0.45 },
+  {
+    label: "Music",
+    imageSrc: "/img/Music-action.png",
+    reformKey: "/img/Music-action.png",
+    href: "/music",
+    idleDelay: 0.45,
+  },
   { label: "Blog", imageSrc: "/img/Blog.png", href: "/blog", idleDelay: 1.7 },
 ];
 
@@ -206,7 +214,7 @@ function CharacterItem({
   return (
     <motion.div
       className="relative"
-      style={{ zIndex: isHovered || isSelected ? 20 : 1, perspective: 1200, x: depthX, y: depthY }}
+      style={{ zIndex: isHovered || isSelected ? 20 : 1, perspective: 1600, x: depthX, y: depthY }}
       initial={{ y: -400, scale: 1.2, opacity: 0 }}
       animate={{ y: 0, scale: 1, opacity: 1 }}
       transition={{
@@ -224,7 +232,7 @@ function CharacterItem({
         onBlur={() => onClearHover(item.label)}
         onMouseLeave={() => onClearHover(item.label)}
         onClick={() => onSelect(item, buttonRef.current?.querySelector("img") ?? null)}
-        className="group relative block w-[min(72vw,228px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:w-[190px] lg:w-[16.5vw] lg:max-w-[235px] xl:w-[17vw]"
+        className="group relative block w-[clamp(210px,18vw,320px)] max-w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         animate={{
           opacity: hideForSelection ? 0 : dimOthers ? 0.45 : 1,
           scale: isSelected
@@ -505,7 +513,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   return (
     <motion.div
       ref={stageRef}
-      className={`relative w-full max-w-7xl px-6 ${interactionLocked ? "pointer-events-none" : ""}`}
+      className={`relative flex h-full w-full items-start justify-center overflow-hidden px-[clamp(12px,2vw,40px)] pt-[clamp(40px,8vh,100px)] ${interactionLocked ? "pointer-events-none" : ""}`}
       exit="hidden"
       onMouseMove={(event) => {
         const bounds = event.currentTarget.getBoundingClientRect();
@@ -533,7 +541,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
       }}
     >
       <motion.div
-        className="relative flex w-full flex-wrap items-end justify-center gap-5 sm:gap-6 lg:flex-nowrap lg:gap-3 xl:gap-6"
+        className="relative mx-auto flex w-full max-w-[1400px] flex-wrap items-end justify-center gap-[clamp(0px,0.8vw,10px)] lg:flex-nowrap"
         animate={{ scale: interactionLocked ? 1.03 : 1 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         style={{ x: stageDriftX, y: stageDriftY, willChange: "transform" }}
@@ -567,6 +575,58 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
             />
           ) : item.label === "Drone" ? (
             <DroneNavCharacter
+              key={item.label}
+              label={item.label}
+              index={index}
+              total={items.length}
+              hoveredLabel={hoveredLabel}
+              activeLabel={activeLabel}
+              selectedLabel={selectedLabel}
+              idleDelay={item.idleDelay}
+              pointerInsideRef={pointerInsideRef}
+              pointerClientX={pointerClientX}
+              pointerClientY={pointerClientY}
+              cameraX={cameraX}
+              cameraY={cameraY}
+              cameraNormX={cameraNormX}
+              onScheduleHover={scheduleHover}
+              onClearHover={clearHover}
+              onSetCameraBias={(x, y) => {
+                cameraBiasX.set(x);
+                cameraBiasY.set(y);
+              }}
+              onSelect={async (imageEl) => {
+                await handleSelect(item, imageEl);
+              }}
+            />
+          ) : item.label === "Music" ? (
+            <MusicNavCharacter
+              key={item.label}
+              label={item.label}
+              index={index}
+              total={items.length}
+              hoveredLabel={hoveredLabel}
+              activeLabel={activeLabel}
+              selectedLabel={selectedLabel}
+              idleDelay={item.idleDelay}
+              pointerInsideRef={pointerInsideRef}
+              pointerClientX={pointerClientX}
+              pointerClientY={pointerClientY}
+              cameraX={cameraX}
+              cameraY={cameraY}
+              cameraNormX={cameraNormX}
+              onScheduleHover={scheduleHover}
+              onClearHover={clearHover}
+              onSetCameraBias={(x, y) => {
+                cameraBiasX.set(x);
+                cameraBiasY.set(y);
+              }}
+              onSelect={async (imageEl) => {
+                await handleSelect(item, imageEl);
+              }}
+            />
+          ) : item.label === "Blog" ? (
+            <BlogNavCharacter
               key={item.label}
               label={item.label}
               index={index}
