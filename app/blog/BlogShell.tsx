@@ -9,9 +9,10 @@ type BlogShellProps = {
 
 export default function BlogShell({ children }: BlogShellProps) {
   const pathname = usePathname();
+  const isBlogIndex = pathname === "/blog";
 
   return (
-    <main className="p-10">
+    <main className={isBlogIndex ? "" : "p-10"}>
       <div key={pathname} className="animate-content-in">
         {children}
       </div>
