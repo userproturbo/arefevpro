@@ -1,3 +1,5 @@
+"use client";
+
 import SceneEngine from "@/engine/SceneEngine";
 import homeScene from "@/scenes/homeScene";
 
