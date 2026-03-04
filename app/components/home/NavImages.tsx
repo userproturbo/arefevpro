@@ -21,6 +21,8 @@ import {
   setPendingParticleReform,
   triggerParticleDissolve,
 } from "@/app/components/home/ParticleTransition";
+import { buildCharacterHref, type NavigationCharacter } from "@/lib/characterNavigation";
+import { useNavigation } from "@/store/navigationStore";
 import BlogNavCharacter from "./BlogNavCharacter";
 import DroneNavCharacter from "./DroneNavCharacter";
 import MusicNavCharacter from "./MusicNavCharacter";
@@ -31,18 +33,27 @@ type NavItem = {
   imageSrc: string;
   reformKey?: string;
   href?: string;
+  character?: NavigationCharacter;
   onClick?: () => void;
   idleDelay: number;
 };
 
 const navItems = (onReturnHome: () => void): NavItem[] => [
   { label: "Start", imageSrc: "/img/Start.png", onClick: onReturnHome, idleDelay: 0.15 },
-  { label: "Photo", imageSrc: "/img/Photo.png", reformKey: "/img/Photo.png", href: "/photo", idleDelay: 0.8 },
+  {
+    label: "Photo",
+    imageSrc: "/img/Photo.png",
+    reformKey: "/img/Photo.png",
+    href: "/photo",
+    character: "photo",
+    idleDelay: 0.8,
+  },
   {
     label: "Drone",
     imageSrc: "/img/Drone-action.png",
     reformKey: "/img/Drone-action.png",
     href: "/drone",
+    character: "drone",
     idleDelay: 1.35,
   },
   {
@@ -50,9 +61,10 @@ const navItems = (onReturnHome: () => void): NavItem[] => [
     imageSrc: "/img/Music-action.png",
     reformKey: "/img/Music-action.png",
     href: "/music",
+    character: "music",
     idleDelay: 0.45,
   },
-  { label: "Blog", imageSrc: "/img/Blog.png", href: "/blog", idleDelay: 1.7 },
+  { label: "Blog", imageSrc: "/img/Blog.png", href: "/blog", character: "blog", idleDelay: 1.7 },
 ];
 
 type NavImagesProps = {
@@ -66,6 +78,7 @@ type CharacterItemProps = {
   hoveredLabel: string | null;
   activeLabel: string | null;
   selectedLabel: string | null;
+  exitActive: boolean;
   pointerInsideRef: MutableRefObject<boolean>;
   pointerClientX: ReturnType<typeof useMotionValue<number>>;
   pointerClientY: ReturnType<typeof useMotionValue<number>>;
@@ -85,6 +98,7 @@ function CharacterItem({
   hoveredLabel,
   activeLabel,
   selectedLabel,
+  exitActive,
   pointerInsideRef,
   pointerClientX,
   pointerClientY,
@@ -119,7 +133,8 @@ function CharacterItem({
   const isSelected = selectedLabel === item.label;
   const hasActiveCharacter = activeLabel !== null;
   const dimOthers = hasActiveCharacter && !isActive;
-  const hideForSelection = selectedLabel !== null && !isSelected;
+  const exitDimOthers = exitActive && selectedLabel !== null && !isSelected;
+  const exitSelected = exitActive && isSelected;
 
   const centerIndex = (total - 1) / 2;
   const distanceFromCenter = Math.abs(index - centerIndex);
@@ -171,6 +186,10 @@ function CharacterItem({
   }, [isHovered, onSetCameraBias]);
 
   useAnimationFrame(() => {
+    if (exitActive) {
+      return;
+    }
+
     const element = buttonRef.current;
     if (!element) {
       return;
@@ -227,45 +246,65 @@ function CharacterItem({
       <motion.button
         ref={buttonRef}
         type="button"
-        onMouseEnter={() => onScheduleHover(item.label)}
-        onFocus={() => onScheduleHover(item.label)}
-        onBlur={() => onClearHover(item.label)}
-        onMouseLeave={() => onClearHover(item.label)}
+        onMouseEnter={() => {
+          if (exitActive) {
+            return;
+          }
+          onScheduleHover(item.label);
+        }}
+        onFocus={() => {
+          if (exitActive) {
+            return;
+          }
+          onScheduleHover(item.label);
+        }}
+        onBlur={() => {
+          if (exitActive) {
+            return;
+          }
+          onClearHover(item.label);
+        }}
+        onMouseLeave={() => {
+          if (exitActive) {
+            return;
+          }
+          onClearHover(item.label);
+        }}
         onClick={() => onSelect(item, buttonRef.current?.querySelector("img") ?? null)}
         className="group relative block w-[clamp(210px,18vw,320px)] max-w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         animate={{
-          opacity: hideForSelection ? 0 : dimOthers ? 0.45 : 1,
-          scale: isSelected
-            ? 1.12
+          opacity: exitDimOthers ? 0.4 : dimOthers ? 0.45 : 1,
+          scale: exitSelected
+            ? 1.05
+            : isSelected
+              ? 1.12
             : isHovered
               ? 1.06
               : isActive
                 ? 1.02
-              : hideForSelection
-                ? 0.8
                 : dimOthers
                   ? 0.94
-              : 1,
-          y: isSelected ? -20 : isHovered ? -12 : 0,
-          filter: hideForSelection
-            ? "blur(0px) brightness(1)"
+                  : 1,
+          y: exitSelected ? -8 : isSelected ? -20 : isHovered ? -12 : 0,
+          filter: exitDimOthers
+            ? "blur(0px) brightness(0.85)"
             : dimOthers
               ? "blur(1.5px) brightness(0.9)"
               : "blur(0px) brightness(1)",
         }}
         transition={{
           opacity: {
-            duration: hideForSelection ? 0.25 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
+            duration: exitActive ? 0.25 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
             ease: activeLabel && !hoveredLabel ? [0.22, 1, 0.36, 1] : "easeOut",
           },
           scale: {
-            duration: isSelected ? 0.35 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
+            duration: exitActive ? 0.25 : isSelected ? 0.35 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
             ease: [0.22, 1, 0.36, 1],
           },
-          y: { duration: isSelected ? 0.35 : 0.18, ease: [0.22, 1, 0.36, 1] },
-          filter: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+          y: { duration: exitActive ? 0.25 : isSelected ? 0.35 : 0.18, ease: [0.22, 1, 0.36, 1] },
+          filter: { duration: exitActive ? 0.25 : 0.4, ease: [0.22, 1, 0.36, 1] },
         }}
-        whileTap={{ scale: isSelected ? 1.12 : 1.02 }}
+        whileTap={{ scale: exitSelected ? 1.05 : isSelected ? 1.12 : 1.02 }}
         aria-label={item.label}
       >
         <motion.div
@@ -330,10 +369,12 @@ function CharacterItem({
 
 export default function NavImages({ onReturnHome }: NavImagesProps) {
   const router = useRouter();
+  const setSelectedCharacter = useNavigation((state) => state.setSelectedCharacter);
   const items = navItems(onReturnHome);
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
   const [idleFocusedLabel, setIdleFocusedLabel] = useState<string | null>(null);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [exitActive, setExitActive] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);
   const idleStartTimerRef = useRef<number | null>(null);
   const idleCycleTimerRef = useRef<number | null>(null);
@@ -341,6 +382,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   const idleSeedRef = useRef(137);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const pointerInsideRef = useRef(false);
+  const navigatingRef = useRef(false);
 
   const pointerClientX = useMotionValue(0);
   const pointerClientY = useMotionValue(0);
@@ -433,7 +475,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   }, [clearIdleTimers, startIdleCountdown]);
 
   const scheduleHover = (label: string) => {
-    if (interactionLocked) {
+    if (interactionLocked || navigatingRef.current) {
       return;
     }
 
@@ -450,6 +492,10 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   };
 
   const clearHover = useCallback((label?: string) => {
+    if (navigatingRef.current) {
+      return;
+    }
+
     if (hoverTimerRef.current !== null) {
       window.clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
@@ -469,7 +515,21 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
 
   const handleSelect = useCallback(
     async (selectedItem: NavItem, imageEl: HTMLImageElement | null) => {
+      if (navigatingRef.current) {
+        return;
+      }
+
+      if (!selectedItem.href) {
+        setSelectedCharacter(null);
+        selectedItem.onClick?.();
+        return;
+      }
+
+      navigatingRef.current = true;
+
+      setHoveredLabel(selectedItem.label);
       setSelectedLabel(selectedItem.label);
+      setExitActive(true);
       clearIdleTimers();
       setIdleFocusedLabel(null);
       pointerInsideRef.current = false;
@@ -478,36 +538,24 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
       cameraNormXBase.set(0);
       cameraBiasX.set(0);
       cameraBiasY.set(0);
-      clearHover();
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 250);
+      });
 
       const transitionWorked = imageEl
         ? await triggerParticleDissolve(imageEl, { awaitCompletion: false })
         : false;
 
-      if (!transitionWorked) {
-        await new Promise<void>((resolve) => {
-          window.setTimeout(() => resolve(), 220);
-        });
-      } else {
-        await new Promise<void>((resolve) => {
-          window.setTimeout(() => resolve(), 260);
-        });
-      }
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, transitionWorked ? 60 : 40);
+      });
 
-      if (selectedItem.href) {
-        setPendingParticleReform(selectedItem.reformKey ?? selectedItem.imageSrc);
-      }
-
-      if (selectedItem.onClick) {
-        selectedItem.onClick();
-        return;
-      }
-
-      if (selectedItem.href) {
-        router.push(selectedItem.href);
-      }
+      setPendingParticleReform(selectedItem.reformKey ?? selectedItem.imageSrc);
+      setSelectedCharacter(selectedItem.character ?? null);
+      router.push(buildCharacterHref(selectedItem.href, selectedItem.character));
     },
-    [cameraBaseX, cameraBaseY, cameraBiasX, cameraBiasY, cameraNormXBase, clearHover, clearIdleTimers, router],
+    [cameraBaseX, cameraBaseY, cameraBiasX, cameraBiasY, cameraNormXBase, clearHover, clearIdleTimers, router, setSelectedCharacter],
   );
 
   return (
@@ -515,7 +563,13 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
       ref={stageRef}
       className={`relative flex h-full w-full items-start justify-center overflow-hidden px-[clamp(12px,2vw,40px)] pt-[clamp(40px,8vh,100px)] ${interactionLocked ? "pointer-events-none" : ""}`}
       exit="hidden"
+      animate={{ opacity: exitActive ? 0.72 : 1 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       onMouseMove={(event) => {
+        if (navigatingRef.current) {
+          return;
+        }
+
         const bounds = event.currentTarget.getBoundingClientRect();
         const offsetX = event.clientX - (bounds.left + bounds.width / 2);
         const offsetY = event.clientY - (bounds.top + bounds.height / 2);
@@ -530,6 +584,10 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         cameraNormXBase.set(Math.max(-1, Math.min(1, offsetX / (bounds.width / 2 || 1))));
       }}
       onMouseLeave={() => {
+        if (navigatingRef.current) {
+          return;
+        }
+
         pointerInsideRef.current = false;
         cameraBaseX.set(0);
         cameraBaseY.set(0);
@@ -541,9 +599,14 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
       }}
     >
       <motion.div
+        className="pointer-events-none absolute inset-0 bg-black"
+        animate={{ opacity: exitActive ? 0.4 : 0 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      />
+      <motion.div
         className="relative mx-auto flex w-full max-w-[1400px] flex-wrap items-end justify-center gap-[clamp(0px,0.8vw,10px)] lg:flex-nowrap"
-        animate={{ scale: interactionLocked ? 1.03 : 1 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        animate={{ scale: exitActive ? 1.02 : interactionLocked ? 1.03 : 1 }}
+        transition={{ duration: exitActive ? 0.25 : 0.7, ease: [0.22, 1, 0.36, 1] }}
         style={{ x: stageDriftX, y: stageDriftY, willChange: "transform" }}
       >
         {items.map((item, index) => (
@@ -556,6 +619,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
               hoveredLabel={hoveredLabel}
               activeLabel={activeLabel}
               selectedLabel={selectedLabel}
+              exitActive={exitActive}
               idleDelay={item.idleDelay}
               pointerInsideRef={pointerInsideRef}
               pointerClientX={pointerClientX}
@@ -582,6 +646,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
               hoveredLabel={hoveredLabel}
               activeLabel={activeLabel}
               selectedLabel={selectedLabel}
+              exitActive={exitActive}
               idleDelay={item.idleDelay}
               pointerInsideRef={pointerInsideRef}
               pointerClientX={pointerClientX}
@@ -608,6 +673,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
               hoveredLabel={hoveredLabel}
               activeLabel={activeLabel}
               selectedLabel={selectedLabel}
+              exitActive={exitActive}
               idleDelay={item.idleDelay}
               pointerInsideRef={pointerInsideRef}
               pointerClientX={pointerClientX}
@@ -634,6 +700,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
               hoveredLabel={hoveredLabel}
               activeLabel={activeLabel}
               selectedLabel={selectedLabel}
+              exitActive={exitActive}
               idleDelay={item.idleDelay}
               pointerInsideRef={pointerInsideRef}
               pointerClientX={pointerClientX}
@@ -660,6 +727,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
               hoveredLabel={hoveredLabel}
               activeLabel={activeLabel}
               selectedLabel={selectedLabel}
+              exitActive={exitActive}
               pointerInsideRef={pointerInsideRef}
               pointerClientX={pointerClientX}
               pointerClientY={pointerClientY}

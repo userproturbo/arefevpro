@@ -31,6 +31,7 @@ export type LayeredNavCharacterBaseProps = {
   hoveredLabel: string | null;
   activeLabel: string | null;
   selectedLabel: string | null;
+  exitActive?: boolean;
   idleDelay: number;
   disableStageDepthEffects?: boolean;
   disableButtonYMotion?: boolean;
@@ -74,6 +75,7 @@ export default function LayeredNavCharacter({
   hoveredLabel,
   activeLabel,
   selectedLabel,
+  exitActive = false,
   idleDelay,
   disableStageDepthEffects = false,
   disableButtonYMotion = false,
@@ -139,7 +141,8 @@ export default function LayeredNavCharacter({
   const isSelected = selectedLabel === label;
   const hasActiveCharacter = activeLabel !== null;
   const dimOthers = hasActiveCharacter && !isActive;
-  const hideForSelection = selectedLabel !== null && !isSelected;
+  const exitDimOthers = exitActive && selectedLabel !== null && !isSelected;
+  const exitSelected = exitActive && isSelected;
 
   const centerIndex = (total - 1) / 2;
   const distanceFromCenter = Math.abs(index - centerIndex);
@@ -279,6 +282,10 @@ export default function LayeredNavCharacter({
   useAnimationFrame((time) => {
     applyMotionStyle(time);
 
+    if (exitActive) {
+      return;
+    }
+
     const bounds = boundsRef.current;
     if (!bounds) {
       return;
@@ -336,18 +343,30 @@ export default function LayeredNavCharacter({
         ref={buttonRef}
         type="button"
         onMouseEnter={() => {
+          if (exitActive) {
+            return;
+          }
           onScheduleHover(label);
           setTarget(1);
         }}
         onFocus={() => {
+          if (exitActive) {
+            return;
+          }
           onScheduleHover(label);
           setTarget(1);
         }}
         onBlur={() => {
+          if (exitActive) {
+            return;
+          }
           onClearHover(label);
           setTarget(0);
         }}
         onMouseLeave={() => {
+          if (exitActive) {
+            return;
+          }
           onClearHover(label);
           setTarget(0);
         }}
@@ -359,40 +378,40 @@ export default function LayeredNavCharacter({
         }}
         className="group relative block w-[clamp(210px,18vw,320px)] max-w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         animate={{
-          opacity: hideForSelection ? 0 : dimOthers ? 0.45 : 1,
+          opacity: exitDimOthers ? 0.4 : dimOthers ? 0.45 : 1,
           scale: disableStageDepthEffects
             ? 1
-            : isSelected
-              ? 1.12
+            : exitSelected
+              ? 1.05
+              : isSelected
+                ? 1.12
               : isHovered
                 ? 1.06
                 : isActive
                   ? 1.02
-                  : hideForSelection
-                    ? 0.8
-                    : dimOthers
-                      ? 0.94
-                      : 1,
-          y: disableButtonYMotion ? 0 : isSelected ? -20 : isHovered ? -12 : 0,
-          filter: hideForSelection
-            ? "blur(0px) brightness(1)"
+                  : dimOthers
+                    ? 0.94
+                    : 1,
+          y: disableButtonYMotion ? 0 : exitSelected ? -8 : isSelected ? -20 : isHovered ? -12 : 0,
+          filter: exitDimOthers
+            ? "blur(0px) brightness(0.85)"
             : dimOthers
               ? "blur(1.5px) brightness(0.9)"
               : "blur(0px) brightness(1)",
         }}
         transition={{
           opacity: {
-            duration: hideForSelection ? 0.25 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
+            duration: exitActive ? 0.25 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
             ease: activeLabel && !hoveredLabel ? [0.22, 1, 0.36, 1] : "easeOut",
           },
           scale: {
-            duration: isSelected ? 0.35 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
+            duration: exitActive ? 0.25 : isSelected ? 0.35 : activeLabel && !hoveredLabel ? 1.2 : 0.18,
             ease: [0.22, 1, 0.36, 1],
           },
-          y: { duration: isSelected ? 0.35 : 0.18, ease: [0.22, 1, 0.36, 1] },
-          filter: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+          y: { duration: exitActive ? 0.25 : isSelected ? 0.35 : 0.18, ease: [0.22, 1, 0.36, 1] },
+          filter: { duration: exitActive ? 0.25 : 0.4, ease: [0.22, 1, 0.36, 1] },
         }}
-        whileTap={disableStageDepthEffects ? { scale: 1 } : { scale: isSelected ? 1.12 : 1.02 }}
+        whileTap={disableStageDepthEffects ? { scale: 1 } : { scale: exitSelected ? 1.05 : isSelected ? 1.12 : 1.02 }}
         aria-label={label}
       >
         <motion.div
