@@ -1,598 +1,373 @@
+AREFEVPRO — Project Context
+Overview
 
-AREFEVPRO — это персональный сайт-портфолио и медиа-платформа
-Сайт построен так, чтобы посетитель мог:
-взаимодействовать с контентом через лайки и комментарии,
+AREFEVPRO is a full-stack personal media platform built with Next.js (App Router).
 
-при желании — зарегистрироваться и получать уведомления об ответах.
+The project combines:
 
-Проект ориентирован на production / digital / creative сегмент: веб-разработка, фото/видео-контент, аэросъёмка с дрона, музыка и тексты.
+portfolio
 
-Основные разделы сайта
+media publishing
 
-На сайте есть 5 публичных разделов:
+blogging
 
-Проекты
+photo galleries
 
-Раздел для публикации выполненных работ:
+video hosting
 
-сайты и веб-проекты,
+music content
 
-проекты с визуальной частью,
+user interaction (likes, comments, notifications)
 
-аэросъёмка с дрона (drone aerial footage / drone videography).
+The site is designed as an interactive cinematic interface, where navigation is performed through characters on a stage rather than traditional menus.
 
-Цель: показать кейсы, уровень реализации и подход к работе.
+The application contains:
 
-Фото (реализовано)
+public media platform
 
-Раздел “Фото” — это полноценная фото-галерея с альбомами, просмотром в формате viewer/lightbox и социальными механиками (лайки и комментарии). Раздел сделан так, чтобы выглядеть как “медиа-платформа”, а не просто страница с картинками.
+user interaction system
 
-Как работает раздел “Фото”
+admin CMS
 
-Раздел состоит из трёх уровней:
+media storage system
 
-1) Главная страница раздела /photo
+interactive scene-based UI
 
-Отображается слайдшоу случайных фотографий из всех альбомов.
+Core Concept
 
-Слайдшоу работает плавно, создаёт “вау-эффект” и сразу показывает стиль автора.
+The UI is built around a scene-driven navigation system.
 
-Данные берутся через API /api/photos/random.
+The homepage works like a character selection screen where each section of the site is represented by an interactive character.
 
-2) Страница альбома /photo/[slug]
+Characters react to hover and click interactions and lead to different sections of the site.
 
-Показывается grid (плитка) фотографий внутри выбранного альбома.
+Navigation is character-driven, not menu-driven.
 
-Плитка адаптивная и рассчитана на быстрое сканирование контента.
+Main Sections
 
-На каждой фотографии отображается количество лайков (если есть).
+Public sections of the site:
 
-Клик по фото открывает просмотрщик без ощущения “перезагрузки страницы”.
+Home
+Photo
+Drone
+Music
+Blog
+Projects
+Video
 
-3) Просмотрщик фото /photo/[slug]/[photoId]
+Each section corresponds to a page inside the Next.js App Router.
 
-Открывается viewer с большим изображением и лентой миниатюр снизу.
+Examples:
 
-Пользователь может быстро переключаться между фотографиями по миниатюрам.
+/photo
+/photo/[slug]
+/photo/[slug]/[photoId]
 
-Реализована плавная навигация между фото (ощущение “мгновенно”).
+/blog
+/blog/[slug]
 
-Viewer сделан как полноценный режим просмотра, а не отдельная страница.
+/video
 
-Лайки в разделе “Фото”
+/music
 
-Лайки доступны зарегистрированным пользователям.
+/drone
+UI Architecture
 
-Лайк ставится по нажатию на кнопку с сердечком.
+The interface is built around a stage system.
 
-Количество лайков отображается:
+The stage contains characters representing sections of the site.
 
-в просмотрщике (viewer),
+Stage
+ ├ Character (Start)
+ ├ Character (Photo)
+ ├ Character (Drone)
+ ├ Character (Music)
+ └ Character (Blog)
 
-в плитке альбома (grid).
+Each character has:
 
-Лайк работает мгновенно без перезагрузки страницы через API /api/photos/[photoId]/like.
+idle state
+action state
+hover animation
+sound trigger
+motion amplification
 
-Комментарии в разделе “Фото”
+Interaction logic:
 
-Внутри viewer реализована система комментариев, которая поддерживает:
+hover → character activates
+hover leave → character returns to idle
+click → navigation to section
+Motion System
 
-добавление комментариев к конкретной фотографии,
+Animations use:
 
-ответы на комментарии (ветки/replies),
+requestAnimationFrame
+Framer Motion
+motion values
+spring smoothing
 
-удаление комментариев автором (как в разделе “Блог”),
+The motion system supports:
 
-отображение количества ответов и возможность раскрывать/скрывать ветку.
+hover progress
+intent delay
+enter/leave velocity
+depth motion
+proximity reactions
+Character System
 
-Комментарии загружаются через API:
+Base component:
 
-/api/photos/[photoId]/comments
+LayeredNavCharacter
 
-UI/UX особенности (почему это выглядит как продукт)
+Features:
 
-Раздел “Фото” сделан с упором на ощущение “медиа-платформы”:
+idle image
+action image
+hover motion
+sound playback
+depth animation
 
-viewer занимает всю доступную высоту экрана,
+Characters are rendered inside a navigation stage component.
 
-лента миниатюр фиксирована снизу и позволяет быстро листать альбом,
+Audio System
 
-скроллбары скрыты там, где они портят эстетику,
+Each character has its own sound effect.
 
-есть анимации появления/переключения,
+Example mapping:
 
-интерфейс адаптирован под широкие экраны и комфортный просмотр.
+Photo → camera shutter
+Drone → drone sound
+Music → music cue
+Blog → drawing sound
 
-Хранение файлов
+Sound is synchronized with hover animation progress.
 
-Фотографии загружаются через админ-панель и хранятся в Yandex Cloud Object Storage.
+Layout
 
-Это даёт:
+Homepage layout:
 
-быстрый доступ к контенту в production,
+height: 100vh
+overflow: hidden
+flex stage layout
 
-разгрузку сервера (VPS не хранит медиа),
+Characters use responsive sizing:
 
-масштабируемость (можно увеличивать объём альбомов без изменения инфраструктуры).
-------------------------------------------------------
-🎬 Видео (Upload + Embed + Админка + Object Storage)
+width: clamp(210px, 18vw, 320px)
+gap: clamp(0px, 0.8vw, 10px)
 
-В проекте реализован полноценный раздел “Видео” с возможностью добавлять ролики через админку и отображать их на публичной странице.
+There is no vertical scroll on the homepage.
 
-Цель раздела:
+Backend Architecture
 
-показывать самые эффектные кадры
+Backend is implemented using Next.js API routes.
 
-drone-видео
+Structure:
 
-cinematic / атмосферные ролики
+app/api/
 
-усиливать портфолио и вызывать “вау-эффект”
+Major API groups:
 
-✅ Что реализовано
-1) Админ-панель для создания и редактирования видео
+auth
+posts
+photos
+videos
+comments
+notifications
+admin
+upload
+presence
+visit
+Authentication
 
-Добавлена страница админки для добавления видео:
+Authentication is handled with:
 
-можно указать видео ссылкой (Embed/URL)
+JWT
+auth cookies
 
-либо загрузить файл (MP4/MOV)
-
-можно одновременно указать и upload и embed (главное чтобы был хотя бы один источник)
-
-можно загрузить превью (thumbnail) картинкой или ссылкой
-
-есть чекбокс “Опубликовать”
-
-после сохранения видео появляется на публичной странице
-
-2) Загрузка больших видео через Presigned URL (без проксирования через сервер)
-
-Чтобы не загружать большие видео через Next.js backend (и не ловить лимиты, таймауты и нагрузку на память), реализована схема:
-
-Browser → напрямую в Object Storage (Yandex S3)
-
-Как это работает:
-
-Клиент (админка) запрашивает у backend ссылку:
-POST /api/admin/upload/presign
-передаёт:
-
-filename
-
-contentType
-
-folder (videos или video-thumbnails)
-
-Backend генерирует presigned PUT URL для загрузки в Yandex Object Storage.
-
-Клиент делает PUT uploadUrl и загружает файл напрямую в бакет.
-
-Backend возвращает publicUrl — публичную ссылку, которую можно сохранить в базе и использовать на сайте.
-
-Это даёт:
-
-быструю загрузку больших видео
-
-минимальную нагрузку на сервер
-
-стабильную работу в продакшене
-
-3) Прогресс загрузки (Progress Bar + проценты + скорость + ETA)
-
-В интерфейсе админки добавлен прогресс-бар загрузки видео, который показывает:
-
-процент загрузки (например Uploading: 72%)
-
-прогресс полоской
-
-сколько загружено / общий размер (например 1372 MB / 1880 MB)
-
-Speed — текущая скорость загрузки
-
-ETA — оставшееся время до завершения
-
-кнопка Cancel upload (отмена)
-
-То есть загрузка больших файлов стала прозрачной и контролируемой.
-
-4) Улучшенная диагностика ошибок (Presign / Config)
-
-Чтобы ошибки в проде не выглядели как “что-то сломалось непонятно почему”, улучшили обработку ошибок:
-
-проверка конфигурации S3 (bucket / endpoint / public url)
-
-явные ошибки при отсутствии env-переменных
-
-сервер возвращает структурированные JSON ошибки с code + message
-
-админка отображает нормальную ошибку пользователю и пишет детали в console
-
-🚨 Главная проблема на проде и как мы её решили
-Проблема
-
-Presigned URL генерировался нормально (backend отдавал 200 OK), но загрузка через PUT падала с:
-
-CORS error / Network error
-
-То есть браузер не разрешал отправлять PUT запрос напрямую в бакет.
-
-Причина
-
-У бакета в Yandex Object Storage не была настроена CORS политика, разрешающая PUT запросы с домена сайта.
-
-Решение
-
-Настроили CORS в бакете:
-
-разрешили origin:
-
-https://arefev.pro
-
-http://localhost:3000
-
-разрешили методы:
-
-GET, HEAD, PUT
-
-разрешили headers: *
-
-добавили ExposeHeaders: ETag
-
-После применения CORS загрузка видео через presigned PUT успешно заработала в продакшене.
-
-🛠 Что добавлено для поддержки (документация + скрипты)
-
-Чтобы настройку CORS не делать вручную, добавлены:
-
-scripts/storage/cors.json — готовая CORS конфигурация
-
-scripts/storage/apply-cors.sh — скрипт для применения/проверки CORS через AWS CLI
-
-docs/storage-cors.md — инструкция по использованию и требованиям к env
-
-🔁 Новые улучшения: переключение LocalStorage ↔ Object Storage
-
-Добавлен режим работы хранилища через переменную окружения:
-
-USE_OBJECT_STORAGE=true → используется Yandex Object Storage (S3) + presigned upload
-
-USE_OBJECT_STORAGE=false → используется локальная загрузка через backend (multipart)
-
-Это важно, потому что:
-
-локально удобно тестировать без загрузки файлов в реальный бакет
-
-в проде можно использовать S3 и загружать большие файлы напрямую
-
-Также добавлен endpoint:
-
-GET /api/admin/storage/mode
-который возвращает текущий режим (local / object storage), чтобы UI автоматически выбирал правильный способ загрузки.
-
-🧹 Удаление файлов из Object Storage при удалении видео в админке
-
-Раньше удаление видео могло удалять только запись из базы, но файлы оставались в Object Storage.
-
-Теперь при удалении видео в админке:
-
-backend пытается удалить файлы из хранилища
-
-videoUrl
-
-thumbnailUrl
-
-затем удаляет запись из базы
-
-Удаление сделано best-effort:
-
-если файл уже удалён / ссылки нет / что-то пошло не так — удаление видео из базы всё равно завершается
-
-это защищает админку от “вечных ошибок” при удалении
-
-🖼 Presigned upload теперь поддерживает не только видео, но и thumbnails
-
-Presign endpoint расширен так, чтобы можно было загружать напрямую в бакет:
-
-видео (videos/…)
-
-превью/картинки (video-thumbnails/…)
-
-📌 Итог
-
-В проекте появился полноценный профессиональный видео-раздел:
-
-админка создания и редактирования видео
-
-поддержка upload и embed
-
-загрузка больших файлов напрямую в Yandex Object Storage через presigned PUT
-
-прогресс-бар с процентами, скоростью и ETA
-
-улучшенная диагностика ошибок
-
-решена проблема CORS для загрузки из браузера
-
-добавлены скрипты и документация для повторяемой настройки
-
-добавлено переключение LocalStorage ↔ Object Storage (через env)
-
-при удалении видео в админке файлы также удаляются из Object Storage
-------------------------------------------------------------
-Музыка
-
-Раздел с аудиоконтентом:
-
-записи старых радиоэфиров,
-
-подкасты,
-
-авторские треки.
-
-Блог
-
-Раздел со статьями и заметками, где автор пишет про:
-
-современные технологии,
-
-ИИ,
-
-разработку,
-
-путешествия,
-
-личные наблюдения и опыт.
-
-Посты могут содержать медиа: фото и видео.
-
-Пользовательские функции (для посетителей)
-
-Посетитель может просматривать весь публичный контент без регистрации.
-
-После регистрации пользователь получает возможности:
-
-Регистрация и авторизация
-
-Регистрация простая:
-
-никнейм,
-
-логин,
-
-пароль.
-
-Лайки и комментарии
-
-Зарегистрированный пользователь может:
-
-ставить лайки,
-
-писать комментарии,
-
-отвечать на комментарии (ветки ответов), во всех разделах, где есть контент.
-
-Уведомления
-
-Если кто-то ответил пользователю на комментарий — при следующем посещении сайта он увидит уведомление.
-
-Логика уведомлений:
-
-иконка колокольчика показывает наличие уведомлений,
-
-список уведомлений открывается по клику,
-
-клик по уведомлению ведёт пользователя к месту, где ему ответили (пост/фото/комментарий).
-
-Админка и управление контентом
-
-Контент на сайт добавляется через встроенную админ-панель.
-
-Админка позволяет:
-
-создавать и редактировать посты,
-
-управлять фотоальбомами и фотографиями,
-
-загружать медиа,
-
-публиковать/скрывать контент,
-
-следить за базовой статистикой посещений.
-
-Админ-часть вынесена в отдельный роут /admin и имеет собственные страницы и API-эндпоинты.
-
-Технологический стек
-
-Проект построен на современном fullstack-подходе:
-
-Frontend
-
-Next.js (App Router)
-
-TypeScript
-
-UI-компоненты в app/components
-
-Динамические страницы через маршрутизацию App Router (app/...)
-
-Backend (внутри Next.js)
-
-API Routes (app/api/...)
-
-логика авторизации, постов, лайков, комментариев, уведомлений и загрузок реализована серверными роутами
-
-Хранение файлов
-
-медиафайлы (фото/видео/обложки) хранятся в Yandex Cloud Object Storage
-
-Архитектура и структура проекта
-
-Проект использует разделение на:
-
-публичную часть сайта,
-
-админ-панель,
-
-API.
-
-Ключевые директории:
-
-app/(sections)/[section]/page.tsx
-Универсальный роут для отображения секций сайта.
-
-app/admin/*
-Админ-панель:
-
-/admin/posts — управление постами
-
-/admin/blog — редактор блога
-
-/admin/photos — альбомы и загрузка фото
-
-/admin/upload — загрузка медиа
-
-/admin/stats — статистика
-
-app/api/*
-API-эндпоинты проекта:
-
-Auth
-
-/api/auth/register
+Endpoints:
 
 /api/auth/login
-
 /api/auth/logout
+/api/auth/register
+/api/me
+Media Platform
 
-/api/me — получить текущего пользователя
+The site supports multiple media types:
 
-Контент
+photos
+videos
+audio
+blog media
 
-/api/posts
+Media files are stored in:
 
-/api/posts/[slug]
+Yandex Cloud Object Storage
 
-/api/albums
+Uploads use presigned URLs.
 
-/api/albums/[slug]
+Upload flow:
 
-/api/photos/...
+Client → request presign URL
+Backend → generate presigned PUT
+Client → upload directly to storage
+Backend → store public URL
+Photo System
 
-Комментарии / лайки
+Photo section structure:
+
+/photo
+/photo/[slug]
+/photo/[slug]/[photoId]
+
+Features:
+
+album system
+grid view
+viewer/lightbox
+likes
+comments
+
+Viewer supports fast navigation between images.
+
+Video System
+
+Video section supports:
+
+embed videos
+uploaded videos
+thumbnails
+
+Admin panel supports:
+
+upload
+embed links
+publish toggle
+
+Large files upload directly to Object Storage via presigned URLs.
+
+Comment System
+
+Comments support:
+
+threaded replies
+likes
+deletion by author
+
+Endpoints:
 
 /api/posts/[slug]/comments
-
 /api/photos/[photoId]/comments
+/api/videos/[videoId]/comments
+Notification System
 
-/api/comments/[id]/replies
+Users receive notifications when someone replies to their comment.
 
-/api/comments/[id]/like
+Features:
 
-Уведомления
+notification list
+unread indicator
+link to content
+
+Endpoints:
 
 /api/notifications
-
 /api/notifications/[id]/read
+Admin System
 
-Системные
+Admin panel located at:
 
-/api/health
+/admin
 
-/api/visit
+Admin capabilities:
 
-app/components/*
-UI-компоненты проекта:
+create/edit posts
+manage blog
+manage photo albums
+upload media
+manage videos
+view statistics
+ban/unban users
 
-лайки (LikeButton, CommentLikeButton)
+Admin API endpoints:
 
-комментарии (CommentsPanel)
+/api/admin/posts
+/api/admin/albums
+/api/admin/photos
+/api/admin/videos
+/api/admin/users
+Database
 
-фото-галерея и viewer/lightbox
+Database:
 
-навигация и layout-компоненты
+PostgreSQL
 
-секции главной страницы
+ORM:
 
-Инфраструктура и деплой
+Prisma
 
-Проект работает в production на виртуальной машине в Yandex Cloud.
+Located in:
 
-Характеристики сервера:
+prisma/schema.prisma
 
-vCPU: 2
+Migrations stored in:
 
-RAM: 4 ГБ
+prisma/migrations
+Infrastructure
 
-Disk: 20 ГБ
+Production environment:
 
-Файлы хранятся отдельно в Object Storage (Yandex Cloud).
+Yandex Cloud VPS
 
-Сетевая схема
+Server specs:
 
-домены arefev.pro и www.arefev.pro указывают на статический IP сервера
+2 vCPU
+4 GB RAM
+20 GB disk
 
-Nginx работает как reverse proxy и принимает запросы на 80/443
+Architecture:
 
-⚠️ Next.js слушает *:3000, но защищён UFW — лучше поправить на 127.0.0.1:3000 !!!!!
-наружу Next.js напрямую не доступен
+Domain → Nginx → Next.js (3000)
+                ↓
+             PostgreSQL
 
-PostgreSQL закрыт и слушает только локально:
+Media files stored in:
 
-127.0.0.1:5432 postgres
+Yandex Object Storage
+Deployment
 
-[::1]:5432 postgres
+Deployment uses:
 
-Безопасность сервера
+GitHub Actions
+PM2
+Nginx
 
-Проект развёрнут с базовой production-безопасностью:
+Process:
 
-SSH
+push → GitHub
+CI → SSH to server
+build → restart PM2
+Security
 
-отключена парольная авторизация (PasswordAuthentication no)
+Server security includes:
 
-вход только по SSH-ключу
+SSH key authentication
+Fail2Ban
+UFW firewall
+HTTPS via Let's Encrypt
+security headers
+Current Development Stage
 
-root-логин запрещён (PermitRootLogin no)
+The project is currently in the stage:
 
-включён Fail2Ban (jail sshd)
+Cinematic Interaction Polish
 
-Firewall
+Core systems are already implemented:
 
-включён UFW
+character navigation
+motion engine
+audio system
+media platform
+admin CMS
+API
 
-политика по умолчанию: deny incoming, allow outgoing
-
-открыты только порты:
-
-22 (SSH)
-
-80 (HTTP)
-
-443 (HTTPS)
-
-HTTPS
-
-используется Let’s Encrypt
-
-включено авто-продление сертификатов
-
-настроены security headers (HSTS, XFO, XCTO и т.д.)
-
-Запуск приложения и процесс деплоя
-
-Приложение работает через PM2:
-
-конфиг: ecosystem.config.cjs
-
-процесс: arefevpro
-
-используется production build Next.js
-
-Деплой автоматизирован через GitHub Actions:
-
-подключение по SSH через appleboy/ssh-action
-секреты:
-VPS_HOST
-VPS_USER
-VPS_SSH_KEY
+Future improvements focus mainly on motion and stage polish.
