@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { flushSync } from "react-dom";
 import useCharacterMotion from "@/app/components/character/useCharacterMotion";
+import { AudioManager } from "@/engine/AudioManager";
 
 type PointerValue = ReturnType<typeof useMotionValue<number>>;
 type SpringValue = ReturnType<typeof useSpring>;
@@ -88,8 +89,6 @@ export default function LayeredNavCharacter({
   actionSrc,
   audioSrc,
   audioVolume,
-  soundThreshold,
-  resetThreshold,
   motionConfig,
   getMotionStyle,
   pointerInsideRef,
@@ -105,11 +104,10 @@ export default function LayeredNavCharacter({
 }: LayeredNavCharacterProps) {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const actionImageRef = useRef<HTMLImageElement | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const poseRef = useRef<HTMLDivElement | null>(null);
   const idleLayerRef = useRef<HTMLDivElement | null>(null);
   const actionLayerRef = useRef<HTMLDivElement | null>(null);
-  const playedRef = useRef(false);
+  const isAudioPlayingRef = useRef(false);
   const baseLookXRef = useRef(0);
   const baseLookYRef = useRef(0);
   const boundsRef = useRef<{ centerX: number; centerY: number } | null>(null);
@@ -176,6 +174,27 @@ export default function LayeredNavCharacter({
     }
   }, [disableStageDepthEffects, getMotionStyle, progress]);
 
+  const playHoverAudio = useCallback(() => {
+    if (!audioSrc) {
+      return;
+    }
+    if (isAudioPlayingRef.current) {
+      return;
+    }
+
+    isAudioPlayingRef.current = true;
+    AudioManager.play(audioSrc, audioVolume);
+  }, [audioSrc, audioVolume]);
+
+  const stopHoverAudio = useCallback(() => {
+    if (!isAudioPlayingRef.current) {
+      return;
+    }
+
+    isAudioPlayingRef.current = false;
+    AudioManager.stop();
+  }, []);
+
   useEffect(() => {
     const updateBaseLook = () => {
       baseLookXRef.current = Math.random() * 0.6 - 0.3;
@@ -192,38 +211,15 @@ export default function LayeredNavCharacter({
   }, []);
 
   useEffect(() => {
-    const audio = new Audio(audioSrc);
-    audio.preload = "auto";
-    audio.volume = audioVolume;
-    audioRef.current = audio;
-
-    return () => {
-      audio.pause();
-      audioRef.current = null;
-    };
-  }, [audioSrc, audioVolume]);
-
-  useEffect(() => {
     applyMotionStyle(0);
   }, [applyMotionStyle]);
 
   useEffect(() => {
-    if (progress >= soundThreshold && !playedRef.current) {
-      playedRef.current = true;
-      const audio = audioRef.current;
-      if (audio) {
-        try {
-          audio.currentTime = 0;
-          const playPromise = audio.play();
-          if (playPromise && typeof playPromise.catch === "function") {
-            playPromise.catch(() => {});
-          }
-        } catch {}
-      }
-    } else if (progress < resetThreshold) {
-      playedRef.current = false;
-    }
-  }, [progress, resetThreshold, soundThreshold]);
+    return () => {
+      AudioManager.stop();
+      isAudioPlayingRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const element = buttonRef.current;
@@ -342,10 +338,11 @@ export default function LayeredNavCharacter({
       <motion.button
         ref={buttonRef}
         type="button"
-        onMouseEnter={() => {
+        onPointerEnter={() => {
           if (exitActive) {
             return;
           }
+          playHoverAudio();
           onScheduleHover(label);
           setTarget(1);
         }}
@@ -357,16 +354,11 @@ export default function LayeredNavCharacter({
           setTarget(1);
         }}
         onBlur={() => {
-          if (exitActive) {
-            return;
-          }
           onClearHover(label);
           setTarget(0);
         }}
-        onMouseLeave={() => {
-          if (exitActive) {
-            return;
-          }
+        onPointerLeave={() => {
+          stopHoverAudio();
           onClearHover(label);
           setTarget(0);
         }}

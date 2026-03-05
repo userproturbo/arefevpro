@@ -1,13 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import type { Scene } from "./sceneTypes";
 import ActorRenderer from "./ActorRenderer";
+import { AudioManager } from "./AudioManager";
 
 type SceneEngineProps = {
   scene: Scene;
 };
 
 export default function SceneEngine({ scene }: SceneEngineProps) {
+  useEffect(() => {
+    return () => {
+      AudioManager.stop();
+    };
+  }, [scene.id]);
+
   return (
     <div
       data-scene-id={scene.id}

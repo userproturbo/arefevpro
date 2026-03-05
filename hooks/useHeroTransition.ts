@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import type { TargetAndTransition, Transition } from "framer-motion";
 import type { NavigationCharacter } from "@/lib/characterNavigation";
 import { useNavigation } from "@/store/navigationStore";
+import { AudioManager } from "@/engine/AudioManager";
 
 const CHARACTER_ENTRY_DURATION_S = 0.6;
 const BACKGROUND_ENTRY_DURATION_S = 0.45;
@@ -29,11 +30,14 @@ export default function useHeroTransition(sectionName: NavigationCharacter, isAc
       return;
     }
 
+    AudioManager.stop();
+
     const timeoutId = window.setTimeout(() => {
       setSelectedCharacter(null);
     }, Math.round(CHARACTER_ENTRY_DURATION_S * 1000) + 120);
 
     return () => {
+      AudioManager.stop();
       window.clearTimeout(timeoutId);
     };
   }, [setSelectedCharacter, shouldAnimate]);
