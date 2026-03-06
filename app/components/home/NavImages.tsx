@@ -24,6 +24,7 @@ import {
 import { buildCharacterHref, type NavigationCharacter } from "@/lib/characterNavigation";
 import { useNavigation } from "@/store/navigationStore";
 import BlogNavCharacter from "./BlogNavCharacter";
+import CharacterHoverPanel, { type CharacterType } from "./CharacterHoverPanel";
 import DroneNavCharacter from "./DroneNavCharacter";
 import MusicNavCharacter from "./MusicNavCharacter";
 import PhotoNavCharacter from "./PhotoNavCharacter";
@@ -37,6 +38,15 @@ type NavItem = {
   onClick?: () => void;
   idleDelay: number;
 };
+
+function resolveCharacterFromLabel(label: string | null): CharacterType {
+  if (!label) return null;
+  const normalized = label.toLowerCase();
+  if (normalized === "photo" || normalized === "drone" || normalized === "music" || normalized === "blog") {
+    return normalized;
+  }
+  return null;
+}
 
 const navItems = (onReturnHome: () => void): NavItem[] => [
   { label: "Start", imageSrc: "/img/Start.png", onClick: onReturnHome, idleDelay: 0.15 },
@@ -375,11 +385,11 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   const [idleFocusedLabel, setIdleFocusedLabel] = useState<string | null>(null);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [exitActive, setExitActive] = useState(false);
+  const [supportsHover, setSupportsHover] = useState(true);
+  const [mobileOpenedCharacter, setMobileOpenedCharacter] = useState<NavigationCharacter | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
-  const idleStartTimerRef = useRef<number | null>(null);
-  const idleCycleTimerRef = useRef<number | null>(null);
-  const idleCycleRef = useRef<((previousLabel?: string | null) => void) | null>(null);
-  const idleSeedRef = useRef(137);
+  const idleLoopTimerRef = useRef<number | null>(null);
+  const idleLastLabelRef = useRef<string | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const pointerInsideRef = useRef(false);
   const navigatingRef = useRef(false);
@@ -404,59 +414,35 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
 
   const interactionLocked = selectedLabel !== null;
   const activeLabel = hoveredLabel ?? idleFocusedLabel;
-
-  const nextIdleValue = useCallback(() => {
-    idleSeedRef.current = (idleSeedRef.current * 48271) % 2147483647;
-    return idleSeedRef.current / 2147483647;
-  }, []);
-
-  const clearIdleTimers = useCallback(() => {
-    if (idleStartTimerRef.current !== null) {
-      window.clearTimeout(idleStartTimerRef.current);
-      idleStartTimerRef.current = null;
-    }
-    if (idleCycleTimerRef.current !== null) {
-      window.clearTimeout(idleCycleTimerRef.current);
-      idleCycleTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleIdleCycle = useCallback((previousLabel?: string | null) => {
-    if (interactionLocked || hoveredLabel) {
-      return;
-    }
-
-    const availableItems = items.filter((item) => item.label !== previousLabel);
-    const nextPool = availableItems.length > 0 ? availableItems : items;
-    const nextItem = nextPool[Math.floor(nextIdleValue() * nextPool.length)] ?? nextPool[0];
-
-    setIdleFocusedLabel(nextItem?.label ?? null);
-    idleCycleTimerRef.current = window.setTimeout(
-      () => idleCycleRef.current?.(nextItem?.label ?? null),
-      6000 + Math.round(nextIdleValue() * 4000),
-    );
-  }, [hoveredLabel, interactionLocked, items, nextIdleValue]);
+  const panelCharacter = mobileOpenedCharacter ?? resolveCharacterFromLabel(hoveredLabel);
 
   useEffect(() => {
-    idleCycleRef.current = scheduleIdleCycle;
-  }, [scheduleIdleCycle]);
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const updateSupportsHover = () => {
+      setSupportsHover(mediaQuery.matches);
+      if (mediaQuery.matches) {
+        setMobileOpenedCharacter(null);
+      }
+    };
 
-  const startIdleCountdown = useCallback(() => {
-    clearIdleTimers();
+    updateSupportsHover();
+    mediaQuery.addEventListener("change", updateSupportsHover);
+    return () => mediaQuery.removeEventListener("change", updateSupportsHover);
+  }, []);
 
-    if (interactionLocked || hoveredLabel) {
-      return;
+  const clearIdleTimer = useCallback(() => {
+    if (idleLoopTimerRef.current !== null) {
+      window.clearTimeout(idleLoopTimerRef.current);
+      idleLoopTimerRef.current = null;
     }
-
-    idleStartTimerRef.current = window.setTimeout(() => {
-      scheduleIdleCycle(null);
-    }, 5000);
-  }, [clearIdleTimers, hoveredLabel, interactionLocked, scheduleIdleCycle]);
+    idleLastLabelRef.current = null;
+  }, []);
 
   const stopIdleFocus = useCallback(() => {
-    clearIdleTimers();
+    clearIdleTimer();
     setIdleFocusedLabel(null);
-  }, [clearIdleTimers]);
+  }, [clearIdleTimer]);
 
   useAnimationFrame((time) => {
     driftX.set(Math.sin(time * 0.00025) * 2);
@@ -464,22 +450,69 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   });
 
   useEffect(() => {
-    startIdleCountdown();
+    if (interactionLocked || hoveredLabel || mobileOpenedCharacter) {
+      clearIdleTimer();
+      return;
+    }
 
+    const idleCandidates = items.filter((item) => item.character);
+    if (idleCandidates.length === 0) {
+      clearIdleTimer();
+      return;
+    }
+
+    let disposed = false;
+    const runIdlePulse = () => {
+      if (disposed || interactionLocked || hoveredLabel || mobileOpenedCharacter || navigatingRef.current) {
+        return;
+      }
+
+      const pool = idleCandidates.filter((item) => item.label !== idleLastLabelRef.current);
+      const nextPool = pool.length > 0 ? pool : idleCandidates;
+      const nextItem = nextPool[Math.floor(Math.random() * nextPool.length)] ?? nextPool[0];
+
+      if (!nextItem) return;
+
+      idleLastLabelRef.current = nextItem.label;
+      setIdleFocusedLabel(nextItem.label);
+
+      idleLoopTimerRef.current = window.setTimeout(() => {
+        setIdleFocusedLabel(null);
+
+        idleLoopTimerRef.current = window.setTimeout(
+          runIdlePulse,
+          2000 + Math.floor(Math.random() * 1001),
+        );
+      }, 1200);
+    };
+
+    idleLoopTimerRef.current = window.setTimeout(runIdlePulse, 2000);
+
+    return () => {
+      disposed = true;
+      clearIdleTimer();
+    };
+  }, [clearIdleTimer, hoveredLabel, interactionLocked, items, mobileOpenedCharacter]);
+
+  useEffect(() => {
     return () => {
       if (hoverTimerRef.current !== null) {
         window.clearTimeout(hoverTimerRef.current);
       }
-      clearIdleTimers();
+      stopIdleFocus();
     };
-  }, [clearIdleTimers, startIdleCountdown]);
+  }, [stopIdleFocus]);
 
   const scheduleHover = (label: string) => {
     if (interactionLocked || navigatingRef.current) {
       return;
     }
+    if (!supportsHover) {
+      return;
+    }
 
     stopIdleFocus();
+    setMobileOpenedCharacter(null);
 
     if (hoverTimerRef.current !== null) {
       window.clearTimeout(hoverTimerRef.current);
@@ -520,9 +553,20 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
       }
 
       if (!selectedItem.href) {
+        setMobileOpenedCharacter(null);
         setSelectedCharacter(null);
         selectedItem.onClick?.();
         return;
+      }
+
+      if (!supportsHover && selectedItem.character) {
+        if (mobileOpenedCharacter !== selectedItem.character) {
+          setMobileOpenedCharacter(selectedItem.character);
+          setHoveredLabel(selectedItem.label);
+          stopIdleFocus();
+          setIdleFocusedLabel(null);
+          return;
+        }
       }
 
       navigatingRef.current = true;
@@ -530,7 +574,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
       setHoveredLabel(selectedItem.label);
       setSelectedLabel(selectedItem.label);
       setExitActive(true);
-      clearIdleTimers();
+      stopIdleFocus();
       setIdleFocusedLabel(null);
       pointerInsideRef.current = false;
       cameraBaseX.set(0);
@@ -555,7 +599,18 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
       setSelectedCharacter(selectedItem.character ?? null);
       router.push(buildCharacterHref(selectedItem.href, selectedItem.character));
     },
-    [cameraBaseX, cameraBaseY, cameraBiasX, cameraBiasY, cameraNormXBase, clearHover, clearIdleTimers, router, setSelectedCharacter],
+    [
+      cameraBaseX,
+      cameraBaseY,
+      cameraBiasX,
+      cameraBiasY,
+      cameraNormXBase,
+      mobileOpenedCharacter,
+      router,
+      setSelectedCharacter,
+      stopIdleFocus,
+      supportsHover,
+    ],
   );
 
   return (
@@ -566,6 +621,9 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
       animate={{ opacity: exitActive ? 0.72 : 1 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       onMouseMove={(event) => {
+        if (!supportsHover) {
+          return;
+        }
         if (navigatingRef.current) {
           return;
         }
@@ -574,8 +632,6 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         const offsetX = event.clientX - (bounds.left + bounds.width / 2);
         const offsetY = event.clientY - (bounds.top + bounds.height / 2);
 
-        stopIdleFocus();
-        startIdleCountdown();
         pointerInsideRef.current = true;
         pointerClientX.set(event.clientX);
         pointerClientY.set(event.clientY);
@@ -584,6 +640,9 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         cameraNormXBase.set(Math.max(-1, Math.min(1, offsetX / (bounds.width / 2 || 1))));
       }}
       onMouseLeave={() => {
+        if (!supportsHover) {
+          return;
+        }
         if (navigatingRef.current) {
           return;
         }
@@ -595,7 +654,6 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         cameraBiasX.set(0);
         cameraBiasY.set(0);
         clearHover();
-        startIdleCountdown();
       }}
     >
       <motion.div
@@ -604,148 +662,153 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       />
       <motion.div
-        className="relative mx-auto flex w-full max-w-[1400px] flex-wrap items-end justify-center gap-[clamp(0px,0.8vw,10px)] lg:flex-nowrap"
+        className="relative mx-auto flex w-full max-w-[1400px] flex-col items-center"
         animate={{ scale: exitActive ? 1.02 : interactionLocked ? 1.03 : 1 }}
         transition={{ duration: exitActive ? 0.25 : 0.7, ease: [0.22, 1, 0.36, 1] }}
         style={{ x: stageDriftX, y: stageDriftY, willChange: "transform" }}
       >
-        {items.map((item, index) => (
-          item.label === "Photo" ? (
-            <PhotoNavCharacter
-              key={item.label}
-              label={item.label}
-              index={index}
-              total={items.length}
-              hoveredLabel={hoveredLabel}
-              activeLabel={activeLabel}
-              selectedLabel={selectedLabel}
-              exitActive={exitActive}
-              idleDelay={item.idleDelay}
-              pointerInsideRef={pointerInsideRef}
-              pointerClientX={pointerClientX}
-              pointerClientY={pointerClientY}
-              cameraX={cameraX}
-              cameraY={cameraY}
-              cameraNormX={cameraNormX}
-              onScheduleHover={scheduleHover}
-              onClearHover={clearHover}
-              onSetCameraBias={(x, y) => {
-                cameraBiasX.set(x);
-                cameraBiasY.set(y);
-              }}
-              onSelect={async (imageEl) => {
-                await handleSelect(item, imageEl);
-              }}
-            />
-          ) : item.label === "Drone" ? (
-            <DroneNavCharacter
-              key={item.label}
-              label={item.label}
-              index={index}
-              total={items.length}
-              hoveredLabel={hoveredLabel}
-              activeLabel={activeLabel}
-              selectedLabel={selectedLabel}
-              exitActive={exitActive}
-              idleDelay={item.idleDelay}
-              pointerInsideRef={pointerInsideRef}
-              pointerClientX={pointerClientX}
-              pointerClientY={pointerClientY}
-              cameraX={cameraX}
-              cameraY={cameraY}
-              cameraNormX={cameraNormX}
-              onScheduleHover={scheduleHover}
-              onClearHover={clearHover}
-              onSetCameraBias={(x, y) => {
-                cameraBiasX.set(x);
-                cameraBiasY.set(y);
-              }}
-              onSelect={async (imageEl) => {
-                await handleSelect(item, imageEl);
-              }}
-            />
-          ) : item.label === "Music" ? (
-            <MusicNavCharacter
-              key={item.label}
-              label={item.label}
-              index={index}
-              total={items.length}
-              hoveredLabel={hoveredLabel}
-              activeLabel={activeLabel}
-              selectedLabel={selectedLabel}
-              exitActive={exitActive}
-              idleDelay={item.idleDelay}
-              pointerInsideRef={pointerInsideRef}
-              pointerClientX={pointerClientX}
-              pointerClientY={pointerClientY}
-              cameraX={cameraX}
-              cameraY={cameraY}
-              cameraNormX={cameraNormX}
-              onScheduleHover={scheduleHover}
-              onClearHover={clearHover}
-              onSetCameraBias={(x, y) => {
-                cameraBiasX.set(x);
-                cameraBiasY.set(y);
-              }}
-              onSelect={async (imageEl) => {
-                await handleSelect(item, imageEl);
-              }}
-            />
-          ) : item.label === "Blog" ? (
-            <BlogNavCharacter
-              key={item.label}
-              label={item.label}
-              index={index}
-              total={items.length}
-              hoveredLabel={hoveredLabel}
-              activeLabel={activeLabel}
-              selectedLabel={selectedLabel}
-              exitActive={exitActive}
-              idleDelay={item.idleDelay}
-              pointerInsideRef={pointerInsideRef}
-              pointerClientX={pointerClientX}
-              pointerClientY={pointerClientY}
-              cameraX={cameraX}
-              cameraY={cameraY}
-              cameraNormX={cameraNormX}
-              onScheduleHover={scheduleHover}
-              onClearHover={clearHover}
-              onSetCameraBias={(x, y) => {
-                cameraBiasX.set(x);
-                cameraBiasY.set(y);
-              }}
-              onSelect={async (imageEl) => {
-                await handleSelect(item, imageEl);
-              }}
-            />
-          ) : (
-            <CharacterItem
-              key={item.label}
-              item={item}
-              index={index}
-              total={items.length}
-              hoveredLabel={hoveredLabel}
-              activeLabel={activeLabel}
-              selectedLabel={selectedLabel}
-              exitActive={exitActive}
-              pointerInsideRef={pointerInsideRef}
-              pointerClientX={pointerClientX}
-              pointerClientY={pointerClientY}
-              cameraX={cameraX}
-              cameraY={cameraY}
-              cameraNormX={cameraNormX}
-              onScheduleHover={scheduleHover}
-              onClearHover={clearHover}
-              onSetCameraBias={(x, y) => {
-                cameraBiasX.set(x);
-                cameraBiasY.set(y);
-              }}
-              onSelect={async (selectedItem, imageEl) => {
-                await handleSelect(selectedItem, imageEl);
-              }}
-            />
-          )
-        ))}
+        <div className="relative mx-auto flex w-full max-w-[1200px] flex-col px-6">
+          <div className="relative flex w-full flex-wrap items-end justify-center gap-[clamp(0px,0.8vw,10px)] lg:flex-nowrap">
+            {items.map((item, index) => (
+              item.label === "Photo" ? (
+                <PhotoNavCharacter
+                  key={item.label}
+                  label={item.label}
+                  index={index}
+                  total={items.length}
+                  hoveredLabel={hoveredLabel}
+                  activeLabel={activeLabel}
+                  selectedLabel={selectedLabel}
+                  exitActive={exitActive}
+                  idleDelay={item.idleDelay}
+                  pointerInsideRef={pointerInsideRef}
+                  pointerClientX={pointerClientX}
+                  pointerClientY={pointerClientY}
+                  cameraX={cameraX}
+                  cameraY={cameraY}
+                  cameraNormX={cameraNormX}
+                  onScheduleHover={scheduleHover}
+                  onClearHover={clearHover}
+                  onSetCameraBias={(x, y) => {
+                    cameraBiasX.set(x);
+                    cameraBiasY.set(y);
+                  }}
+                  onSelect={async (imageEl) => {
+                    await handleSelect(item, imageEl);
+                  }}
+                />
+              ) : item.label === "Drone" ? (
+                <DroneNavCharacter
+                  key={item.label}
+                  label={item.label}
+                  index={index}
+                  total={items.length}
+                  hoveredLabel={hoveredLabel}
+                  activeLabel={activeLabel}
+                  selectedLabel={selectedLabel}
+                  exitActive={exitActive}
+                  idleDelay={item.idleDelay}
+                  pointerInsideRef={pointerInsideRef}
+                  pointerClientX={pointerClientX}
+                  pointerClientY={pointerClientY}
+                  cameraX={cameraX}
+                  cameraY={cameraY}
+                  cameraNormX={cameraNormX}
+                  onScheduleHover={scheduleHover}
+                  onClearHover={clearHover}
+                  onSetCameraBias={(x, y) => {
+                    cameraBiasX.set(x);
+                    cameraBiasY.set(y);
+                  }}
+                  onSelect={async (imageEl) => {
+                    await handleSelect(item, imageEl);
+                  }}
+                />
+              ) : item.label === "Music" ? (
+                <MusicNavCharacter
+                  key={item.label}
+                  label={item.label}
+                  index={index}
+                  total={items.length}
+                  hoveredLabel={hoveredLabel}
+                  activeLabel={activeLabel}
+                  selectedLabel={selectedLabel}
+                  exitActive={exitActive}
+                  idleDelay={item.idleDelay}
+                  pointerInsideRef={pointerInsideRef}
+                  pointerClientX={pointerClientX}
+                  pointerClientY={pointerClientY}
+                  cameraX={cameraX}
+                  cameraY={cameraY}
+                  cameraNormX={cameraNormX}
+                  onScheduleHover={scheduleHover}
+                  onClearHover={clearHover}
+                  onSetCameraBias={(x, y) => {
+                    cameraBiasX.set(x);
+                    cameraBiasY.set(y);
+                  }}
+                  onSelect={async (imageEl) => {
+                    await handleSelect(item, imageEl);
+                  }}
+                />
+              ) : item.label === "Blog" ? (
+                <BlogNavCharacter
+                  key={item.label}
+                  label={item.label}
+                  index={index}
+                  total={items.length}
+                  hoveredLabel={hoveredLabel}
+                  activeLabel={activeLabel}
+                  selectedLabel={selectedLabel}
+                  exitActive={exitActive}
+                  idleDelay={item.idleDelay}
+                  pointerInsideRef={pointerInsideRef}
+                  pointerClientX={pointerClientX}
+                  pointerClientY={pointerClientY}
+                  cameraX={cameraX}
+                  cameraY={cameraY}
+                  cameraNormX={cameraNormX}
+                  onScheduleHover={scheduleHover}
+                  onClearHover={clearHover}
+                  onSetCameraBias={(x, y) => {
+                    cameraBiasX.set(x);
+                    cameraBiasY.set(y);
+                  }}
+                  onSelect={async (imageEl) => {
+                    await handleSelect(item, imageEl);
+                  }}
+                />
+              ) : (
+                <CharacterItem
+                  key={item.label}
+                  item={item}
+                  index={index}
+                  total={items.length}
+                  hoveredLabel={hoveredLabel}
+                  activeLabel={activeLabel}
+                  selectedLabel={selectedLabel}
+                  exitActive={exitActive}
+                  pointerInsideRef={pointerInsideRef}
+                  pointerClientX={pointerClientX}
+                  pointerClientY={pointerClientY}
+                  cameraX={cameraX}
+                  cameraY={cameraY}
+                  cameraNormX={cameraNormX}
+                  onScheduleHover={scheduleHover}
+                  onClearHover={clearHover}
+                  onSetCameraBias={(x, y) => {
+                    cameraBiasX.set(x);
+                    cameraBiasY.set(y);
+                  }}
+                  onSelect={async (selectedItem, imageEl) => {
+                    await handleSelect(selectedItem, imageEl);
+                  }}
+                />
+              )
+            ))}
+          </div>
+          <CharacterHoverPanel activeCharacter={panelCharacter} />
+        </div>
       </motion.div>
     </motion.div>
   );
