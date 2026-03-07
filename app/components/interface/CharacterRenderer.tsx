@@ -1,175 +1,106 @@
 "use client";
 
-import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
-import useCharacterMotion from "@/app/components/character/useCharacterMotion";
-import { useCharacterAI } from "@/engine/characterAI/useCharacterAI";
+import { AnimatePresence, motion, useMotionValue, useSpring } from "framer-motion";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Section } from "@/store/uiStore";
-
-type CharacterAssets = {
-  idleSrc: string;
-  actionSrc: string;
-  alt: string;
-};
-
-const CHARACTER_ASSETS: Record<Section, CharacterAssets> = {
-  photo: {
-    idleSrc: "/img/Photo-idle.png",
-    actionSrc: "/img/Photo-action.png",
-    alt: "Photo character",
-  },
-  music: {
-    idleSrc: "/img/Music-idle.png",
-    actionSrc: "/img/Music-action.png",
-    alt: "Music character",
-  },
-  video: {
-    idleSrc: "/img/Drone-idle.png",
-    actionSrc: "/img/Drone-action.png",
-    alt: "Video character",
-  },
-  blog: {
-    idleSrc: "/img/Blog-idle.png",
-    actionSrc: "/img/Blog-action.png",
-    alt: "Blog character",
-  },
-};
-
-const MOUSE_RANGE = 16;
-
-function clamp(value: number, min = 0, max = 1) {
-  return Math.min(max, Math.max(min, value));
-}
+import BlogNavCharacter from "@/app/components/home/BlogNavCharacter";
+import DroneNavCharacter from "@/app/components/home/DroneNavCharacter";
+import MusicNavCharacter from "@/app/components/home/MusicNavCharacter";
+import PhotoNavCharacter from "@/app/components/home/PhotoNavCharacter";
 
 type CharacterRendererProps = {
-  activeSection: Section;
-  hoverActive: boolean;
+  section: Section;
 };
 
-export default function CharacterRenderer({ activeSection, hoverActive }: CharacterRendererProps) {
-  const { currentCharacterState } = useCharacterAI();
-  const [mouseNorm, setMouseNorm] = useState({ x: 0, y: 0 });
-  const { progress, idleElapsedMs, startIdle, setTarget } = useCharacterMotion({
-    intentDelayMs: 120,
-    enterSpeed: 0.11,
-    leaveSpeed: 0.09,
-    microMotionProgress: 0.28,
-    entryDurationMs: 320,
-  });
+const characterMap = {
+  photo: PhotoNavCharacter,
+  music: MusicNavCharacter,
+  video: DroneNavCharacter,
+  drone: DroneNavCharacter,
+  blog: BlogNavCharacter,
+  projects: PhotoNavCharacter,
+} as const;
 
-  useEffect(() => {
-    startIdle({ withEntry: true });
-    setTarget(1);
-    const timer = window.setTimeout(() => {
-      setTarget(0);
-    }, 280);
+const labelMap: Record<Section, string> = {
+  photo: "Photo",
+  music: "Music",
+  video: "Video",
+  drone: "Drone",
+  blog: "Blog",
+  projects: "Projects",
+};
 
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [activeSection, setTarget, startIdle]);
+export default function CharacterRenderer({ section }: CharacterRendererProps) {
+  const pointerInsideRef = useRef(false);
+  const pointerClientX = useMotionValue(0);
+  const pointerClientY = useMotionValue(0);
+  const cameraX = useSpring(0, { stiffness: 90, damping: 20, mass: 0.9 });
+  const cameraY = useSpring(0, { stiffness: 90, damping: 20, mass: 0.9 });
+  const cameraNormX = useSpring(0, { stiffness: 80, damping: 20, mass: 1 });
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (hoverActive) {
-      setTarget(1);
-      return;
-    }
+  const Character = useMemo(() => characterMap[section], [section]);
+  const label = labelMap[section];
 
-    if (currentCharacterState === "celebrating" || currentCharacterState === "reacting") {
-      setTarget(1);
-      const timer = window.setTimeout(() => {
-        setTarget(0);
-      }, currentCharacterState === "celebrating" ? 900 : 620);
-
-      return () => {
-        window.clearTimeout(timer);
-      };
-    }
-
-    if (currentCharacterState === "sleepy") {
-      setTarget(0.08);
-      return;
-    }
-
-    if (currentCharacterState === "thinking") {
-      setTarget(0.25);
-      return;
-    }
-
-    if (currentCharacterState === "curious" || currentCharacterState === "focused" || currentCharacterState === "listening") {
-      setTarget(0.45);
-      return;
-    }
-
-    setTarget(0.18);
-  }, [currentCharacterState, hoverActive, setTarget]);
-
-  const assets = CHARACTER_ASSETS[activeSection];
-  const stateIntensity =
-    currentCharacterState === "celebrating"
-      ? 1.28
-      : currentCharacterState === "reacting"
-        ? 1.08
-        : currentCharacterState === "focused"
-          ? 0.75
-          : currentCharacterState === "listening"
-            ? 0.7
-            : currentCharacterState === "thinking"
-              ? 0.55
-              : currentCharacterState === "sleepy"
-                ? 0.32
-                : 0.62;
-  const actionOpacity = clamp((progress - 0.2) / 0.8);
-  const idleFloatY = Math.sin(idleElapsedMs * 0.0018) * 7 * stateIntensity;
-  const idleRotate = Math.sin(idleElapsedMs * 0.001) * (1.2 * stateIntensity);
-  const parallaxX = mouseNorm.x * MOUSE_RANGE * stateIntensity;
-  const parallaxY = mouseNorm.y * (MOUSE_RANGE * 0.66) * stateIntensity;
-
-  const frameTransform = useMemo(
-    () => `translate3d(${parallaxX.toFixed(2)}px, ${(idleFloatY + parallaxY).toFixed(2)}px, 0) rotate(${idleRotate.toFixed(2)}deg)`,
-    [idleFloatY, idleRotate, parallaxX, parallaxY],
+  const setCameraBias = useCallback(
+    (x: number, y: number) => {
+      cameraX.set(x * 12);
+      cameraY.set(y * 12);
+      cameraNormX.set(Math.max(-1, Math.min(1, x)));
+    },
+    [cameraNormX, cameraX, cameraY],
   );
 
   return (
     <div
       className="relative h-full w-full"
-      onMouseMove={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const x = (event.clientX - rect.left) / rect.width;
-        const y = (event.clientY - rect.top) / rect.height;
-        setMouseNorm({ x: (x - 0.5) * 2, y: (y - 0.5) * 2 });
+      onPointerMove={(event) => {
+        pointerInsideRef.current = true;
+        pointerClientX.set(event.clientX);
+        pointerClientY.set(event.clientY);
       }}
-      onMouseLeave={() => setMouseNorm({ x: 0, y: 0 })}
+      onPointerEnter={(event) => {
+        pointerInsideRef.current = true;
+        pointerClientX.set(event.clientX);
+        pointerClientY.set(event.clientY);
+      }}
+      onPointerLeave={() => {
+        pointerInsideRef.current = false;
+        setHoveredLabel(null);
+        cameraX.set(0);
+        cameraY.set(0);
+        cameraNormX.set(0);
+      }}
     >
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="wait">
         <motion.div
-          key={activeSection}
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: -10 }}
-          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0"
+          key={section}
+          className="absolute inset-0 flex items-center justify-center"
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 1.03, opacity: 0 }}
+          transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
+          style={{ willChange: "transform, opacity" }}
         >
-          <div
-            className="absolute inset-0"
-            style={{
-              transform: frameTransform,
-              transformStyle: "preserve-3d",
-              willChange: "transform",
-            }}
-          >
-            <div className="absolute inset-[9%]">
-              <div className="relative h-full w-full">
-                <div className="absolute inset-0" style={{ opacity: 1 - actionOpacity }}>
-                  <Image src={assets.idleSrc} alt={assets.alt} fill className="object-contain" priority unoptimized />
-                </div>
-                <div className="absolute inset-0" style={{ opacity: actionOpacity }}>
-                  <Image src={assets.actionSrc} alt="" aria-hidden="true" fill className="object-contain" unoptimized />
-                </div>
-              </div>
-            </div>
-          </div>
+          <Character
+            label={label}
+            index={0}
+            total={1}
+            idleDelay={0.25}
+            hoveredLabel={hoveredLabel}
+            activeLabel={label}
+            selectedLabel={label}
+            pointerInsideRef={pointerInsideRef}
+            pointerClientX={pointerClientX}
+            pointerClientY={pointerClientY}
+            cameraX={cameraX}
+            cameraY={cameraY}
+            cameraNormX={cameraNormX}
+            onScheduleHover={setHoveredLabel}
+            onClearHover={() => setHoveredLabel(null)}
+            onSetCameraBias={setCameraBias}
+            onSelect={() => undefined}
+          />
         </motion.div>
       </AnimatePresence>
     </div>
