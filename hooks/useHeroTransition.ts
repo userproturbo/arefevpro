@@ -6,9 +6,9 @@ import type { NavigationCharacter } from "@/lib/characterNavigation";
 import { useNavigation } from "@/store/navigationStore";
 import { AudioManager } from "@/engine/AudioManager";
 
-const CHARACTER_ENTRY_DURATION_S = 0.6;
-const BACKGROUND_ENTRY_DURATION_S = 0.45;
-const BACKGROUND_DELAY_S = 0.15;
+const CHARACTER_ENTRY_DURATION_S = 0;
+const BACKGROUND_ENTRY_DURATION_S = 0;
+const BACKGROUND_DELAY_S = 0;
 
 type UseHeroTransitionResult = {
   shouldAnimate: boolean;
@@ -45,10 +45,10 @@ export default function useHeroTransition(sectionName: NavigationCharacter, isAc
   return useMemo(
     () => ({
       shouldAnimate,
-      initialState: shouldAnimate ? { scale: 1.25, opacity: 0, filter: "blur(10px)" } : false,
-      animateState: { scale: 1, opacity: 1, filter: "blur(0px)" },
+      initialState: false,
+      animateState: { scale: 1, opacity: 1, filter: "none" },
       characterTransition: { duration: CHARACTER_ENTRY_DURATION_S, ease: [0.22, 1, 0.36, 1] },
-      backgroundInitialState: shouldAnimate ? { opacity: 0 } : false,
+      backgroundInitialState: false,
       backgroundAnimateState: { opacity: 1 },
       backgroundTransition: {
         duration: BACKGROUND_ENTRY_DURATION_S,

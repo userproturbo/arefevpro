@@ -12,8 +12,6 @@ export default function DroneNavCharacter(props: LayeredNavCharacterBaseProps) {
       actionSrc="/img/Drone-action.png"
       audioSrc="/audio/Drone.mp3"
       audioVolume={0.6}
-      soundThreshold={0.9}
-      resetThreshold={0.25}
       motionConfig={{
         intentDelayMs: 140,
         enterSpeed: 0.11,
