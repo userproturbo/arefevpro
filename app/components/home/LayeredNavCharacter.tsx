@@ -57,7 +57,7 @@ type LayeredNavCharacterProps = LayeredNavCharacterBaseProps & {
 const SECTION_IMAGES = {
   photo: { idle: "/img/Photo-idle.png", action: "/img/Photo-action.png" },
   music: { idle: "/img/Music-idle.png", action: "/img/Music-action.png" },
-  video: { idle: "/img/video-idle.png", action: "/img/video-action.png" },
+  video: { idle: "/img/Drone-idle.png", action: "/img/Drone-action.png" },
   blog: { idle: "/img/Blog-idle.png", action: "/img/Blog-action.png" },
 } as const;
 
@@ -66,15 +66,14 @@ export default function LayeredNavCharacter(_props: LayeredNavCharacterProps = {
   const hover = useCharacterConsole((state) => state.hover);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
-  const imageSrc = section
-    ? (hover ? SECTION_IMAGES[section].action : SECTION_IMAGES[section].idle)
-    : "/img/Home.png";
-  const shadowOffsetX = (offset.x / 10) * 4;
-  const shadowOffsetY = 10 + (offset.y / 10) * 4;
-  const ambientShadow = `drop-shadow(${shadowOffsetX.toFixed(2)}px ${shadowOffsetY.toFixed(2)}px ${hover ? 40 : 20}px rgba(0,0,0,${hover ? 0.45 : 0.35}))`;
-  const glowShadow = hover
-    ? "0 0 60px rgba(255,255,255,0.12), 0 0 120px rgba(255,255,255,0.08)"
-    : "0 0 40px rgba(255,255,255,0.05), 0 0 80px rgba(255,255,255,0.03)";
+  const homeImageSrc = "/img/Home.png";
+  const idleImageSrc = section ? SECTION_IMAGES[section].idle : homeImageSrc;
+  const actionImageSrc = section ? SECTION_IMAGES[section].action : null;
+  const shadowOffsetX = (offset.x / 8) * 4;
+  const shadowOffsetY = 20 + (offset.y / 8) * 4;
+  const depthShadow = hover
+    ? `drop-shadow(${shadowOffsetX.toFixed(2)}px ${(shadowOffsetY + 10).toFixed(2)}px 60px rgba(0,0,0,0.45))`
+    : `drop-shadow(${shadowOffsetX.toFixed(2)}px ${shadowOffsetY.toFixed(2)}px 40px rgba(0,0,0,0.35))`;
 
   return (
     <motion.div
@@ -83,12 +82,12 @@ export default function LayeredNavCharacter(_props: LayeredNavCharacterProps = {
       transition={{ type: "spring", stiffness: 160, damping: 20, mass: 0.7 }}
       onMouseMove={(event) => {
         const bounds = event.currentTarget.getBoundingClientRect();
-        const normalizedX = (event.clientX - bounds.left) / bounds.width - 0.5;
-        const normalizedY = (event.clientY - bounds.top) / bounds.height - 0.5;
+        const normalizedX = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+        const normalizedY = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
 
         setOffset({
-          x: Math.max(-10, Math.min(10, normalizedX * 20)),
-          y: Math.max(-10, Math.min(10, normalizedY * 20)),
+          x: Math.max(-8, Math.min(8, normalizedX * 8)),
+          y: Math.max(-8, Math.min(8, normalizedY * 8)),
         });
       }}
       onMouseLeave={() => {
@@ -96,21 +95,9 @@ export default function LayeredNavCharacter(_props: LayeredNavCharacterProps = {
       }}
     >
       <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-[8%] rounded-[22px]"
-        animate={{ opacity: [0.9, 1, 0.9] }}
-        transition={{ duration: 5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-        style={{
-          boxShadow: glowShadow,
-          transition: "box-shadow 0.35s ease",
-          willChange: "opacity, box-shadow",
-        }}
-      />
-
-      <motion.div
         className="relative h-full w-full will-change-transform"
         animate={{
-          scale: [1, 1.015, 1],
+          scale: [1, 1.02, 1],
           y: [0, -4, 0],
         }}
         transition={{
@@ -119,19 +106,52 @@ export default function LayeredNavCharacter(_props: LayeredNavCharacterProps = {
           ease: "easeInOut",
         }}
         style={{
-          filter: ambientShadow,
+          filter: depthShadow,
           transition: "filter 0.35s ease",
           willChange: "transform, filter",
         }}
       >
-        <Image
-          src={imageSrc}
-          alt={section ? `${section} character` : "Home character"}
-          fill
-          priority
-          className="object-contain"
-          sizes="(max-width: 768px) 80vw, 360px"
-        />
+        <motion.div
+          className="relative h-full w-full"
+          animate={{ scale: hover ? 1.05 : 1 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          style={{ willChange: "transform" }}
+        >
+          <motion.div
+            className="absolute inset-0"
+            animate={{ opacity: hover && actionImageSrc ? 0 : 1 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            style={{ willChange: "opacity" }}
+          >
+            <Image
+              src={idleImageSrc}
+              alt={section ? `${section} character` : "Home character"}
+              fill
+              priority
+              className="object-contain"
+              sizes="(max-width: 768px) 80vw, 360px"
+            />
+          </motion.div>
+
+          {actionImageSrc ? (
+            <motion.div
+              className="absolute inset-0"
+              animate={{ opacity: hover ? 1 : 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              style={{ willChange: "opacity" }}
+            >
+              <Image
+                src={actionImageSrc}
+                alt=""
+                aria-hidden="true"
+                fill
+                priority
+                className="object-contain"
+                sizes="(max-width: 768px) 80vw, 360px"
+              />
+            </motion.div>
+          ) : null}
+        </motion.div>
       </motion.div>
     </motion.div>
   );
