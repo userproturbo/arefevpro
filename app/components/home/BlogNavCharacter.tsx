@@ -16,8 +16,6 @@ export default function BlogNavCharacter(props: LayeredNavCharacterBaseProps) {
       actionSrc="/img/Blog-action.png"
       audioSrc="/audio/drawing.mp3"
       audioVolume={0.55}
-      soundThreshold={0.9}
-      resetThreshold={0.22}
       motionConfig={{
         intentDelayMs: 180,
         enterSpeed: 0.085,

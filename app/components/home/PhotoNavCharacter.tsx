@@ -14,8 +14,6 @@ export default function PhotoNavCharacter(props: LayeredNavCharacterBaseProps) {
       actionSrc="/img/Photo-action.png"
       audioSrc="/audio/camera.mp3"
       audioVolume={0.7}
-      soundThreshold={0.95}
-      resetThreshold={0.2}
       motionConfig={{
         intentDelayMs: 140,
         enterSpeed: 0.12,

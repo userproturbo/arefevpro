@@ -20,7 +20,7 @@ const TICKER_TEXT_BY_MODE: Record<StationMode, string> = {
 };
 
 export default function ModeSelect({ mode, setMode }: ModeSelectProps) {
-  const playHoverSound = useHoverSound({
+  const hoverSound = useHoverSound({
     src: "/audio/preloader-2s-001.mp3",
     volume: 0.3,
   });
@@ -44,7 +44,7 @@ export default function ModeSelect({ mode, setMode }: ModeSelectProps) {
                 key={scene.id}
                 type="button"
                 onClick={() => setMode(scene.id)}
-                onPointerEnter={() => playHoverSound()}
+                onPointerEnter={() => hoverSound.play()}
                 aria-pressed={isActive}
                 data-state={isActive ? "active" : "inactive"}
                 className="station-mode-btn min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[10px] uppercase tracking-[0.04em] whitespace-nowrap text-white/45 shadow-none transition-colors duration-200 focus:outline-none hover:border-white/20 hover:text-white/80 data-[state=active]:border-white/20 data-[state=active]:text-white/80 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:!bg-transparent data-[state=active]:!shadow-none data-[state=active]:after:content-none md:flex-none md:px-3 md:py-1 md:text-xs md:tracking-[0.12em]"

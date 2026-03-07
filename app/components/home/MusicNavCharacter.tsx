@@ -22,8 +22,6 @@ export default function MusicNavCharacter(props: LayeredNavCharacterBaseProps) {
       actionSrc="/img/Music-action.png"
       audioSrc="/audio/Music.mp3"
       audioVolume={0.62}
-      soundThreshold={0.9}
-      resetThreshold={0.25}
       motionConfig={{
         intentDelayMs: 120,
         enterSpeed: 0.115,

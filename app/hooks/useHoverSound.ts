@@ -18,11 +18,13 @@ export function useHoverSound({ src, volume = 0.3 }: HoverSoundOptions) {
     audioRef.current = audio;
 
     return () => {
+      audio.pause();
+      audio.currentTime = 0;
       audioRef.current = null;
     };
   }, [src, volume]);
 
-  return useCallback(() => {
+  const play = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
     if (typeof window !== "undefined") {
@@ -42,4 +44,28 @@ export function useHoverSound({ src, volume = 0.3 }: HoverSoundOptions) {
       // Ignore playback errors to keep hover interactions smooth.
     }
   }, []);
+
+  const stop = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.pause();
+  }, []);
+
+  const reset = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.currentTime = 0;
+  }, []);
+
+  const stopAndReset = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.pause();
+    audio.currentTime = 0;
+  }, []);
+
+  return { play, stop, reset, stopAndReset };
 }
