@@ -11,7 +11,7 @@ export default function HeroNavigation() {
   const [mode, setMode] = useState<Mode>("hero");
 
   return (
-    <main className="relative h-screen min-h-screen overflow-hidden bg-black">
+    <main className="relative h-screen w-full overflow-hidden bg-black">
       <div className="relative flex h-full items-center justify-center overflow-hidden px-6">
         <AnimatePresence mode="wait" initial={false}>
           {mode === "hero" ? (

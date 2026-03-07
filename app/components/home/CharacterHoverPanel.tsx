@@ -56,7 +56,7 @@ export default function CharacterHoverPanel({ activeCharacter }: Props) {
   const isDefault = panelKey === "default";
 
   return (
-    <div className="mt-10 w-full">
+    <div className="mt-8 w-full">
       <section className="grid min-h-[220px] w-full grid-cols-1 p-6" aria-live="polite">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

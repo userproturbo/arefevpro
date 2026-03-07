@@ -616,7 +616,7 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
   return (
     <motion.div
       ref={stageRef}
-      className={`relative flex h-full w-full items-start justify-center overflow-hidden px-[clamp(12px,2vw,40px)] pt-[clamp(40px,8vh,100px)] ${interactionLocked ? "pointer-events-none" : ""}`}
+      className={`relative flex h-screen w-full items-start justify-center overflow-hidden px-[clamp(12px,2vw,40px)] pt-[clamp(40px,8vh,100px)] ${interactionLocked ? "pointer-events-none" : ""}`}
       exit="hidden"
       animate={{ opacity: exitActive ? 0.72 : 1 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
@@ -661,8 +661,9 @@ export default function NavImages({ onReturnHome }: NavImagesProps) {
         animate={{ opacity: exitActive ? 0.4 : 0 }}
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       />
+      <div className="pointer-events-none absolute -bottom-[120px] left-1/2 z-0 h-[280px] w-[min(92vw,960px)] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(255,233,163,0.26)_0%,rgba(255,210,104,0.14)_35%,rgba(0,0,0,0)_72%)] blur-2xl" />
       <motion.div
-        className="relative mx-auto flex w-full max-w-[1400px] flex-col items-center"
+        className="relative z-10 mx-auto flex w-full max-w-[1400px] flex-col items-center"
         animate={{ scale: exitActive ? 1.02 : interactionLocked ? 1.03 : 1 }}
         transition={{ duration: exitActive ? 0.25 : 0.7, ease: [0.22, 1, 0.36, 1] }}
         style={{ x: stageDriftX, y: stageDriftY, willChange: "transform" }}

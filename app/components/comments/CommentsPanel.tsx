@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../providers";
+import { emitCharacterAIReaction } from "@/engine/characterAI/reactions";
 import CommentLikeButton from "./CommentLikeButton";
 
 type CommentUser = { id: number; nickname: string | null } | null;
@@ -262,6 +263,7 @@ export default function CommentsPanel({
           };
         });
         setText("");
+        emitCharacterAIReaction("comment_posted", { entity });
       } catch (error) {
         console.error(error);
         alert("Не удалось отправить комментарий");
@@ -320,6 +322,7 @@ export default function CommentsPanel({
 
         setReplyText("");
         setReplyTo(null);
+        emitCharacterAIReaction("comment_posted", { entity, parentId });
       } catch (error) {
         console.error(error);
         alert("Не удалось отправить ответ");

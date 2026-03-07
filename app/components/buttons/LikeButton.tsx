@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "../../providers";
 import { motion } from "framer-motion";
+import { emitCharacterAIReaction } from "@/engine/characterAI/reactions";
 
 type Props = {
   postSlug: string;
@@ -34,6 +35,9 @@ export default function LikeButton({
         const data = await res.json();
         setLiked(data.liked);
         setCount(data.likesCount);
+        if (data.liked) {
+          emitCharacterAIReaction("like", { source: "post" });
+        }
       } catch (error) {
         console.error(error);
         alert("Не удалось обновить лайк");

@@ -1,5 +1,5 @@
-import HeroNavigation from "./components/home/HeroNavigation";
+import CharacterInterfaceLayout from "./components/interface/CharacterInterfaceLayout";
 
 export default function HomePage() {
-  return <HeroNavigation />;
+  return <CharacterInterfaceLayout />;
 }

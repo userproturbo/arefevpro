@@ -3,11 +3,12 @@ import Providers from "./providers";
 import Script from "next/script";
 import SiteChrome from "./components/navigation/SiteChrome";
 import ParticleTransition from "./components/home/ParticleTransition";
+import CharacterAIProvider from "@/engine/characterAI/CharacterAIProvider";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="relative min-h-screen bg-black text-white antialiased">
+      <body className="relative min-h-screen overflow-hidden bg-black text-white antialiased">
         <Script
           id="clear-dev-overlay"
           strategy="beforeInteractive"
@@ -16,8 +17,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <Providers>
-          <SiteChrome>{children}</SiteChrome>
-          <ParticleTransition />
+          <CharacterAIProvider>
+            <SiteChrome>{children}</SiteChrome>
+            <ParticleTransition />
+          </CharacterAIProvider>
         </Providers>
       </body>
     </html>

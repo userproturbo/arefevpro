@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/app/providers";
+import { emitCharacterAIReaction } from "@/engine/characterAI/reactions";
 
 type Props = {
   videoId: number;
@@ -40,6 +41,9 @@ export default function VideoLikeButton({
         };
         if (typeof data.isLikedByMe === "boolean") setLiked(data.isLikedByMe);
         if (typeof data.likesCount === "number") setCount(data.likesCount);
+        if (data.isLikedByMe === true) {
+          emitCharacterAIReaction("like", { source: "video", videoId });
+        }
       } catch (error) {
         console.error(error);
         alert("Не удалось обновить лайк");

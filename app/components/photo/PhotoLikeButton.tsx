@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/app/providers";
+import { emitCharacterAIReaction } from "@/engine/characterAI/reactions";
 import { usePhotoLikesStore } from "./photoLikesStore";
 
 type Props = {
@@ -78,6 +79,9 @@ export default function PhotoLikeButton({
           typeof data.liked === "boolean" ? data.liked : undefined,
           typeof data.likesCount === "number" ? data.likesCount : undefined
         );
+        if (data.liked === true) {
+          emitCharacterAIReaction("like", { source: "photo", photoId });
+        }
       } catch (error) {
         console.error(error);
         rollback(photoId, snapshot);

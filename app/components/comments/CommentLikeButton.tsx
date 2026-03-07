@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useAuth } from "../../providers";
+import { emitCharacterAIReaction } from "@/engine/characterAI/reactions";
 
 type Props = {
   commentId: number;
@@ -83,6 +84,9 @@ export default function CommentLikeButton({
           if (typeof likedByMe === "boolean") setLiked(likedByMe);
           if (typeof likeCount === "number") setCount(likeCount);
         });
+        if (likedByMe === true) {
+          emitCharacterAIReaction("like", { source: "comment", commentId });
+        }
       }
     } catch {
       rollback();

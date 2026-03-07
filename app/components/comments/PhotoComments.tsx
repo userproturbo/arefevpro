@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/providers";
+import { emitCharacterAIReaction } from "@/engine/characterAI/reactions";
 
 type CommentUser = { id: number; nickname: string | null } | null;
 
@@ -102,6 +103,7 @@ export default function PhotoComments({ photoId }: Props) {
         const data = (await res.json()) as { comment?: CommentItem };
         if (data.comment) {
           setComments((prev) => [data.comment as CommentItem, ...prev]);
+          emitCharacterAIReaction("comment_posted", { entity: "photo", photoId });
         }
         setText("");
       } catch (error) {
@@ -187,6 +189,7 @@ export default function PhotoComments({ photoId }: Props) {
                 : comment
             )
           );
+          emitCharacterAIReaction("comment_posted", { entity: "photo", photoId, parentId });
         }
         setReplyText("");
         setReplyTo(null);

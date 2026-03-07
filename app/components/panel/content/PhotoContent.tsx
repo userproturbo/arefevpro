@@ -29,7 +29,7 @@ export default function PhotoContent({ album, showHeader = true }: PhotoContentP
         {album.images.map((image) => (
           <div
             key={`${album.id}-${image.src}`}
-            className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] shadow-inner shadow-black/40"
+            className="overflow-hidden rounded-lg"
             style={{ aspectRatio: "4 / 3" }}
           >
             <img
