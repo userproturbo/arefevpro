@@ -8,6 +8,7 @@ import CharacterWindow from "./CharacterWindow";
 import type { Section } from "@/store/uiStore";
 import { useHoverSound } from "@/app/hooks/useHoverSound";
 import { useCharacterConsole, type CharacterConsoleSection } from "@/store/characterConsoleStore";
+import { characterScenes } from "@/config/characterScenes";
 
 type CharacterPanelProps = {
   activeSection: Section | null;
@@ -26,10 +27,10 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
   const hover = useCharacterConsole((state) => state.hover);
   const setSection = useCharacterConsole((state) => state.setSection);
   const setHover = useCharacterConsole((state) => state.setHover);
-  const photoSound = useHoverSound({ src: "/audio/camera.mp3", volume: 0.35 });
-  const musicSound = useHoverSound({ src: "/audio/Music.mp3", volume: 0.25 });
-  const videoSound = useHoverSound({ src: "/audio/Phew-action.mp3", volume: 0.25 });
-  const blogSound = useHoverSound({ src: "/audio/drawing.mp3", volume: 0.3 });
+  const photoSound = useHoverSound({ src: characterScenes.photo.sound, volume: characterScenes.photo.soundVolume });
+  const musicSound = useHoverSound({ src: characterScenes.music.sound, volume: characterScenes.music.soundVolume });
+  const videoSound = useHoverSound({ src: characterScenes.video.sound, volume: characterScenes.video.soundVolume });
+  const blogSound = useHoverSound({ src: characterScenes.blog.sound, volume: characterScenes.blog.soundVolume });
 
   const title = section ? TITLES[section] : "Home";
 
