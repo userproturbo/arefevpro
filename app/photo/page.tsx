@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import PhotoSceneHero from "@/app/components/photo/PhotoSceneHero";
 import SectionContentReveal from "@/app/components/section/SectionContentReveal";
+import PhotoAlbumsView from "@/app/components/photo/PhotoAlbumsView";
 import { prisma } from "@/lib/prisma";
 import { normalizeNavigationCharacter } from "@/lib/characterNavigation";
 import {
@@ -108,38 +108,7 @@ export default async function PhotoPage({
                     No albums yet.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    {albums.map((album) => (
-                      <Link
-                        key={album.id}
-                        href={`/photo/${encodeURIComponent(album.slug)}`}
-                        className="group overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] transition duration-200 hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.03))]"
-                      >
-                        {album.coverImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={album.coverImage}
-                            alt={album.title}
-                            className="aspect-[4/3] h-auto w-full object-cover"
-                          />
-                        ) : (
-                          <div className="aspect-[4/3] w-full bg-white/5" aria-hidden="true" />
-                        )}
-
-                        <div className="px-4 py-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <h2 className="text-base font-medium text-white">{album.title}</h2>
-                            <span className="text-[10px] uppercase tracking-[0.24em] text-[#d8b17b]/70">Open</span>
-                          </div>
-                          {album.description ? (
-                            <p className="mt-2 line-clamp-3 text-sm leading-6 text-white/58">{album.description}</p>
-                          ) : (
-                            <p className="mt-2 text-sm leading-6 text-white/38">No description yet.</p>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                  <PhotoAlbumsView albums={albums} />
                 )}
               </div>
             </div>
