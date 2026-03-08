@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -9,8 +8,8 @@ import {
   isDatabaseUnavailableError,
   isExpectedDevDatabaseError,
 } from "@/lib/db";
-import PhotoTileLikeButton from "@/app/components/photo/PhotoTileLikeButton";
 import PhotoLikesHydrator from "@/app/components/photo/PhotoLikesHydrator";
+import PhotoSectionShell from "@/app/components/photo/PhotoSectionShell";
 
 type Album = {
   id: number;
@@ -30,10 +29,18 @@ type Album = {
 
 export default async function PhotoAlbumPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ photo?: string | string[] }>;
 }) {
   const { slug } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const rawPhoto = Array.isArray(resolvedSearchParams?.photo)
+    ? resolvedSearchParams?.photo[0]
+    : resolvedSearchParams?.photo;
+  const parsedPhotoId = rawPhoto ? Number(rawPhoto) : null;
+  const initialPhotoId = Number.isFinite(parsedPhotoId) && (parsedPhotoId as number) > 0 ? (parsedPhotoId as number) : null;
   const normalizedSlug = slug.trim();
   if (!normalizedSlug) {
     notFound();
@@ -124,6 +131,11 @@ export default async function PhotoAlbumPage({
     notFound();
   }
 
+  const safeInitialPhotoId =
+    initialPhotoId && album.photos.some((photo) => photo.id === initialPhotoId)
+      ? initialPhotoId
+      : null;
+
   return (
     <div className="h-full w-full">
       <PhotoLikesHydrator
@@ -138,31 +150,14 @@ export default async function PhotoAlbumPage({
           Фотографии будут добавлены позже
         </div>
       ) : (
-        <div className="grid w-full grid-cols-2 gap-[2px] md:grid-cols-3 xl:grid-cols-4 no-scrollbar">
-          {album.photos.map((photo) => (
-            <div key={photo.id} className="group relative overflow-hidden">
-              <Link
-                href={`/photo/${encodeURIComponent(album.slug)}/${photo.id}`}
-                scroll={false}
-                className="block"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.url}
-                  alt=""
-                  loading="lazy"
-                  className="aspect-square h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.02] group-hover:brightness-110"
-                />
-              </Link>
-              <PhotoTileLikeButton
-                photoId={photo.id}
-                initialCount={photo.likesCount}
-                initialLiked={photo.likedByMe}
-                className="absolute bottom-3 left-3 z-10"
-              />
-            </div>
-          ))}
-        </div>
+        <PhotoSectionShell
+          key={`${album.slug}:${safeInitialPhotoId ?? "grid"}`}
+          slug={album.slug}
+          title={album.title}
+          photos={album.photos}
+          initialPhotoId={safeInitialPhotoId}
+          syncQueryParam
+        />
       )}
     </div>
   );
