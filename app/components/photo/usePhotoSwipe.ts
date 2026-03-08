@@ -8,9 +8,11 @@ const DOUBLE_TAP_MS = 280;
 type UsePhotoSwipeOptions = {
   onSwipeNext: () => void;
   onSwipePrev: () => void;
+  onSwipeUp?: () => void;
+  onSwipeDown?: () => void;
 };
 
-export function usePhotoSwipe({ onSwipeNext, onSwipePrev }: UsePhotoSwipeOptions) {
+export function usePhotoSwipe({ onSwipeNext, onSwipePrev, onSwipeUp, onSwipeDown }: UsePhotoSwipeOptions) {
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [pinchStart, setPinchStart] = useState<{ distance: number; zoom: number } | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -61,9 +63,16 @@ export function usePhotoSwipe({ onSwipeNext, onSwipePrev }: UsePhotoSwipeOptions
     const dy = touch.clientY - touchStart.y;
     setTouchStart(null);
 
-    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
-    if (dx < 0) onSwipeNext();
-    if (dx > 0) onSwipePrev();
+    if (Math.abs(dx) >= SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) onSwipeNext();
+      if (dx > 0) onSwipePrev();
+      return;
+    }
+
+    if (Math.abs(dy) >= SWIPE_THRESHOLD && Math.abs(dy) > Math.abs(dx)) {
+      if (dy < 0) onSwipeUp?.();
+      if (dy > 0) onSwipeDown?.();
+    }
   };
 
   const onDoubleTap = () => {

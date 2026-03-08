@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import PhotoViewer from "./PhotoViewer";
 import PhotoGrid from "./PhotoGrid";
-import PhotoViewerControls from "./PhotoViewerControls";
 import PhotoCommentsSheet from "./PhotoCommentsSheet";
 import { usePhotoViewer } from "./usePhotoViewer";
 
@@ -96,16 +95,24 @@ export default function PhotoSectionShell({
   const activePhoto = photos.find((photo) => photo.id === viewer.activePhotoId) ?? null;
 
   return (
-    <div ref={contentRef} className="w-full overflow-y-auto md:rounded-2xl md:border md:border-white/10 md:bg-white/[0.03] md:p-6">
-      <div className="px-4 pb-4 pt-4 md:px-0 md:pt-0">
-        {onBack ? (
-          <button type="button" onClick={onBack} className="text-xs uppercase tracking-[0.18em] text-[#ffb16e]">
-            ← Back
-          </button>
-        ) : null}
-        <h1 className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-white">{title}</h1>
-      </div>
-
+    <div
+      ref={contentRef}
+      className={
+        activePhoto
+          ? "w-full overflow-y-auto"
+          : "w-full overflow-y-auto md:rounded-2xl md:border md:border-white/10 md:bg-white/[0.03] md:p-6"
+      }
+    >
+      {!activePhoto ? (
+        <div className="px-4 pb-4 pt-4 md:px-0 md:pt-0">
+          {onBack ? (
+            <button type="button" onClick={onBack} className="text-xs uppercase tracking-[0.18em] text-[#ffb16e]">
+              ← Back
+            </button>
+          ) : null}
+          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-white">{title}</h1>
+        </div>
+      ) : null}
       <AnimatePresence mode="wait">
         {activePhoto ? (
           <motion.div
@@ -114,17 +121,9 @@ export default function PhotoSectionShell({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.99 }}
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="pb-4 md:pb-0"
+            className="relative h-full min-h-[56vh]"
           >
-            <button
-              type="button"
-              onClick={() => viewer.closePhoto()}
-              className="mb-3 px-4 text-xs uppercase tracking-[0.18em] text-white/65 hover:text-white md:px-0"
-            >
-              ← Back to grid
-            </button>
-
-            <div className="h-[56vh] min-h-[300px] w-full border-y border-white/10 bg-black/35 md:h-[64vh] md:rounded-xl md:border">
+            <div className="h-[72vh] min-h-[360px] w-full bg-black/35">
               <PhotoViewer
                 slug={slug}
                 photos={photos.map((photo) => ({ id: photo.id, url: photo.url }))}
@@ -133,20 +132,12 @@ export default function PhotoSectionShell({
                 likedByMe={activePhoto.likedByMe}
                 onClose={() => viewer.closePhoto()}
                 onNavigate={(photoId) => viewer.openPhoto(photoId)}
-                showOverlayLike={false}
+                onOpenComments={() => viewer.setCommentsOpen(true)}
+                showOverlayLike
+                showEdgeNav
+                showCloseButton
               />
             </div>
-
-            <PhotoViewerControls
-              photoId={activePhoto.id}
-              likesCount={activePhoto.likesCount}
-              likedByMe={activePhoto.likedByMe}
-              hasPrev={Boolean(viewer.prevPhotoId)}
-              hasNext={Boolean(viewer.nextPhotoId)}
-              onPrev={viewer.openPrev}
-              onNext={viewer.openNext}
-              onToggleComments={() => viewer.setCommentsOpen((prev) => !prev)}
-            />
 
             <PhotoCommentsSheet
               open={viewer.commentsOpen}

@@ -21,7 +21,10 @@ type Props = {
   likedByMe: boolean;
   onClose?: () => void;
   onNavigate?: (photoId: number) => void;
+  onOpenComments?: () => void;
   showOverlayLike?: boolean;
+  showEdgeNav?: boolean;
+  showCloseButton?: boolean;
 };
 
 export default function PhotoViewer({
@@ -32,7 +35,10 @@ export default function PhotoViewer({
   likedByMe,
   onClose,
   onNavigate,
+  onOpenComments,
   showOverlayLike = true,
+  showEdgeNav = false,
+  showCloseButton = false,
 }: Props) {
   const router = useRouter();
   const encodedSlug = encodeURIComponent(slug);
@@ -119,7 +125,12 @@ export default function PhotoViewer({
     router.replace(`/photo/${encodedSlug}/${nextPhoto.id}`, { scroll: false });
   };
 
-  const swipe = usePhotoSwipe({ onSwipeNext: openNext, onSwipePrev: openPrev });
+  const swipe = usePhotoSwipe({
+    onSwipeNext: openNext,
+    onSwipePrev: openPrev,
+    onSwipeUp: () => onOpenComments?.(),
+    onSwipeDown: () => onClose?.(),
+  });
 
   if (!activePhoto) {
     return (
@@ -156,13 +167,58 @@ export default function PhotoViewer({
           />
         </div>
         {showOverlayLike ? (
-          <PhotoLikeButton
-            photoId={activeId}
-            initialCount={likesCount}
-            initialLiked={likedByMe}
-            variant="overlay"
-            className="absolute bottom-3 left-3 z-10 hidden sm:flex"
-          />
+          <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2">
+            <PhotoLikeButton
+              photoId={activeId}
+              initialCount={likesCount}
+              initialLiked={likedByMe}
+              variant="overlay"
+              className="!static"
+            />
+            {onOpenComments ? (
+              <button
+                type="button"
+                onClick={onOpenComments}
+                className="rounded-full border border-white/20 bg-black/65 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm hover:bg-black/75"
+              >
+                💬
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showEdgeNav ? (
+          <>
+            <button
+              type="button"
+              onClick={openPrev}
+              disabled={!prevPhoto}
+              aria-label="Previous photo"
+              className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 px-3 py-2 text-white/90 backdrop-blur-sm hover:bg-black/75 disabled:opacity-35"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              onClick={openNext}
+              disabled={!nextPhoto}
+              aria-label="Next photo"
+              className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 px-3 py-2 text-white/90 backdrop-blur-sm hover:bg-black/75 disabled:opacity-35"
+            >
+              →
+            </button>
+          </>
+        ) : null}
+
+        {showCloseButton && onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close viewer"
+            className="absolute left-3 top-3 z-20 hidden rounded-full border border-white/20 bg-black/60 px-3 py-2 text-white/90 backdrop-blur-sm hover:bg-black/75 md:inline-flex"
+          >
+            ←
+          </button>
         ) : null}
       </motion.div>
     </div>
