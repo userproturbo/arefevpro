@@ -97,7 +97,7 @@ export default function UploadPhotoForm({ albumSlug }: Props) {
       ) : null}
 
       {error ? (
-        <div className="rounded-xl border border-[#275636] bg-[#09120d] px-3 py-2 text-sm text-[#8ec99c]">
+        <div className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white/85">
           {error}
         </div>
       ) : null}

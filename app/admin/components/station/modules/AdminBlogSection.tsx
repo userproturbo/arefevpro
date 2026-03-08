@@ -5,6 +5,13 @@ import { logServerError } from "@/lib/db";
 import BlogEditor from "@/app/admin/blog/BlogEditor";
 import DeletePostButton from "@/app/admin/posts/DeletePostButton";
 import StatusBadge from "@/app/admin/components/StatusBadge";
+import {
+  AdminCard,
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminTable,
+  AdminToolbar,
+} from "@/app/admin/components/foundation";
 
 type Props = {
   createMode: boolean;
@@ -69,32 +76,37 @@ export default async function AdminBlogSection({ createMode, editId }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-[#9ef6b2]">Blog</h2>
-          <p className="text-sm text-[#8bc99b]">Manage blog posts inline in station context.</p>
+    <div className="space-y-5">
+      <AdminPageHeader
+        eyebrow="Editor"
+        title="Blog Management"
+        description="Create, edit, publish and remove blog posts without changing API contracts."
+      />
+
+      <AdminToolbar>
+        <div className="text-xs uppercase tracking-[0.16em] text-white/55">
+          Entries: {posts.length}
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/admin/blog?create=1"
-            className="rounded-md border border-[#3a7352] bg-[#0e1b14] px-3 py-1.5 text-sm text-[#c4fcd2]"
+            className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/15"
           >
             Create new
           </Link>
           {(createMode || editId !== null) && (
             <Link
               href="/admin/blog"
-              className="rounded-md border border-[#274a35] bg-[#08120d] px-3 py-1.5 text-sm text-[#86b896]"
+              className="rounded-lg border border-white/15 bg-white/[0.03] px-3 py-1.5 text-sm text-white/75 hover:bg-white/[0.08] hover:text-white"
             >
               Close editor
             </Link>
           )}
         </div>
-      </div>
+      </AdminToolbar>
 
       {(createMode || editId !== null) && (
-        <div className="rounded-md border border-[#275636] bg-[#09120d] p-4">
+        <AdminCard>
           {createMode ? (
             <BlogEditor mode="new" returnTo="/admin/blog" inlineMode />
           ) : postToEdit ? (
@@ -112,59 +124,55 @@ export default async function AdminBlogSection({ createMode, editId }: Props) {
               }}
             />
           ) : (
-            <div className="text-sm text-[#8ec99c]">Selected post was not found.</div>
+            <AdminEmptyState
+              title="Selected post was not found"
+              description="Try returning to the list and opening another entry."
+            />
           )}
-        </div>
+        </AdminCard>
       )}
 
       {posts.length === 0 ? (
-        <div className="rounded-md border border-[#275636] bg-[#09120d] p-3 text-sm text-[#8ec99c]">
-          No blog posts yet.
-        </div>
+        <AdminEmptyState title="No blog posts yet" description="Create the first post to populate this section." />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-y-2 text-sm">
-            <thead>
-              <tr className="text-[#8ec99c]">
-                <th className="px-3 py-2 text-left font-medium">Title</th>
-                <th className="px-3 py-2 text-left font-medium">Slug</th>
-                <th className="px-3 py-2 text-left font-medium">Status</th>
-                <th className="px-3 py-2 text-left font-medium">Created</th>
-                <th className="px-3 py-2 text-right font-medium">Actions</th>
+        <AdminTable>
+          <thead className="border-b border-white/10 bg-white/[0.02]">
+            <tr className="text-white/65">
+              <th className="px-4 py-3 text-left font-medium">Title</th>
+              <th className="px-4 py-3 text-left font-medium">Slug</th>
+              <th className="px-4 py-3 text-left font-medium">Status</th>
+              <th className="px-4 py-3 text-left font-medium">Created</th>
+              <th className="px-4 py-3 text-right font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {posts.map((post) => (
+              <tr key={post.id} className="border-t border-white/10">
+                <td className="px-4 py-3">
+                  <div className="font-medium text-white">{post.title}</div>
+                </td>
+                <td className="px-4 py-3 text-white/65">{post.slug}</td>
+                <td className="px-4 py-3">
+                  <StatusBadge published={post.isPublished} />
+                </td>
+                <td className="px-4 py-3 text-white/65">
+                  {new Date(post.createdAt).toLocaleDateString("ru-RU")}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-3">
+                    <Link
+                      href={`/admin/blog?edit=${post.id}`}
+                      className="text-sm text-white/80 underline underline-offset-4 hover:text-white"
+                    >
+                      Edit
+                    </Link>
+                    <DeletePostButton postId={post.id} />
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {posts.map((post) => (
-                <tr
-                  key={post.id}
-                  className="rounded-md border border-[#275636] bg-[#09120d]"
-                >
-                  <td className="px-3 py-3">
-                    <div className="font-medium text-[#b4fdc3]">{post.title}</div>
-                  </td>
-                  <td className="px-3 py-3 text-[#8ec99c]">{post.slug}</td>
-                  <td className="px-3 py-3">
-                    <StatusBadge published={post.isPublished} />
-                  </td>
-                  <td className="px-3 py-3 text-[#8ec99c]">
-                    {new Date(post.createdAt).toLocaleDateString("ru-RU")}
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center justify-end gap-3">
-                      <Link
-                        href={`/admin/blog?edit=${post.id}`}
-                        className="text-sm text-[#b4fdc3] underline underline-offset-4"
-                      >
-                        Edit
-                      </Link>
-                      <DeletePostButton postId={post.id} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </AdminTable>
       )}
     </div>
   );

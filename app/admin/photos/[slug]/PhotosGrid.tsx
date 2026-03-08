@@ -182,7 +182,7 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
 
   if (!items || items.length === 0) {
     return (
-      <p className="text-muted-foreground">
+      <p className="text-white/70">
         В этом альбоме пока нет фотографий
       </p>
     );
@@ -191,7 +191,7 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
   return (
     <div className="space-y-3">
       {error ? (
-        <div className="rounded-xl border border-[#275636] bg-[#09120d] px-3 py-2 text-sm text-[#8ec99c]">
+        <div className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white/85">
           {error}
         </div>
       ) : null}
@@ -217,7 +217,7 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
               onDrop={handleDrop(photo.id)}
               onDragEnd={handleDragEnd}
               className={`relative overflow-hidden rounded-xl border bg-white/[0.02] ${
-                isCover ? "border-emerald-400/70" : "border-white/10"
+                isCover ? "border-[#ff9f8e]/80" : "border-white/10"
               } ${isDragging ? "opacity-60" : ""} ${
                 isDragOver ? "ring-2 ring-white/40" : ""
               }`}
@@ -238,7 +238,7 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
               )}
 
               {isCover ? (
-                <div className="absolute left-2 top-2 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-black">
+                <div className="absolute left-2 top-2 rounded-full bg-[#ff9f8e]/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#2a0e00]">
                   Cover
                 </div>
               ) : null}
@@ -252,7 +252,7 @@ export default function PhotosGrid({ albumSlug, photos, coverPhotoId }: Props) {
                     type="button"
                     onClick={() => handleDeletePhoto(photo.id)}
                     disabled={isDeleting || deletePendingId !== null || isSavingOrder}
-                    className="rounded-full border border-[#275636] bg-[#09120d] px-3 py-1 text-[11px] font-semibold text-[#8ec99c] hover:bg-[#0e1b14] disabled:opacity-50"
+                    className="rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[11px] font-semibold text-white/90 hover:bg-black/70 disabled:opacity-50"
                   >
                     {isDeleting ? "Deleting..." : "Delete"}
                   </button>

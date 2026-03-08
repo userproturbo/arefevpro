@@ -7,7 +7,7 @@ type Props = {
   returnTo?: string;
 };
 
-export default function CreateAlbumForm({ returnTo = "/admin/photos" }: Props) {
+export default function CreateAlbumForm({ returnTo = "/admin/photo" }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -85,7 +85,7 @@ export default function CreateAlbumForm({ returnTo = "/admin/photos" }: Props) {
       className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
     >
       {formError ? (
-        <div className="rounded-xl border border-[#275636] bg-[#09120d] p-4 text-sm text-[#8ec99c]">
+        <div className="rounded-xl border border-white/20 bg-white/10 p-4 text-sm text-white/85">
           {formError}
         </div>
       ) : null}
@@ -100,7 +100,7 @@ export default function CreateAlbumForm({ returnTo = "/admin/photos" }: Props) {
           disabled={pending}
         />
         {titleError ? (
-          <p className="text-xs text-[#8ec99c]">{titleError}</p>
+          <p className="text-xs text-[#ff9f8e]">{titleError}</p>
         ) : null}
       </div>
 

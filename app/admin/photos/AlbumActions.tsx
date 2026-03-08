@@ -57,7 +57,7 @@ export default function AlbumActions({
     <div className="flex items-center justify-end gap-3">
       <Link
         href={editHref ?? `/admin/photos/${albumSlug}`}
-        className="text-sm text-white/70 hover:text-white"
+        className="text-sm text-white/80 hover:text-white"
       >
         {editLabel}
       </Link>
@@ -65,7 +65,7 @@ export default function AlbumActions({
         type="button"
         onClick={handleDelete}
         disabled={isDeleting}
-        className="text-sm text-[#8ec99c] hover:text-[#b4fdc3] disabled:opacity-60"
+        className="text-sm text-[#ff9f8e] hover:text-[#ffc5b8] disabled:opacity-60"
       >
         {isDeleting ? "Deleting..." : "Delete"}
       </button>
