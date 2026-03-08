@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
+import { characterScenes } from "@/config/characterScenes";
 
 export type LayeredNavCharacterBaseProps = {
   label?: string;
@@ -33,51 +34,34 @@ export type LayeredNavCharacterBaseProps = {
   onSelect?: (imageEl: HTMLImageElement | null) => void;
 };
 
-type LayeredNavCharacterProps = LayeredNavCharacterBaseProps & {
-  idleSrc?: string;
-  actionSrc?: string;
-  audioSrc?: string;
-  audioVolume?: number;
-  motionConfig?: {
-    intentDelayMs: number;
-    enterSpeed: number;
-    leaveSpeed: number;
-    microMotionProgress: number;
-  };
-  getMotionStyle?: (progress: number, timeMs: number) => {
-    wrapperTransform: string;
-    actionOpacity: number;
-    idleOpacity?: number;
-    wrapperFilter?: string;
-    wrapperTransition?: string;
-    wrapperTransformOrigin?: string;
-  };
-};
-
-const SECTION_IMAGES = {
-  photo: { idle: "/img/Photo-idle.png", action: "/img/Photo-action.png" },
-  music: { idle: "/img/Music-idle.png", action: "/img/Music-action.png" },
-  video: { idle: "/img/Drone-idle.png", action: "/img/Drone-action.png" },
-  blog: { idle: "/img/Blog-idle.png", action: "/img/Blog-action.png" },
-} as const;
-
-export default function LayeredNavCharacter(_props: LayeredNavCharacterProps = {}) {
+export default function LayeredNavCharacter() {
   const section = useCharacterConsole((state) => state.section);
   const hover = useCharacterConsole((state) => state.hover);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
+  const scene = section ? characterScenes[section] : null;
   const homeImageSrc = "/img/Home.png";
-  const idleImageSrc = section ? SECTION_IMAGES[section].idle : homeImageSrc;
-  const actionImageSrc = section ? SECTION_IMAGES[section].action : null;
+  const idleImageSrc = scene?.idleImage ?? homeImageSrc;
+  const actionImageSrc = scene?.actionImage ?? null;
   const shadowOffsetX = (offset.x / 8) * 4;
   const shadowOffsetY = 20 + (offset.y / 8) * 4;
   const depthShadow = hover
     ? `drop-shadow(${shadowOffsetX.toFixed(2)}px ${(shadowOffsetY + 10).toFixed(2)}px 60px rgba(0,0,0,0.45))`
     : `drop-shadow(${shadowOffsetX.toFixed(2)}px ${shadowOffsetY.toFixed(2)}px 40px rgba(0,0,0,0.35))`;
+  const characterVariants = {
+    idle: {
+      scale: 1,
+      y: 0,
+    },
+    hover: {
+      scale: 1.25,
+      y: -20,
+    },
+  };
 
   return (
     <motion.div
-      className="relative flex h-full w-full items-center justify-center overflow-hidden"
+      className="relative flex h-full w-full items-end justify-center overflow-visible"
       style={{ x: offset.x, y: offset.y, willChange: "transform" }}
       transition={{ type: "spring", stiffness: 160, damping: 20, mass: 0.7 }}
       onMouseMove={(event) => {
@@ -95,62 +79,84 @@ export default function LayeredNavCharacter(_props: LayeredNavCharacterProps = {
       }}
     >
       <motion.div
-        className="relative h-full w-full will-change-transform"
-        animate={{
-          scale: [1, 1.02, 1],
-          y: [0, -4, 0],
-        }}
-        transition={{
-          duration: 4,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        }}
-        style={{
-          filter: depthShadow,
-          transition: "filter 0.35s ease",
-          willChange: "transform, filter",
-        }}
+        className="relative h-full w-full overflow-visible will-change-transform"
+        variants={characterVariants}
+        animate={hover ? "hover" : "idle"}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        style={{ willChange: "transform", transformOrigin: "bottom center" }}
       >
         <motion.div
-          className="relative h-full w-full"
-          animate={{ scale: hover ? 1.05 : 1 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          style={{ willChange: "transform" }}
+          className="relative h-full w-full overflow-visible will-change-transform"
+          animate={{
+            scale: [1, 1.02, 1],
+            y: [0, -4, 0],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+          style={{
+            filter: depthShadow,
+            transition: "filter 0.35s ease",
+            willChange: "transform, filter",
+            transformOrigin: "bottom center",
+          }}
         >
           <motion.div
-            className="absolute inset-0"
-            animate={{ opacity: hover && actionImageSrc ? 0 : 1 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            style={{ willChange: "opacity" }}
+            className="relative h-full w-full overflow-visible will-change-transform"
+            animate={scene?.microAnimation ?? { scale: [1, 1, 1] }}
+            transition={{
+              duration: 3,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            }}
+            style={{ willChange: "transform", transformOrigin: "bottom center" }}
           >
-            <Image
-              src={idleImageSrc}
-              alt={section ? `${section} character` : "Home character"}
-              fill
-              priority
-              className="object-contain"
-              sizes="(max-width: 768px) 80vw, 360px"
-            />
-          </motion.div>
-
-          {actionImageSrc ? (
             <motion.div
-              className="absolute inset-0"
-              animate={{ opacity: hover ? 1 : 0 }}
+              className="relative h-full w-full overflow-visible"
+              animate={{ scale: 1 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              style={{ willChange: "opacity" }}
+              style={{ willChange: "transform", transformOrigin: "bottom center" }}
             >
-              <Image
-                src={actionImageSrc}
-                alt=""
-                aria-hidden="true"
-                fill
-                priority
-                className="object-contain"
-                sizes="(max-width: 768px) 80vw, 360px"
-              />
+              <motion.div
+                className="absolute inset-0"
+                animate={{ opacity: hover && actionImageSrc ? 0 : 1 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                style={{ willChange: "opacity" }}
+              >
+                <Image
+                  src={idleImageSrc}
+                  alt={section ? `${section} character` : "Home character"}
+                  width={1200}
+                  height={1200}
+                  priority
+                  className="pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
+                  sizes="(max-width: 768px) 80vw, 360px"
+                />
+              </motion.div>
+
+              {actionImageSrc ? (
+                <motion.div
+                  className="absolute inset-0"
+                  animate={{ opacity: hover ? 1 : 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  style={{ willChange: "opacity" }}
+                >
+                  <Image
+                    src={actionImageSrc}
+                    alt=""
+                    aria-hidden="true"
+                    width={1200}
+                    height={1200}
+                    priority
+                    className="pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
+                    sizes="(max-width: 768px) 80vw, 360px"
+                  />
+                </motion.div>
+              ) : null}
             </motion.div>
-          ) : null}
+          </motion.div>
         </motion.div>
       </motion.div>
     </motion.div>
