@@ -612,3 +612,35 @@ body,
     letter-spacing: 0.18em;
   }
 }
+
+.blogViewer {
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.blogViewer h1 {
+  font-size: 42px;
+  margin-bottom: 24px;
+}
+
+.blogViewer p {
+  font-size: 18px;
+  margin-bottom: 18px;
+}
+
+.blogImage {
+  border-radius: 14px;
+  margin: 24px 0;
+}
+
+.blogContent {
+  max-width: 720px;
+  line-height: 1.7;
+}
+
+.blogContent img {
+  border-radius: 12px;
+  margin: 24px 0;
+  max-width: 100%;
+}

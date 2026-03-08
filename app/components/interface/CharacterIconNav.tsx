@@ -20,10 +20,10 @@ function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string;
     <motion.button
       type="button"
       onClick={onClick}
-      className={`group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border p-2 transition md:h-14 md:w-14 ${
+      className={`group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border p-2 transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9f8e]/75 md:h-14 md:w-14 ${
         isActive
-          ? "border-[#d24747] bg-[#7b1414]/45"
-          : "border-white/20 bg-black/35 hover:border-[#9c1e1e]/70 hover:bg-[#2a1212]/80"
+          ? "border-[#ff8f7c] bg-[#6b1616]/75 shadow-[0_0_22px_rgba(255,137,112,0.35)]"
+          : "border-white/35 bg-white/[0.14] shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:border-[#ff9f8e]/80 hover:bg-white/[0.22]"
       }`}
       whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
@@ -32,7 +32,18 @@ function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string;
       aria-label={label}
       title={label}
     >
-      <Image src={iconSrc} alt="" aria-hidden="true" width={26} height={26} className="h-6 w-6 object-contain md:h-7 md:w-7" />
+      <Image
+        src={iconSrc}
+        alt=""
+        aria-hidden="true"
+        width={26}
+        height={26}
+        className={`h-6 w-6 object-contain transition duration-200 md:h-7 md:w-7 ${
+          isActive
+            ? "invert brightness-125 drop-shadow-[0_0_8px_rgba(255,196,170,0.45)]"
+            : "invert brightness-110 group-hover:brightness-125"
+        }`}
+      />
     </motion.button>
   );
 }
