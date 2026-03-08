@@ -70,6 +70,7 @@ export default function LayeredNavCharacter(
   const section = useCharacterConsole((state) => state.section);
   const hover = useCharacterConsole((state) => state.hover);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
   const scene = section ? characterScenes[section] : null;
   const homeImageSrc = "/img/Home.png";
@@ -94,108 +95,135 @@ export default function LayeredNavCharacter(
   void audioVolume;
   void motionConfig;
   void getMotionStyle;
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    const tiltX = (y - 0.5) * 10;
+    const tiltY = (x - 0.5) * -10;
+
+    setTilt({
+      x: tiltX,
+      y: tiltY,
+    });
+
+    const normalizedX = x * 2 - 1;
+    const normalizedY = y * 2 - 1;
+    setOffset({
+      x: Math.max(-8, Math.min(8, normalizedX * 8)),
+      y: Math.max(-8, Math.min(8, normalizedY * 8)),
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 0, y: 0 });
+    setOffset({ x: 0, y: 0 });
+  };
 
   return (
     <motion.div
       className="relative flex h-full w-full items-end justify-center overflow-visible"
       style={{ x: offset.x, y: offset.y, willChange: "transform" }}
       transition={{ type: "spring", stiffness: 160, damping: 20, mass: 0.7 }}
-      onMouseMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const normalizedX = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-        const normalizedY = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
-
-        setOffset({
-          x: Math.max(-8, Math.min(8, normalizedX * 8)),
-          y: Math.max(-8, Math.min(8, normalizedY * 8)),
-        });
-      }}
-      onMouseLeave={() => {
-        setOffset({ x: 0, y: 0 });
-      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
-      <motion.div
-        className="relative h-full w-full overflow-visible will-change-transform"
-        variants={characterVariants}
-        animate={hover ? "hover" : "idle"}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        style={{ willChange: "transform", transformOrigin: "bottom center" }}
+      <div
+        className="relative h-full w-full overflow-visible"
+        style={{
+          transform: `
+            perspective(800px)
+            rotateX(${tilt.x}deg)
+            rotateY(${tilt.y}deg)
+          `,
+          transition: "transform 0.15s ease-out",
+          transformStyle: "preserve-3d",
+        }}
       >
         <motion.div
           className="relative h-full w-full overflow-visible will-change-transform"
-          animate={{
-            scale: [1, 1.02, 1],
-            y: [0, -4, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "easeInOut",
-          }}
-          style={{
-            filter: depthShadow,
-            transition: "filter 0.35s ease",
-            willChange: "transform, filter",
-            transformOrigin: "bottom center",
-          }}
+          variants={characterVariants}
+          animate={hover ? "hover" : "idle"}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          style={{ willChange: "transform", transformOrigin: "bottom center" }}
         >
           <motion.div
             className="relative h-full w-full overflow-visible will-change-transform"
-            animate={scene?.microAnimation ?? { scale: [1, 1, 1] }}
+            animate={{
+              scale: [1, 1.02, 1],
+              y: [0, -4, 0],
+            }}
             transition={{
-              duration: 3,
+              duration: 4,
               repeat: Number.POSITIVE_INFINITY,
               ease: "easeInOut",
             }}
-            style={{ willChange: "transform", transformOrigin: "bottom center" }}
+            style={{
+              filter: depthShadow,
+              transition: "filter 0.35s ease",
+              willChange: "transform, filter",
+              transformOrigin: "bottom center",
+            }}
           >
             <motion.div
-              className="relative h-full w-full overflow-visible"
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="relative h-full w-full overflow-visible will-change-transform"
+              animate={scene?.microAnimation ?? { scale: [1, 1, 1] }}
+              transition={{
+                duration: 3,
+                repeat: Number.POSITIVE_INFINITY,
+                ease: "easeInOut",
+              }}
               style={{ willChange: "transform", transformOrigin: "bottom center" }}
             >
               <motion.div
-                className="absolute inset-0"
-                animate={{ opacity: hover && actionImageSrc ? 0 : 1 }}
+                className="relative h-full w-full overflow-visible"
+                animate={{ scale: 1 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
-                style={{ willChange: "opacity" }}
+                style={{ willChange: "transform", transformOrigin: "bottom center" }}
               >
-                <Image
-                  src={idleImageSrc}
-                  alt={section ? `${section} character` : "Home character"}
-                  width={1200}
-                  height={1200}
-                  priority
-                  className="pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
-                  sizes="(max-width: 768px) 80vw, 360px"
-                  ref={onSelect}
-                />
-              </motion.div>
-
-              {actionImageSrc ? (
                 <motion.div
                   className="absolute inset-0"
-                  animate={{ opacity: hover ? 1 : 0 }}
+                  animate={{ opacity: hover && actionImageSrc ? 0 : 1 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
                   style={{ willChange: "opacity" }}
                 >
                   <Image
-                    src={actionImageSrc}
-                    alt=""
-                    aria-hidden="true"
+                    src={idleImageSrc}
+                    alt={section ? `${section} character` : "Home character"}
                     width={1200}
                     height={1200}
                     priority
                     className="pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
                     sizes="(max-width: 768px) 80vw, 360px"
+                    ref={onSelect}
                   />
                 </motion.div>
-              ) : null}
+
+                {actionImageSrc ? (
+                  <motion.div
+                    className="absolute inset-0"
+                    animate={{ opacity: hover ? 1 : 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    style={{ willChange: "opacity" }}
+                  >
+                    <Image
+                      src={actionImageSrc}
+                      alt=""
+                      aria-hidden="true"
+                      width={1200}
+                      height={1200}
+                      priority
+                      className="pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
+                      sizes="(max-width: 768px) 80vw, 360px"
+                    />
+                  </motion.div>
+                ) : null}
+              </motion.div>
             </motion.div>
           </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

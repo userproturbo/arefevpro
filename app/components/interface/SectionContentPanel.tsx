@@ -1,11 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import SectionContentReveal from "@/app/components/section/SectionContentReveal";
 import type { Section } from "@/store/uiStore";
 import { isCharacterNavSection } from "./sectionMeta";
+import type { SectionViewer } from "./viewerTypes";
+import BlogViewer from "@/app/components/viewers/BlogViewer";
+import PhotoViewer from "@/app/components/viewers/PhotoViewer";
 
 type AlbumDTO = {
   id: number;
@@ -48,7 +50,13 @@ async function fetchJson<T>(url: string, signal: AbortSignal): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export default function SectionContentPanel({ activeSection }: { activeSection: Section | null }) {
+type SectionContentPanelProps = {
+  activeSection: Section | null;
+  viewer: SectionViewer;
+  setViewer: (viewer: SectionViewer) => void;
+};
+
+export default function SectionContentPanel({ activeSection, viewer, setViewer }: SectionContentPanelProps) {
   const cacheRef = useRef<ContentCache>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,15 +106,36 @@ export default function SectionContentPanel({ activeSection }: { activeSection: 
     return <section className="flex h-full min-h-0 flex-1 bg-[#0b0b0b]" aria-label="Section output" />;
   }
 
+  if (viewer?.type === "blog") {
+    return (
+      <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0b]">
+        <div className="h-full min-h-0 overflow-y-auto px-5 py-5 md:px-8">
+          <BlogViewer slug={viewer.slug} onBack={() => setViewer(null)} />
+        </div>
+      </section>
+    );
+  }
+
+  if (viewer?.type === "photo") {
+    return (
+      <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0b]">
+        <div className="h-full min-h-0 overflow-y-auto px-5 py-5 md:px-8">
+          <PhotoViewer slug={viewer.slug} onBack={() => setViewer(null)} />
+        </div>
+      </section>
+    );
+  }
+
   const renderSection = () => {
     if (activeSection === "photo") {
       const albums = cacheRef.current.photo ?? [];
       return (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {albums.map((album) => (
-            <Link
+            <button
+              type="button"
               key={album.id}
-              href={`/photo/${encodeURIComponent(album.slug)}`}
+              onClick={() => setViewer({ type: "photo", slug: album.slug })}
               className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.05]"
             >
               {album.coverImage ? (
@@ -119,7 +148,7 @@ export default function SectionContentPanel({ activeSection }: { activeSection: 
                 <h3 className="text-base font-medium text-white">{album.title}</h3>
                 <p className="mt-2 line-clamp-2 text-sm text-white/60">{album.description ?? "Open album"}</p>
               </div>
-            </Link>
+            </button>
           ))}
           {albums.length === 0 ? <EmptyState label="No albums published yet." /> : null}
         </div>
@@ -134,9 +163,9 @@ export default function SectionContentPanel({ activeSection }: { activeSection: 
             <article key={post.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-base font-medium text-white">{post.title}</h3>
-                <Link href={`/post/${post.slug}`} className="text-xs uppercase tracking-[0.18em] text-[#ffb16e]">
+                <a href={`/post/${post.slug}`} className="text-xs uppercase tracking-[0.18em] text-[#ffb16e]">
                   Open
-                </Link>
+                </a>
               </div>
               {post.media?.url || post.mediaUrl ? (
                 <audio className="mt-3 w-full" controls preload="none" src={post.media?.url ?? post.mediaUrl ?? undefined} />
@@ -155,14 +184,15 @@ export default function SectionContentPanel({ activeSection }: { activeSection: 
       return (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {posts.map((post) => (
-            <Link
+            <button
+              type="button"
               key={post.id}
-              href={`/blog/${post.slug}`}
+              onClick={() => setViewer({ type: "blog", slug: post.slug })}
               className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
             >
               <h3 className="text-lg font-medium text-white">{post.title}</h3>
               <p className="mt-2 line-clamp-3 text-sm leading-6 text-white/60">{post.text ?? "Open article"}</p>
-            </Link>
+            </button>
           ))}
           {posts.length === 0 ? <EmptyState label="No blog posts published yet." /> : null}
         </div>
@@ -206,13 +236,6 @@ export default function SectionContentPanel({ activeSection }: { activeSection: 
 
   return (
     <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0b]">
-      <div className="border-b border-white/10 bg-[#151515] px-5 py-4 md:px-8 md:py-6">
-        <p className="text-[11px] uppercase tracking-[0.34em] text-white/45">Section Output</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white md:text-4xl">
-          {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
-        </h1>
-      </div>
-
       <SectionContentReveal enabled>
         <motion.div
           key={activeSection}
