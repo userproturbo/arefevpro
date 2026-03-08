@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -42,7 +43,7 @@ function renderBlock(block: EditorJsBlock) {
       const level = data.level || 2;
       const text = data.text || "";
 
-      const Tag = (`h${level}`) as keyof JSX.IntrinsicElements;
+      const Tag = (`h${level}`) as keyof React.JSX.IntrinsicElements;
 
       return <Tag>{text}</Tag>;
     }
