@@ -1,4 +1,4 @@
-import { parseBlogContent } from "@/lib/blogBlocks";
+import { parseBlogContentForRender } from "@/lib/blogBlocks";
 
 type PreviewPost = {
   title?: string | null;
@@ -116,7 +116,7 @@ function getVideoThumbnail(rawUrl: string): string | null {
 }
 
 export function getPostTitle(post: PreviewPost): string {
-  const parsedContent = parseBlogContent(post.content);
+  const parsedContent = parseBlogContentForRender(post.content);
   if (parsedContent?.length) {
     const heading = parsedContent.find(
       (block): block is Extract<(typeof parsedContent)[number], { type: "heading" }> =>
@@ -134,7 +134,7 @@ export function getPostTitle(post: PreviewPost): string {
 }
 
 export function getPostExcerpt(post: PreviewPost, maxLength = 160): string {
-  const parsedContent = parseBlogContent(post.content);
+  const parsedContent = parseBlogContentForRender(post.content);
   if (parsedContent?.length) {
     const paragraph = parsedContent.find(
       (block): block is Extract<(typeof parsedContent)[number], { type: "paragraph" }> =>
@@ -149,7 +149,7 @@ export function getPostExcerpt(post: PreviewPost, maxLength = 160): string {
 }
 
 export function getPostCover(post: PreviewPost): PostCoverPreview {
-  const parsedContent = parseBlogContent(post.content);
+  const parsedContent = parseBlogContentForRender(post.content);
 
   if (parsedContent?.length) {
     const image = parsedContent.find(

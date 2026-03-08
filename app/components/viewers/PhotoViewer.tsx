@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type AlbumPhoto = {
@@ -75,11 +76,21 @@ export default function PhotoViewer({ slug, onBack }: PhotoViewerProps) {
       <h1 className="text-2xl font-semibold tracking-[-0.02em] text-white">{album.title}</h1>
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
         {album.photos.map((photo) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={photo.id} src={photo.url} alt="" className="aspect-square w-full rounded-lg object-cover" />
+          <Link
+            key={photo.id}
+            href={`/photo/${encodeURIComponent(album.slug)}/${photo.id}`}
+            className="group block overflow-hidden rounded-lg"
+            aria-label={`Open photo ${photo.id}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photo.url}
+              alt=""
+              className="aspect-square w-full object-cover transition duration-200 group-hover:scale-[1.02] group-hover:brightness-110"
+            />
+          </Link>
         ))}
       </div>
     </div>
   );
 }
-
