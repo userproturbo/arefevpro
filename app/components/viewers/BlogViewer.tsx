@@ -1,27 +1,17 @@
 "use client";
 
-import React from "react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-
-type EditorJsBlock = {
-  type: string;
-  data?: {
-    level?: number;
-    text?: string;
-    file?: { url?: string };
-    url?: string;
-    style?: string;
-    items?: string[];
-  };
-};
+import BlogContentRenderer from "@/app/components/blog/BlogContentRenderer";
+import LegacyTextRenderer from "@/app/components/blog/LegacyTextRenderer";
+import { parseBlogContentForRender } from "@/lib/blogBlocks";
 
 type BlogPostDTO = {
   slug: string;
   title: string;
   text: string | null;
-  blocks?: EditorJsBlock[];
-  data?: { blocks?: EditorJsBlock[] } | null;
+  blocks?: unknown;
+  data?: { blocks?: unknown } | null;
   media?: { url?: string | null } | null;
   coverMedia?: { url?: string | null } | null;
   coverImage?: string | null;
@@ -32,69 +22,6 @@ type BlogViewerProps = {
   slug: string;
   onBack: () => void;
 };
-
-function renderBlock(block: EditorJsBlock) {
-  if (!block) return null;
-
-  const data = block.data || {};
-
-  switch (block.type) {
-    case "heading": {
-      const level = data.level || 2;
-      const text = data.text || "";
-
-      const Tag = (`h${level}`) as keyof React.JSX.IntrinsicElements;
-
-      return <Tag>{text}</Tag>;
-    }
-
-    case "paragraph": {
-      return (
-        <p
-          dangerouslySetInnerHTML={{ __html: data.text || "" }}
-        />
-      );
-    }
-
-    case "image": {
-      const src = data?.file?.url || data?.url;
-      if (!src) return null;
-      return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          className="blogImage"
-        />
-      );
-    }
-
-    case "list": {
-      const items = Array.isArray(data.items) ? data.items : [];
-
-      if (data.style === "ordered") {
-        return (
-          <ol>
-            {items.map((item: string, i: number) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ol>
-        );
-      }
-
-      return (
-        <ul>
-          {items.map((item: string, i: number) => (
-            <li key={i}>{item}</li>
-          ))}
-        </ul>
-      );
-    }
-
-    default:
-      return null;
-  }
-}
 
 export default function BlogViewer({ slug, onBack }: BlogViewerProps) {
   const [post, setPost] = useState<BlogPostDTO | null>(null);
@@ -147,15 +74,15 @@ export default function BlogViewer({ slug, onBack }: BlogViewerProps) {
 
   const article = post;
   const cover = article.coverMedia?.url ?? article.media?.url ?? article.coverImage ?? null;
-  const blocks: EditorJsBlock[] =
-    Array.isArray(article?.content)
-      ? article.content
-      : ((article?.content as { blocks?: EditorJsBlock[] } | undefined)?.blocks || []);
+  const parsedBlocks =
+    parseBlogContentForRender(article?.content) ??
+    parseBlogContentForRender(article?.blocks) ??
+    parseBlogContentForRender(article?.data?.blocks);
 
   console.log("BlogViewer article:", article);
-  console.log("BlogViewer blocks:", blocks);
+  console.log("BlogViewer blocks:", parsedBlocks);
 
-  if (!blocks.length) {
+  if (!parsedBlocks?.length) {
     console.warn("BlogViewer: no blocks found", article);
   }
 
@@ -177,8 +104,11 @@ export default function BlogViewer({ slug, onBack }: BlogViewerProps) {
         <img src={cover} alt={article.title} className="blogImage mt-4 h-auto w-full object-cover" />
       ) : null}
       <div className="blogContent mt-5 text-white/85">
-        {blocks.map((block, i) => <div key={i}>{renderBlock(block)}</div>)}
-        {!blocks.length && (
+        {parsedBlocks?.length ? (
+          <BlogContentRenderer content={parsedBlocks} />
+        ) : article.text?.trim() ? (
+          <LegacyTextRenderer text={article.text} className="space-y-4" />
+        ) : (
           <p style={{ opacity: 0.6 }}>
             Article has no blocks.
           </p>

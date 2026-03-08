@@ -5,7 +5,7 @@ import LikeButton from "../../components/buttons/LikeButton";
 import CommentsPanel from "../../components/comments/CommentsPanel";
 import BlogContentRenderer from "@/app/components/blog/BlogContentRenderer";
 import LegacyTextRenderer from "@/app/components/blog/LegacyTextRenderer";
-import { parseBlogContent } from "@/lib/blogBlocks";
+import { parseBlogContentForRender } from "@/lib/blogBlocks";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -112,7 +112,7 @@ export default async function BlogPostPage({
     totalPages,
     hasNextPage: 1 < totalPages,
   };
-  const parsedContent = parseBlogContent(post.content);
+  const parsedContent = parseBlogContentForRender(post.content);
   const hasContent =
     (Array.isArray(parsedContent) && parsedContent.length > 0) ||
     (typeof post.text === "string" && post.text.trim().length > 0);
