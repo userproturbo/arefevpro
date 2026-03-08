@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
+import type React from "react";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
 import { characterScenes } from "@/config/characterScenes";
 
@@ -16,8 +17,21 @@ interface LayeredNavCharacterProps {
     enterSpeed?: number;
     leaveSpeed?: number;
     microMotionProgress?: number;
-    getMotionStyle?: (progress: number, timeMs: number) => CSSProperties;
+    getMotionStyle?: (progress: number, timeMs: number) => React.CSSProperties;
   };
+  getMotionStyle?: (
+    progress: number,
+    timeMs: number
+  ) =>
+    | React.CSSProperties
+    | {
+        wrapperTransform: string;
+        actionOpacity: number;
+        idleOpacity?: number;
+        wrapperFilter?: string;
+        wrapperTransition?: string;
+        wrapperTransformOrigin?: string;
+      };
   onSelect?: (imageEl: HTMLImageElement | null) => void;
 }
 
@@ -49,8 +63,10 @@ export type LayeredNavCharacterBaseProps = {
   onSelect?: (imageEl: HTMLImageElement | null) => void;
 };
 
-export default function LayeredNavCharacter(props: Partial<LayeredNavCharacterProps> = {}) {
-  const { idleSrc, actionSrc, audioSrc, audioVolume, motionConfig, onSelect } = props;
+export default function LayeredNavCharacter(
+  props: Partial<LayeredNavCharacterProps & LayeredNavCharacterBaseProps> = {}
+) {
+  const { idleSrc, actionSrc, audioSrc, audioVolume, motionConfig, getMotionStyle, onSelect } = props;
   const section = useCharacterConsole((state) => state.section);
   const hover = useCharacterConsole((state) => state.hover);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -77,6 +93,7 @@ export default function LayeredNavCharacter(props: Partial<LayeredNavCharacterPr
   void audioSrc;
   void audioVolume;
   void motionConfig;
+  void getMotionStyle;
 
   return (
     <motion.div
