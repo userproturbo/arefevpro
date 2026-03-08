@@ -2,9 +2,24 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
 import { characterScenes } from "@/config/characterScenes";
+
+interface LayeredNavCharacterProps {
+  idleSrc: string;
+  actionSrc: string;
+  audioSrc?: string;
+  audioVolume?: number;
+  motionConfig?: {
+    intentDelayMs?: number;
+    enterSpeed?: number;
+    leaveSpeed?: number;
+    microMotionProgress?: number;
+    getMotionStyle?: (progress: number, timeMs: number) => CSSProperties;
+  };
+  onSelect?: (imageEl: HTMLImageElement | null) => void;
+}
 
 export type LayeredNavCharacterBaseProps = {
   label?: string;
@@ -34,15 +49,16 @@ export type LayeredNavCharacterBaseProps = {
   onSelect?: (imageEl: HTMLImageElement | null) => void;
 };
 
-export default function LayeredNavCharacter() {
+export default function LayeredNavCharacter(props: Partial<LayeredNavCharacterProps> = {}) {
+  const { idleSrc, actionSrc, audioSrc, audioVolume, motionConfig, onSelect } = props;
   const section = useCharacterConsole((state) => state.section);
   const hover = useCharacterConsole((state) => state.hover);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
   const scene = section ? characterScenes[section] : null;
   const homeImageSrc = "/img/Home.png";
-  const idleImageSrc = scene?.idleImage ?? homeImageSrc;
-  const actionImageSrc = scene?.actionImage ?? null;
+  const idleImageSrc = idleSrc ?? scene?.idleImage ?? homeImageSrc;
+  const actionImageSrc = actionSrc ?? scene?.actionImage ?? null;
   const shadowOffsetX = (offset.x / 8) * 4;
   const shadowOffsetY = 20 + (offset.y / 8) * 4;
   const depthShadow = hover
@@ -58,6 +74,9 @@ export default function LayeredNavCharacter() {
       y: -20,
     },
   };
+  void audioSrc;
+  void audioVolume;
+  void motionConfig;
 
   return (
     <motion.div
@@ -133,6 +152,7 @@ export default function LayeredNavCharacter() {
                   priority
                   className="pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
                   sizes="(max-width: 768px) 80vw, 360px"
+                  ref={onSelect}
                 />
               </motion.div>
 
