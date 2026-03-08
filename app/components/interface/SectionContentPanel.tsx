@@ -7,7 +7,7 @@ import type { Section } from "@/store/uiStore";
 import { isCharacterNavSection } from "./sectionMeta";
 import type { SectionViewer } from "./viewerTypes";
 import BlogViewer from "@/app/components/viewers/BlogViewer";
-import PhotoViewer from "@/app/components/viewers/PhotoViewer";
+import { PhotoAlbumViewer } from "@/app/components/photo/PhotoViewer";
 
 type AlbumDTO = {
   id: number;
@@ -119,8 +119,8 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
   if (viewer?.type === "photo") {
     return (
       <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0b]">
-        <div className="h-full min-h-0 overflow-y-auto px-5 py-5 md:px-8">
-          <PhotoViewer slug={viewer.slug} onBack={() => setViewer(null)} />
+        <div className="h-full min-h-0 overflow-y-auto md:px-8 md:py-5">
+          <PhotoAlbumViewer slug={viewer.slug} onBack={() => setViewer(null)} />
         </div>
       </section>
     );

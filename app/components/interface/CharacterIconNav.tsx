@@ -6,6 +6,7 @@ import { useCharacterConsole, type CharacterConsoleSection } from "@/store/chara
 
 type CharacterIconNavProps = {
   onSelect: (section: CharacterConsoleSection) => void;
+  className?: string;
 };
 
 const ICON_ITEMS: { id: CharacterConsoleSection; label: string; iconSrc: string }[] = [
@@ -48,12 +49,15 @@ function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string;
   );
 }
 
-export default function CharacterIconNav({ onSelect }: CharacterIconNavProps) {
+export default function CharacterIconNav({ onSelect, className }: CharacterIconNavProps) {
   const section = useCharacterConsole((state) => state.section);
   const setSection = useCharacterConsole((state) => state.setSection);
 
   return (
-    <nav className="mt-4 flex w-full items-center justify-center gap-5" aria-label="Character sections">
+    <nav
+      className={["flex w-full items-center justify-center gap-5", className ?? ""].join(" ")}
+      aria-label="Character sections"
+    >
       {ICON_ITEMS.map((item) => (
         <NavIconButton
           key={item.id}

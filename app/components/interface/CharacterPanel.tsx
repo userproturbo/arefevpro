@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useEffect } from "react";
 import CharacterIconNav from "./CharacterIconNav";
 import LayeredNavCharacter from "@/app/components/home/LayeredNavCharacter";
@@ -15,13 +14,6 @@ type CharacterPanelProps = {
   onSectionChange: (section: CharacterConsoleSection) => void;
 };
 
-const TITLES: Record<CharacterConsoleSection, string> = {
-  photo: "Photo Archive",
-  music: "Music Deck",
-  video: "Video Feed",
-  blog: "Blog Stream",
-};
-
 export default function CharacterPanel({ activeSection: _activeSection, onSectionChange }: CharacterPanelProps) {
   const section = useCharacterConsole((state) => state.section);
   const hover = useCharacterConsole((state) => state.hover);
@@ -31,8 +23,6 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
   const musicSound = useHoverSound({ src: characterScenes.music.sound, volume: characterScenes.music.soundVolume });
   const videoSound = useHoverSound({ src: characterScenes.video.sound, volume: characterScenes.video.soundVolume });
   const blogSound = useHoverSound({ src: characterScenes.blog.sound, volume: characterScenes.blog.soundVolume });
-
-  const title = section ? TITLES[section] : "Home";
 
   useEffect(() => {
     if (_activeSection === null) {
@@ -74,19 +64,6 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
     <aside className="relative flex w-full flex-none flex-col gap-4 border-b border-[#3c0f0f] bg-[linear-gradient(180deg,#201010,#131313_55%)] p-4 md:h-full md:w-[300px] md:border-b-0 md:border-r md:p-5 lg:w-[380px] xl:w-[420px]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(156,30,30,0.25),transparent_40%)]" />
 
-      <div className="relative z-10">
-        <p className="text-[10px] uppercase tracking-[0.34em] text-white/55">Character Console</p>
-        <motion.h2
-          key={section ?? "home"}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-white"
-        >
-          {title}
-        </motion.h2>
-      </div>
-
       <div className="relative z-10 flex min-h-0 flex-col gap-4 md:flex-1">
         <div
           onMouseEnter={() => {
@@ -107,6 +84,18 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
         </div>
 
         <CharacterIconNav
+          className="mt-2 hidden md:flex"
+          onSelect={(nextSection) => {
+            setHover(false);
+            stopAllSounds();
+            onSectionChange(nextSection);
+          }}
+        />
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-[#120c0c]/92 px-4 py-3 backdrop-blur md:hidden">
+        <CharacterIconNav
+          className="mx-auto max-w-md justify-between gap-3"
           onSelect={(nextSection) => {
             setHover(false);
             stopAllSounds();
