@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import PhotoLikeButton from "./PhotoLikeButton";
 
 type PhotoViewerControlsProps = {
@@ -30,17 +31,19 @@ export default function PhotoViewerControls({
           type="button"
           onClick={onPrev}
           disabled={!hasPrev}
-          className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/80 hover:bg-black/70 disabled:opacity-40"
+          aria-label="Previous photo"
+          className="inline-flex h-9 w-9 items-center justify-center bg-transparent text-white opacity-70 transition hover:opacity-100 disabled:opacity-30"
         >
-          Prev
+          <NextImage src="/icons/ArrowLeftBold.svg" alt="" width={20} height={20} className="h-5 w-5 brightness-0 invert" />
         </button>
         <button
           type="button"
           onClick={onNext}
           disabled={!hasNext}
-          className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/80 hover:bg-black/70 disabled:opacity-40"
+          aria-label="Next photo"
+          className="inline-flex h-9 w-9 items-center justify-center bg-transparent text-white opacity-70 transition hover:opacity-100 disabled:opacity-30"
         >
-          Next
+          <NextImage src="/icons/ArrowRightBold.svg" alt="" width={20} height={20} className="h-5 w-5 brightness-0 invert" />
         </button>
       </div>
       <div className="flex items-center gap-2">
@@ -48,9 +51,19 @@ export default function PhotoViewerControls({
         <button
           type="button"
           onClick={onToggleComments}
-          className="rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-xs font-semibold text-white/90 hover:bg-black/70"
+          aria-label="Toggle comments"
+          className="inline-flex h-9 w-9 items-center justify-center bg-transparent text-white opacity-70 transition hover:opacity-100"
         >
-          💬 Comments
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-5 w-5 fill-none stroke-current"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 14a4 4 0 0 1-4 4H9l-5 4v-4a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4z" />
+          </svg>
         </button>
       </div>
     </div>
