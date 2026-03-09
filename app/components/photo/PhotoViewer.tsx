@@ -2,7 +2,7 @@
 
 import NextImage from "next/image";
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PhotoLikeButton from "./PhotoLikeButton";
 import PhotoSectionShell from "./PhotoSectionShell";
@@ -55,27 +55,6 @@ export default function PhotoViewer({
       ? photos[activeIndex + 1]
       : null;
 
-  const [uiVisible, setUiVisible] = useState(true);
-  const hideTimerRef = useRef<number | null>(null);
-  const hasOverlayControls = showEdgeNav || showCloseButton || showOverlayLike;
-
-  const scheduleHide = useCallback(() => {
-    if (!hasOverlayControls) return;
-    if (hideTimerRef.current) {
-      window.clearTimeout(hideTimerRef.current);
-    }
-    hideTimerRef.current = window.setTimeout(() => {
-      setUiVisible(false);
-      hideTimerRef.current = null;
-    }, 2000);
-  }, [hasOverlayControls]);
-
-  const revealControls = useCallback(() => {
-    if (!hasOverlayControls) return;
-    setUiVisible(true);
-    scheduleHide();
-  }, [hasOverlayControls, scheduleHide]);
-
   useEffect(() => {
     const targets = [prevPhoto, nextPhoto].filter(
       (photo): photo is PhotoItem => !!photo
@@ -85,15 +64,6 @@ export default function PhotoViewer({
       image.src = photo.url;
     });
   }, [prevPhoto, nextPhoto]);
-
-  useEffect(() => {
-    scheduleHide();
-    return () => {
-      if (hideTimerRef.current) {
-        window.clearTimeout(hideTimerRef.current);
-      }
-    };
-  }, [activeId, scheduleHide]);
 
   useEffect(() => {
     const isEditableElement = (element: Element | null) => {
@@ -118,7 +88,6 @@ export default function PhotoViewer({
 
       if (event.key === "ArrowLeft" && prevPhoto) {
         event.preventDefault();
-        revealControls();
         if (onNavigate) {
           onNavigate(prevPhoto.id);
         } else {
@@ -128,7 +97,6 @@ export default function PhotoViewer({
 
       if (event.key === "ArrowRight" && nextPhoto) {
         event.preventDefault();
-        revealControls();
         if (onNavigate) {
           onNavigate(nextPhoto.id);
         } else {
@@ -139,11 +107,10 @@ export default function PhotoViewer({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [encodedSlug, nextPhoto, onClose, onNavigate, prevPhoto, revealControls, router]);
+  }, [encodedSlug, nextPhoto, onClose, onNavigate, prevPhoto, router]);
 
   const openPrev = () => {
     if (!prevPhoto) return;
-    revealControls();
     if (onNavigate) {
       onNavigate(prevPhoto.id);
       return;
@@ -153,7 +120,6 @@ export default function PhotoViewer({
 
   const openNext = () => {
     if (!nextPhoto) return;
-    revealControls();
     if (onNavigate) {
       onNavigate(nextPhoto.id);
       return;
@@ -184,16 +150,11 @@ export default function PhotoViewer({
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         className="relative flex h-full w-full items-center justify-center overflow-hidden"
-        onMouseMove={revealControls}
-        onClick={revealControls}
       >
         <div
           className="relative flex h-full w-full touch-pan-y select-none items-center justify-center"
           onClick={swipe.onDoubleTap}
-          onTouchStart={(event) => {
-            revealControls();
-            swipe.onTouchStart(event);
-          }}
+          onTouchStart={swipe.onTouchStart}
           onTouchMove={swipe.onTouchMove}
           onTouchEnd={swipe.onTouchEnd}
           style={{ transform: `scale(${swipe.zoom})`, transformOrigin: "center center", transition: "transform 180ms ease-out" }}
@@ -208,12 +169,7 @@ export default function PhotoViewer({
           />
         </div>
         {showOverlayLike ? (
-          <div
-            className={[
-              "absolute bottom-6 right-6 z-20 flex items-center gap-2 transition-opacity duration-250",
-              uiVisible ? "opacity-100" : "pointer-events-none opacity-0",
-            ].join(" ")}
-          >
+          <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2 opacity-80 hover:opacity-100">
             <PhotoLikeButton
               photoId={activeId}
               initialCount={likesCount}
@@ -245,7 +201,7 @@ export default function PhotoViewer({
                 "absolute left-6 top-1/2 z-20 h-12 w-12 -translate-y-1/2 rounded-full bg-black/30 backdrop-blur-md",
                 "outline-none ring-0 focus:outline-none focus:ring-0",
                 "flex items-center justify-center transition hover:scale-110 hover:bg-black/40 disabled:opacity-35",
-                uiVisible ? "opacity-100" : "pointer-events-none opacity-0",
+                "opacity-80 hover:opacity-100",
               ].join(" ")}
             >
               <NextImage src="/icons/ArrowLeftBold.svg" alt="" width={24} height={24} className="h-6 w-6 brightness-0 invert" />
@@ -259,7 +215,7 @@ export default function PhotoViewer({
                 "absolute right-6 top-1/2 z-20 h-12 w-12 -translate-y-1/2 rounded-full bg-black/30 backdrop-blur-md",
                 "outline-none ring-0 focus:outline-none focus:ring-0",
                 "flex items-center justify-center transition hover:scale-110 hover:bg-black/40 disabled:opacity-35",
-                uiVisible ? "opacity-100" : "pointer-events-none opacity-0",
+                "opacity-80 hover:opacity-100",
               ].join(" ")}
             >
               <NextImage src="/icons/ArrowRightBold.svg" alt="" width={24} height={24} className="h-6 w-6 brightness-0 invert" />
@@ -276,7 +232,7 @@ export default function PhotoViewer({
               "absolute left-6 top-6 z-20 h-12 w-12 rounded-full bg-black/30 backdrop-blur-md",
               "outline-none ring-0 focus:outline-none focus:ring-0",
               "inline-flex items-center justify-center transition hover:scale-110 hover:bg-black/40",
-              uiVisible ? "opacity-100" : "pointer-events-none opacity-0",
+              "opacity-80 hover:opacity-100",
             ].join(" ")}
           >
             <NextImage src="/icons/Grid.svg" alt="" width={24} height={24} className="h-6 w-6 brightness-0 invert" />
