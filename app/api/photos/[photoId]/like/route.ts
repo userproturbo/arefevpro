@@ -54,18 +54,21 @@ export async function POST(
       select: { id: true },
     });
 
-    if (existing) {
-      await prisma.photoLike.delete({ where: { id: existing.id } });
-    } else {
-      await prisma.photoLike.create({
-        data: { photoId, userId: authUser.id },
-      });
-    }
+    const nextLiked = !existing;
+    await prisma.$transaction(async (tx) => {
+      if (existing) {
+        await tx.photoLike.delete({ where: { id: existing.id } });
+      } else {
+        await tx.photoLike.create({
+          data: { photoId, userId: authUser.id },
+        });
+      }
+    });
 
     const likesCount = await prisma.photoLike.count({ where: { photoId } });
 
     return NextResponse.json({
-      liked: !existing,
+      liked: nextLiked,
       likesCount,
     });
   } catch (error) {

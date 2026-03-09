@@ -1,21 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
-import PhotoComments from "@/app/components/comments/PhotoComments";
+import BasePhotoComments from "@/app/components/comments/PhotoComments";
+import { photoStore, usePhotoStore } from "./photoStore";
 
-type PhotoCommentsOverlayProps = {
+type PhotoCommentsProps = {
   open: boolean;
   photoId: number;
   onClose: () => void;
-  onCountChange?: (count: number) => void;
 };
 
-export default function PhotoCommentsOverlay({
-  open,
-  photoId,
-  onClose,
-  onCountChange,
-}: PhotoCommentsOverlayProps) {
+export default function PhotoComments({ open, photoId, onClose }: PhotoCommentsProps) {
+  const commentsCount = usePhotoStore((state) => state.photos[photoId]?.commentsCount ?? 0);
+
   useEffect(() => {
     if (!open) return;
 
@@ -29,9 +26,7 @@ export default function PhotoCommentsOverlay({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, open]);
 
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
   return (
     <div
@@ -52,8 +47,19 @@ export default function PhotoCommentsOverlay({
             Close
           </button>
         </div>
+
         <div className="max-h-[calc(70vh-64px)] overflow-y-auto">
-          <PhotoComments photoId={photoId} onCountChange={onCountChange} />
+          <BasePhotoComments
+            photoId={photoId}
+            onCountChange={(nextCount) => {
+              const normalized = Number.isFinite(nextCount) ? Math.max(0, Math.floor(nextCount)) : 0;
+              if (normalized > commentsCount) {
+                for (let index = 0; index < normalized - commentsCount; index += 1) {
+                  photoStore.incrementComments(photoId);
+                }
+              }
+            }}
+          />
         </div>
       </div>
     </div>
