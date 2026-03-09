@@ -47,9 +47,9 @@ export default function PhotoAlbums({ albums, onOpenAlbum }: PhotoAlbumsProps) {
               <span className="text-[10px] uppercase tracking-[0.24em] text-[#d8b17b]/70">Open</span>
             </div>
             {album.description ? (
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-white/58">{album.description}</p>
+              <p className="mt-2 hidden line-clamp-3 text-sm leading-6 text-white/58 md:block">{album.description}</p>
             ) : (
-              <p className="mt-2 text-sm leading-6 text-white/38">No description yet.</p>
+              <p className="mt-2 hidden text-sm leading-6 text-white/38 md:block">No description yet.</p>
             )}
           </div>
         </button>

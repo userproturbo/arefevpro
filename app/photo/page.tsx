@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import SectionContentReveal from "@/app/components/section/SectionContentReveal";
 import PhotoSystem from "@/app/components/photo/PhotoSystem";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { normalizeNavigationCharacter } from "@/lib/characterNavigation";
 import {
@@ -74,6 +75,15 @@ export default async function PhotoPage({
   return (
     <SectionContentReveal enabled={character === "photo"}>
       <main className="flex h-full min-h-0 flex-col px-6 py-5 sm:px-8 sm:py-6">
+        <div className="fixed left-4 top-4 z-40 md:hidden">
+          <Image
+            src="/images/portrait.jpg"
+            alt="Portrait"
+            width={56}
+            height={56}
+            className="h-14 w-14 rounded-full border border-white/20 object-cover shadow-lg"
+          />
+        </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {albums === null ? (
             <div className="flex h-full min-h-[220px] items-center justify-center rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 text-center text-white/70">
