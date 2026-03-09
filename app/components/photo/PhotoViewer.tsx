@@ -32,12 +32,12 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function getTouchDistance(touches: TouchList) {
+const getTouchDistance = (touches: TouchList | React.TouchList) => {
   if (touches.length < 2) return 0;
   const dx = touches[0].clientX - touches[1].clientX;
   const dy = touches[0].clientY - touches[1].clientY;
   return Math.sqrt(dx * dx + dy * dy);
-}
+};
 
 export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const activePhotoId = usePhotoStore((state) => state.activePhotoId);
@@ -246,7 +246,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 2) {
-      pinchStartDistance.current = getTouchDistance(event.touches);
+      pinchStartDistance.current = getTouchDistance(event.touches as unknown as TouchList);
       pinchStartScale.current = scaleRef.current;
       gestureModeRef.current = "pinch";
       return;
@@ -275,7 +275,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const onTouchMove = (event: TouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 2) {
       if (!pinchStartDistance.current) return;
-      const distance = getTouchDistance(event.touches);
+      const distance = getTouchDistance(event.touches as unknown as TouchList);
       const ratio = distance / pinchStartDistance.current;
       const nextScale = clamp(pinchStartScale.current * ratio, MIN_SCALE, MAX_SCALE);
       setScale(nextScale);
