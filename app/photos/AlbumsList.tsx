@@ -33,7 +33,7 @@ export default function AlbumsList({ albums }: Props) {
         return (
           <Link
             key={album.id}
-            href={`/photo/${album.slug}`}
+            href="/photo"
             className={`group ${styles.item}`}
           >
             <AlbumDevicePreview

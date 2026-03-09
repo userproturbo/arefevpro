@@ -3,22 +3,26 @@
 import { useEffect } from "react";
 import PhotoComments from "@/app/components/comments/PhotoComments";
 
-type PhotoCommentsSheetProps = {
+type PhotoCommentsOverlayProps = {
   open: boolean;
   photoId: number;
   onClose: () => void;
   onCountChange?: (count: number) => void;
 };
 
-export default function PhotoCommentsSheet({ open, photoId, onClose, onCountChange }: PhotoCommentsSheetProps) {
+export default function PhotoCommentsOverlay({
+  open,
+  photoId,
+  onClose,
+  onCountChange,
+}: PhotoCommentsOverlayProps) {
   useEffect(() => {
     if (!open) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onClose();
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -36,7 +40,7 @@ export default function PhotoCommentsSheet({ open, photoId, onClose, onCountChan
     >
       <div
         onClick={(event) => event.stopPropagation()}
-        className="w-[520px] max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-neutral-900/90 p-6"
+        className="w-[520px] max-h-[70vh] overflow-y-auto rounded-2xl bg-neutral-900 p-6"
       >
         <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
           <p className="text-sm font-medium text-white">Comments</p>

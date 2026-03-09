@@ -16,7 +16,7 @@ export default async function AlbumPage({ params }: PageProps) {
   const numericId = Number(albumId);
 
   if (!Number.isFinite(numericId)) {
-    redirect(`/photo/${albumId}`);
+    redirect("/photo");
   }
 
   try {
@@ -36,7 +36,7 @@ export default async function AlbumPage({ params }: PageProps) {
       notFound();
     }
 
-    redirect(`/photo/${album.slug}`);
+    redirect("/photo");
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       if (!isExpectedDevDatabaseError(error)) {
