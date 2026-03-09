@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/app/providers";
-import { usePhotoLikesStore } from "./photoLikesStore";
+import { photoLikesStore, usePhotoLikesStore } from "./photoLikesStore";
 
 type Props = {
   photoId: number;
@@ -31,13 +31,12 @@ export default function PhotoLikeButton({
   const { requireUser, user } = useAuth();
   const likeState = usePhotoLikesStore((state) => state.byId[photoId]);
   const ensurePhoto = usePhotoLikesStore((state) => state.ensurePhoto);
-  const optimisticToggle = usePhotoLikesStore((state) => state.optimisticToggle);
-  const applyServerState = usePhotoLikesStore((state) => state.applyServerState);
-  const rollback = usePhotoLikesStore((state) => state.rollback);
 
   const liked = likeState?.liked ?? initialLiked;
   const count = likeState?.likesCount ?? initialCount;
-  const loading = likeState?.pending ?? false;
+  const storePending = likeState?.pending ?? false;
+  const [requestPending, setRequestPending] = useState(false);
+  const loading = storePending || requestPending;
   const [animateLike, setAnimateLike] = useState(false);
   const prevLikedRef = useRef(liked);
   const animationTimeoutRef = useRef<number | null>(null);
@@ -72,22 +71,18 @@ export default function PhotoLikeButton({
   const toggleLike = async () => {
     if (loading) return;
     await requireUser(async () => {
-      const snapshot = optimisticToggle(photoId);
+      setRequestPending(true);
       try {
         const res = await fetch(`/api/photos/${photoId}/like`, {
           method: "POST",
           credentials: "include",
         });
         if (!res.ok) throw new Error("like failed");
-        const data = (await res.json()) as { liked?: unknown; likesCount?: unknown };
-        applyServerState(
-          photoId,
-          typeof data.liked === "boolean" ? data.liked : undefined,
-          typeof data.likesCount === "number" ? data.likesCount : undefined
-        );
+        photoLikesStore.toggle(photoId);
       } catch (error) {
         console.error(error);
-        rollback(photoId, snapshot);
+      } finally {
+        setRequestPending(false);
       }
     });
   };
@@ -120,13 +115,24 @@ export default function PhotoLikeButton({
         aria-pressed={liked}
         aria-label={`${liked ? "Unlike" : "Like"} photo`}
         className={[
-          "inline-flex h-7 w-7 items-center justify-center bg-transparent text-white transition",
+          "inline-flex h-7 w-7 items-center justify-center bg-transparent text-white transition active:scale-90",
           loading ? "cursor-wait opacity-70" : "opacity-80 hover:opacity-100",
           className ?? "",
         ].join(" ")}
       >
         {iconSrc ? (
-          <Image src={iconSrc} alt={iconAlt} width={28} height={28} className="h-7 w-7" />
+          <Image
+            src={iconSrc}
+            alt={iconAlt}
+            width={28}
+            height={28}
+            className={[
+              "w-7 h-7 transition",
+              liked
+                ? "brightness-0 invert text-orange-400 scale-110 drop-shadow-[0_0_8px_rgba(255,120,0,0.6)]"
+                : "brightness-0 invert opacity-70 hover:opacity-100",
+            ].join(" ")}
+          />
         ) : (
           <span className="text-sm leading-none">{liked ? "♥" : "♡"}</span>
         )}

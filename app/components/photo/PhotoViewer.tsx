@@ -4,6 +4,7 @@ import NextImage from "next/image";
 import { motion } from "framer-motion";
 import { useEffect, useMemo } from "react";
 import PhotoViewerControls from "./PhotoViewerControls";
+import { photoLikesStore } from "./photoLikesStore";
 import { usePhotoSwipe } from "./usePhotoSwipe";
 
 type PhotoItem = {
@@ -52,6 +53,10 @@ export default function PhotoViewer({
     const image = new window.Image();
     image.src = nextPhoto.url;
   }, [nextPhoto]);
+
+  useEffect(() => {
+    photoLikesStore.ensurePhoto(activeId, likedByMe, likesCount);
+  }, [activeId, likedByMe, likesCount]);
 
   useEffect(() => {
     const isEditableElement = (element: Element | null) => {
@@ -139,8 +144,6 @@ export default function PhotoViewer({
         {showOverlayLike || showEdgeNav || showCloseButton || onOpenComments ? (
           <PhotoViewerControls
             photoId={activeId}
-            likesCount={likesCount}
-            likedByMe={likedByMe}
             hasPrev={Boolean(prevPhoto)}
             hasNext={Boolean(nextPhoto)}
             onPrev={openPrev}
