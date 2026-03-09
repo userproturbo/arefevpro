@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import PhotoSceneHero from "@/app/components/photo/PhotoSceneHero";
 import SectionContentReveal from "@/app/components/section/SectionContentReveal";
-import PhotoSectionController from "@/app/components/photo/PhotoSectionController";
+import PhotoSystem from "@/app/components/photo/PhotoSystem";
 import { prisma } from "@/lib/prisma";
 import { normalizeNavigationCharacter } from "@/lib/characterNavigation";
 import {
@@ -73,20 +72,18 @@ export default async function PhotoPage({
   const albums = await fetchAlbums();
 
   return (
-    <PhotoSceneHero isActivated={character === "photo"}>
-      <SectionContentReveal enabled={character === "photo"}>
-        <main className="flex h-full min-h-0 flex-col px-6 py-5 sm:px-8 sm:py-6">
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            {albums === null ? (
-              <div className="flex h-full min-h-[220px] items-center justify-center rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 text-center text-white/70">
-                {getDatabaseUnavailableMessage()}
-              </div>
-            ) : (
-              <PhotoSectionController mode="view" albums={albums} />
-            )}
-          </div>
-        </main>
-      </SectionContentReveal>
-    </PhotoSceneHero>
+    <SectionContentReveal enabled={character === "photo"}>
+      <main className="flex h-full min-h-0 flex-col px-6 py-5 sm:px-8 sm:py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          {albums === null ? (
+            <div className="flex h-full min-h-[220px] items-center justify-center rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 text-center text-white/70">
+              {getDatabaseUnavailableMessage()}
+            </div>
+          ) : (
+            <PhotoSystem albums={albums} />
+          )}
+        </div>
+      </main>
+    </SectionContentReveal>
   );
 }

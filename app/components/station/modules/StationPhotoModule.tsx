@@ -11,9 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import AlbumsList from "@/app/photos/AlbumsList";
-import PhotoLikeButton from "@/app/components/photo/PhotoLikeButton";
 import PhotoComments from "@/app/components/comments/PhotoComments";
-import { usePhotoLikesStore } from "@/app/components/photo/photoLikesStore";
 
 type AlbumSummary = {
   id: number;
@@ -118,6 +116,83 @@ function useVisualViewportHeight(): number | null {
   return height;
 }
 
+type StationPhotoLikeButtonProps = {
+  photoId: number;
+  initialCount: number;
+  initialLiked: boolean;
+  size?: "sm" | "md";
+  variant?: "default" | "overlay";
+  className?: string;
+};
+
+function StationPhotoLikeButton({
+  photoId,
+  initialCount,
+  initialLiked,
+  size = "md",
+  variant = "default",
+  className,
+}: StationPhotoLikeButtonProps) {
+  const [liked, setLiked] = useState(initialLiked);
+  const [count, setCount] = useState(initialCount);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    setLiked(initialLiked);
+    setCount(initialCount);
+  }, [initialCount, initialLiked, photoId]);
+
+  const onToggle = async () => {
+    if (pending) return;
+
+    const prevLiked = liked;
+    const prevCount = count;
+    const nextLiked = !liked;
+
+    setLiked(nextLiked);
+    setCount((value) => Math.max(0, value + (liked ? -1 : 1)));
+    setPending(true);
+
+    try {
+      const response = await fetch(`/api/photos/${photoId}/like`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+    } catch {
+      setLiked(prevLiked);
+      setCount(prevCount);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const isOverlay = variant === "overlay";
+  const sizeClasses = size === "sm" ? "px-2 py-1 text-[11px]" : "px-2.5 py-1 text-xs";
+  const stateClasses = isOverlay
+    ? "bg-black/60 border-white/20 text-white/90"
+    : "bg-black/55 border-white/20 text-white/90";
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={pending}
+      aria-pressed={liked}
+      className={[
+        "inline-flex items-center gap-1 rounded-full border backdrop-blur transition",
+        sizeClasses,
+        stateClasses,
+        pending ? "cursor-wait opacity-70" : "",
+        className ?? "",
+      ].join(" ")}
+    >
+      <span aria-hidden="true">{liked ? "🔥" : "△"}</span>
+      <span>{count}</span>
+    </button>
+  );
+}
+
 
 export default function StationPhotoModule() {
   const [view, setView] = useState<StationPhotoView>("albums");
@@ -129,8 +204,6 @@ export default function StationPhotoModule() {
   const [activeAlbum, setActiveAlbum] = useState<AlbumDetails | null>(null);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [commentsCountByPhoto, setCommentsCountByPhoto] = useState<Record<number, number>>({});
-
-  const seedPhotoLikes = usePhotoLikesStore((state) => state.seedPhotos);
 
   const requestIdRef = useRef(0);
 
@@ -206,13 +279,6 @@ export default function StationPhotoModule() {
       setActiveAlbum(cachedAlbum);
 
       if (cachedAlbum) {
-        seedPhotoLikes(
-          cachedAlbum.photos.map((photo) => ({
-            id: photo.id,
-            likesCount: photo.likesCount,
-            likedByMe: photo.likedByMe,
-          }))
-        );
         setAlbumStatus("ready");
         return;
       }
@@ -260,14 +326,6 @@ export default function StationPhotoModule() {
         setActiveAlbum(nextAlbum);
         setAlbumCache((prev) => ({ ...prev, [slug]: nextAlbum }));
 
-        seedPhotoLikes(
-          nextAlbum.photos.map((photo) => ({
-            id: photo.id,
-            likesCount: photo.likesCount,
-            likedByMe: photo.likedByMe,
-          }))
-        );
-
         setAlbumStatus("ready");
       } catch (error) {
         console.error(error);
@@ -275,7 +333,7 @@ export default function StationPhotoModule() {
         setAlbumStatus("error");
       }
     },
-    [albumCache, seedPhotoLikes]
+    [albumCache]
   );
 
   const backToAlbums = useCallback(() => {
@@ -602,7 +660,7 @@ export default function StationPhotoModule() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={photo.url} alt="" loading="lazy" className="aspect-square h-full w-full object-cover" />
-                    <PhotoLikeButton
+                    <StationPhotoLikeButton
                       photoId={photo.id}
                       initialCount={photo.likesCount}
                       initialLiked={photo.likedByMe}
@@ -657,7 +715,7 @@ export default function StationPhotoModule() {
 
             <div className="pointer-events-none absolute inset-x-2 top-2 z-20">
               <div className="pointer-events-auto flex items-center gap-1 rounded-md border border-[#214b32] bg-[#060f0b]/88 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[#8ecb9d] shadow-[0_0_10px_rgba(115,255,140,0.12)]">
-                <PhotoLikeButton
+                <StationPhotoLikeButton
                   photoId={activePhotoId}
                   initialCount={activeViewerPhoto.likesCount}
                   initialLiked={activeViewerPhoto.likedByMe}
@@ -741,7 +799,7 @@ export default function StationPhotoModule() {
 
           <div className="pointer-events-none absolute inset-x-3 top-3 z-30">
             <div className="pointer-events-auto flex items-center gap-2 rounded-md border border-[#234f34] bg-[#06100b]/85 px-2 py-1.5 text-[10px] uppercase tracking-[0.12em] text-[#8ecb9d] shadow-[0_0_12px_rgba(115,255,140,0.12)]">
-              <PhotoLikeButton
+              <StationPhotoLikeButton
                 photoId={activePhotoId}
                 initialCount={activeViewerPhoto.likesCount}
                 initialLiked={activeViewerPhoto.likedByMe}

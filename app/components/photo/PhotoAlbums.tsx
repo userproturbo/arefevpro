@@ -1,4 +1,6 @@
-import NextImage from "next/image";
+"use client";
+
+import Image from "next/image";
 
 type Album = {
   id: number;
@@ -8,24 +10,32 @@ type Album = {
   coverImage: string | null;
 };
 
-type PhotoAlbumsViewProps = {
+type PhotoAlbumsProps = {
   albums: Album[];
   onOpenAlbum: (slug: string) => void;
 };
 
-export default function PhotoAlbumsView({ albums, onOpenAlbum }: PhotoAlbumsViewProps) {
+export default function PhotoAlbums({ albums, onOpenAlbum }: PhotoAlbumsProps) {
+  if (albums.length === 0) {
+    return (
+      <div className="flex h-full min-h-[220px] items-center justify-center rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 text-center text-white/70">
+        No albums yet.
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {albums.map((album) => (
         <button
-          type="button"
           key={album.id}
+          type="button"
           onClick={() => onOpenAlbum(album.slug)}
           className="group w-full overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] text-left transition duration-200 hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.03))]"
         >
           {album.coverImage ? (
             <div className="relative aspect-[4/3] w-full">
-              <NextImage src={album.coverImage} alt={album.title} fill className="object-cover" sizes="(max-width: 1280px) 100vw, 50vw" />
+              <Image src={album.coverImage} alt={album.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
             </div>
           ) : (
             <div className="aspect-[4/3] w-full bg-white/5" aria-hidden="true" />
