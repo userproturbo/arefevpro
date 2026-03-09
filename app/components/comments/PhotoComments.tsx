@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/providers";
 
@@ -16,9 +16,10 @@ type CommentItem = {
 
 type Props = {
   photoId: number;
+  onCountChange?: (count: number) => void;
 };
 
-export default function PhotoComments({ photoId }: Props) {
+export default function PhotoComments({ photoId, onCountChange }: Props) {
   const { user, requireUser } = useAuth();
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "ready">(
@@ -42,6 +43,11 @@ export default function PhotoComments({ photoId }: Props) {
   const [repliesError, setRepliesError] = useState<Record<number, string | null>>(
     {}
   );
+  const onCountChangeRef = useRef(onCountChange);
+
+  useEffect(() => {
+    onCountChangeRef.current = onCountChange;
+  }, [onCountChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +71,7 @@ export default function PhotoComments({ photoId }: Props) {
         const nextComments = Array.isArray(data.comments) ? data.comments : [];
         if (!cancelled) {
           setComments(nextComments);
+          onCountChangeRef.current?.(nextComments.length);
           setStatus("ready");
         }
       } catch {
@@ -101,7 +108,11 @@ export default function PhotoComments({ photoId }: Props) {
         }
         const data = (await res.json()) as { comment?: CommentItem };
         if (data.comment) {
-          setComments((prev) => [data.comment as CommentItem, ...prev]);
+          setComments((prev) => {
+            const next = [data.comment as CommentItem, ...prev];
+            onCountChangeRef.current?.(next.length);
+            return next;
+          });
         }
         setText("");
       } catch (error) {
@@ -245,7 +256,11 @@ export default function PhotoComments({ photoId }: Props) {
         setRepliesVisible((prev) => ({ ...prev, [id]: false }));
         setRepliesError((prev) => ({ ...prev, [id]: null }));
         setRepliesLoading((prev) => ({ ...prev, [id]: false }));
-        setComments((prev) => prev.filter((comment) => comment.id !== id));
+        setComments((prev) => {
+          const next = prev.filter((comment) => comment.id !== id);
+          onCountChangeRef.current?.(next.length);
+          return next;
+        });
       }
 
       if (replyTo === id) {

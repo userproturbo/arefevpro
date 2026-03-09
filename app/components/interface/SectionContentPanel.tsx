@@ -119,7 +119,7 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
   if (viewer?.type === "photo") {
     return (
       <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0b]">
-        <div className="h-full min-h-0 overflow-y-auto md:px-8 md:py-5">
+        <div className="h-full min-h-0 overflow-y-auto">
           <PhotoAlbumViewer slug={viewer.slug} onBack={() => setViewer(null)} />
         </div>
       </section>

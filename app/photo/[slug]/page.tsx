@@ -153,7 +153,6 @@ export default async function PhotoAlbumPage({
         <PhotoSectionShell
           key={`${album.slug}:${safeInitialPhotoId ?? "grid"}`}
           slug={album.slug}
-          title={album.title}
           photos={album.photos}
           initialPhotoId={safeInitialPhotoId}
           syncQueryParam
