@@ -134,15 +134,7 @@ export default function NotificationsPage() {
           let message = "Someone replied to your comment";
 
           if (isPhotoReply) {
-            const albumSlug = item.data?.albumSlug ?? undefined;
-            const photoId = item.data?.photoId;
-            const parentCommentId = item.data?.parentCommentId;
-            if (albumSlug && photoId) {
-              const anchor = parentCommentId ? `#comment-${parentCommentId}` : "";
-              href = `/photo/${encodeURIComponent(albumSlug)}/${photoId}${anchor}`;
-            } else {
-              href = "/photo";
-            }
+            href = "/photo";
             message = `${senderLabel} replied to your photo comment`;
           } else {
             const commentId = item.data?.commentId;

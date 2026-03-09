@@ -365,7 +365,7 @@ export default function StationPhotoModule() {
 
   const sharePhoto = useCallback(async () => {
     if (!activeAlbum || !activePhotoId) return;
-    const url = `/photo/${encodeURIComponent(activeAlbum.slug)}/${activePhotoId}`;
+    const url = "/photo";
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({

@@ -7,7 +7,7 @@ import type { Section } from "@/store/uiStore";
 import { isCharacterNavSection } from "./sectionMeta";
 import type { SectionViewer } from "./viewerTypes";
 import BlogViewer from "@/app/components/viewers/BlogViewer";
-import { PhotoAlbumViewer } from "@/app/components/photo/PhotoViewer";
+import PhotoSystem from "@/app/components/photo/PhotoSystem";
 
 type AlbumDTO = {
   id: number;
@@ -116,43 +116,10 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
     );
   }
 
-  if (viewer?.type === "photo") {
-    return (
-      <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0b]">
-        <div className="h-full min-h-0 overflow-y-auto">
-          <PhotoAlbumViewer slug={viewer.slug} onBack={() => setViewer(null)} />
-        </div>
-      </section>
-    );
-  }
-
   const renderSection = () => {
     if (activeSection === "photo") {
       const albums = cacheRef.current.photo ?? [];
-      return (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {albums.map((album) => (
-            <button
-              type="button"
-              key={album.id}
-              onClick={() => setViewer({ type: "photo", slug: album.slug })}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-white/20 hover:bg-white/[0.05]"
-            >
-              {album.coverImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={album.coverImage} alt={album.title} className="aspect-[4/3] h-auto w-full object-cover" />
-              ) : (
-                <div className="aspect-[4/3] w-full bg-white/5" aria-hidden="true" />
-              )}
-              <div className="p-4">
-                <h3 className="text-base font-medium text-white">{album.title}</h3>
-                <p className="mt-2 line-clamp-2 text-sm text-white/60">{album.description ?? "Open album"}</p>
-              </div>
-            </button>
-          ))}
-          {albums.length === 0 ? <EmptyState label="No albums published yet." /> : null}
-        </div>
-      );
+      return <PhotoSystem albums={albums} />;
     }
 
     if (activeSection === "music") {

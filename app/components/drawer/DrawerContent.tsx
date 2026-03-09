@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { type SectionDrawerSection } from "@/store/useSectionDrawerStore";
 import SectionDrawerShell from "./SectionDrawerShell";
 import DrawerList, { type DrawerListItem } from "./DrawerList";
-import PhotoComments from "../comments/PhotoComments";
 
 function slugifyId(value: string) {
   return value
@@ -104,7 +103,6 @@ function DrawerBlogContent() {
 
 function DrawerPhotoContent() {
   const pathname = usePathname();
-  const router = useRouter();
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">(
     "idle"
   );
@@ -150,49 +148,10 @@ function DrawerPhotoContent() {
       albums.map((album) => ({
         id: album.slug,
         title: album.title,
-        href: `/photo/${encodeURIComponent(album.slug)}`,
+        href: "/photo",
       })),
     [albums]
   );
-
-  const viewerParams = useMemo(() => {
-    const match = pathname.match(/^\/photo\/([^/]+)\/(\d+)/);
-    if (!match) return null;
-    const rawSlug = match[1];
-    const photoId = Number(match[2]);
-    if (!Number.isFinite(photoId) || photoId <= 0) return null;
-    return {
-      slug: decodeURIComponent(rawSlug),
-      photoId: Math.floor(photoId),
-    };
-  }, [pathname]);
-
-  const activeAlbumSlug = useMemo(() => {
-    const match = pathname.match(/^\/photo\/([^/]+)/);
-    if (!match) return null;
-    return decodeURIComponent(match[1]);
-  }, [pathname]);
-
-  if (viewerParams) {
-    return (
-      <SectionDrawerShell title="Comments">
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() =>
-              router.push(`/photo/${encodeURIComponent(viewerParams.slug)}`, {
-                scroll: false,
-              })
-            }
-            className="text-left text-sm font-semibold text-white/80 transition hover:text-white"
-          >
-            ← Back to albums
-          </button>
-          <PhotoComments photoId={viewerParams.photoId} />
-        </div>
-      </SectionDrawerShell>
-    );
-  }
 
   if (status === "loading" || status === "idle") {
     return (
@@ -222,7 +181,7 @@ function DrawerPhotoContent() {
       ) : (
         <div className="space-y-1">
           {items.map((item) => {
-            const isActive = item.id === activeAlbumSlug;
+            const isActive = pathname === "/photo";
             return (
               <Link
                 key={item.id}
