@@ -23,6 +23,7 @@ type StoreState = {
   byId: Record<number, PhotoLikeState>;
   seedPhotos: (photos: PhotoLikeSeed[]) => void;
   ensurePhoto: (photoId: number, likedByMe: boolean, likesCount: number) => void;
+  toggle: (photoId: number) => void;
   optimisticToggle: (photoId: number) => OptimisticSnapshot;
   applyServerState: (photoId: number, likedByMe?: boolean, likesCount?: number) => void;
   rollback: (photoId: number, snapshot: OptimisticSnapshot) => void;
@@ -69,6 +70,23 @@ export const usePhotoLikesStore = create<StoreState>((set, get) => ({
         [photoId]: {
           liked: !!likedByMe,
           likesCount: clampCount(Number.isFinite(likesCount) ? Math.floor(likesCount) : 0),
+          pending: false,
+        },
+      },
+    }));
+  },
+
+  toggle: (photoId) => {
+    const current = get().byId[photoId] ?? { liked: false, likesCount: 0, pending: false };
+    const nextLiked = !current.liked;
+    const nextCount = clampCount(current.likesCount + (nextLiked ? 1 : -1));
+
+    set((state) => ({
+      byId: {
+        ...state.byId,
+        [photoId]: {
+          liked: nextLiked,
+          likesCount: nextCount,
           pending: false,
         },
       },
@@ -125,3 +143,19 @@ export const usePhotoLikesStore = create<StoreState>((set, get) => ({
     }));
   },
 }));
+
+export const photoLikesStore = {
+  usePhoto: (photoId: number) => {
+    const likedByMe = usePhotoLikesStore(
+      (state) => state.byId[photoId]?.liked ?? false
+    );
+    const likesCount = usePhotoLikesStore(
+      (state) => state.byId[photoId]?.likesCount ?? 0
+    );
+
+    return { likedByMe, likesCount };
+  },
+  toggle: (photoId: number) => usePhotoLikesStore.getState().toggle(photoId),
+  ensurePhoto: (photoId: number, likedByMe: boolean, likesCount: number) =>
+    usePhotoLikesStore.getState().ensurePhoto(photoId, likedByMe, likesCount),
+};
