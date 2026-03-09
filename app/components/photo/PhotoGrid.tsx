@@ -14,7 +14,7 @@ type PhotoGridProps = {
 
 export default function PhotoGrid({ photos, onOpen }: PhotoGridProps) {
   return (
-    <div className="photo-grid-layout grid gap-2 md:gap-3 lg:gap-4">
+    <div className="photo-grid-layout grid gap-2 p-2 md:gap-3 md:p-3 lg:gap-4 lg:p-4">
       {photos.map((photo) => (
         <PhotoTile key={photo.id} id={photo.id} url={photo.url} onOpen={onOpen} />
       ))}

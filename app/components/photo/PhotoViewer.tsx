@@ -177,7 +177,7 @@ export default function PhotoViewer({
   }
 
   return (
-    <div className="flex h-full w-full min-h-0 items-center justify-center">
+    <div className="flex h-full w-full min-h-0 items-center justify-center pt-10">
       <motion.div
         key={activePhoto.id}
         initial={{ opacity: 0, scale: 0.96 }}
