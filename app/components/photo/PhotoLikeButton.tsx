@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/app/providers";
 import { usePhotoLikesStore } from "./photoLikesStore";
@@ -11,6 +12,9 @@ type Props = {
   size?: "sm" | "md";
   variant?: "default" | "overlay";
   className?: string;
+  iconOnly?: boolean;
+  iconSrc?: string;
+  iconAlt?: string;
 };
 
 export default function PhotoLikeButton({
@@ -20,6 +24,9 @@ export default function PhotoLikeButton({
   size = "md",
   variant = "default",
   className,
+  iconOnly = false,
+  iconSrc,
+  iconAlt = "like",
 }: Props) {
   const { requireUser, user } = useAuth();
   const likeState = usePhotoLikesStore((state) => state.byId[photoId]);
@@ -103,6 +110,29 @@ export default function PhotoLikeButton({
   ]
     .filter(Boolean)
     .join(" ");
+
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        onClick={toggleLike}
+        disabled={loading}
+        aria-pressed={liked}
+        aria-label={`${liked ? "Unlike" : "Like"} photo`}
+        className={[
+          "inline-flex h-7 w-7 items-center justify-center bg-transparent text-white transition",
+          loading ? "cursor-wait opacity-70" : "opacity-80 hover:opacity-100",
+          className ?? "",
+        ].join(" ")}
+      >
+        {iconSrc ? (
+          <Image src={iconSrc} alt={iconAlt} width={28} height={28} className="h-7 w-7" />
+        ) : (
+          <span className="text-sm leading-none">{liked ? "♥" : "♡"}</span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <button

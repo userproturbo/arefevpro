@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import PhotoComments from "@/app/components/comments/PhotoComments";
 
 type PhotoCommentsSheetProps = {
@@ -10,29 +11,44 @@ type PhotoCommentsSheetProps = {
 };
 
 export default function PhotoCommentsSheet({ open, photoId, onClose, onCountChange }: PhotoCommentsSheetProps) {
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, open]);
+
+  if (!open) {
+    return null;
+  }
+
   return (
     <div
       onClick={onClose}
-      className={[
-        "absolute inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.55)] backdrop-blur-sm transition-opacity duration-200",
-        open ? "opacity-100" : "pointer-events-none opacity-0",
-      ].join(" ")}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
     >
       <div
         onClick={(event) => event.stopPropagation()}
-        className="w-[90%] max-w-[600px] overflow-hidden rounded-2xl border border-white/20 bg-[rgba(15,18,24,0.72)] shadow-2xl backdrop-blur-xl"
+        className="w-[520px] max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-neutral-900/90 p-6"
       >
-        <div className="flex items-center justify-between border-b border-white/15 px-4 py-3">
+        <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
           <p className="text-sm font-medium text-white">Comments</p>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/80"
+            className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:text-white"
           >
             Close
           </button>
         </div>
-        <div className="max-h-[72vh] overflow-y-auto p-4">
+        <div className="max-h-[calc(70vh-64px)] overflow-y-auto">
           <PhotoComments photoId={photoId} onCountChange={onCountChange} />
         </div>
       </div>

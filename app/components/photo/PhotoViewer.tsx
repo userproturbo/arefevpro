@@ -4,7 +4,7 @@ import NextImage from "next/image";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import PhotoLikeButton from "./PhotoLikeButton";
+import PhotoViewerControls from "./PhotoViewerControls";
 import PhotoSectionShell from "./PhotoSectionShell";
 import { usePhotoSwipe } from "./usePhotoSwipe";
 
@@ -19,7 +19,6 @@ type Props = {
   activeId: number;
   likesCount: number;
   likedByMe: boolean;
-  commentCount?: number;
   onClose?: () => void;
   onNavigate?: (photoId: number) => void;
   onOpenComments?: () => void;
@@ -34,7 +33,6 @@ export default function PhotoViewer({
   activeId,
   likesCount,
   likedByMe,
-  commentCount = 0,
   onClose,
   onNavigate,
   onOpenComments,
@@ -109,6 +107,14 @@ export default function PhotoViewer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [encodedSlug, nextPhoto, onClose, onNavigate, prevPhoto, router]);
 
+  const closeViewer = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    router.push(`/photo/${encodedSlug}`, { scroll: false });
+  };
+
   const openPrev = () => {
     if (!prevPhoto) return;
     if (onNavigate) {
@@ -143,7 +149,7 @@ export default function PhotoViewer({
   }
 
   return (
-    <div className="flex h-full w-full min-h-0 items-center justify-center pt-10">
+    <div className="flex h-full w-full min-h-0 items-center justify-center pt-12 pb-10">
       <motion.div
         key={activePhoto.id}
         initial={{ opacity: 0, scale: 0.96 }}
@@ -168,75 +174,20 @@ export default function PhotoViewer({
             className="block h-auto max-h-full max-w-full object-contain"
           />
         </div>
-        {showOverlayLike ? (
-          <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2 opacity-80 hover:opacity-100">
-            <PhotoLikeButton
-              photoId={activeId}
-              initialCount={likesCount}
-              initialLiked={likedByMe}
-              variant="overlay"
-              className="!static inline-flex h-12 items-center justify-center rounded-full bg-black/25 px-4 backdrop-blur-md transition hover:scale-110 hover:bg-black/40"
-            />
-            {onOpenComments ? (
-              <button
-                type="button"
-                onClick={onOpenComments}
-                className="inline-flex h-12 items-center justify-center gap-1 rounded-full bg-black/25 px-4 text-sm font-semibold text-white/95 backdrop-blur-md transition hover:scale-110 hover:bg-black/40"
-              >
-                <span>💬</span>
-                <span>{commentCount}</span>
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        {showEdgeNav ? (
-          <>
-            <button
-              type="button"
-              onClick={openPrev}
-              disabled={!prevPhoto}
-              aria-label="Previous photo"
-              className={[
-                "absolute left-6 top-1/2 z-20 h-12 w-12 -translate-y-1/2 rounded-full bg-black/30 backdrop-blur-md",
-                "outline-none ring-0 focus:outline-none focus:ring-0",
-                "flex items-center justify-center transition hover:scale-110 hover:bg-black/40 disabled:opacity-35",
-                "opacity-80 hover:opacity-100",
-              ].join(" ")}
-            >
-              <NextImage src="/icons/ArrowLeftBold.svg" alt="" width={24} height={24} className="h-6 w-6 brightness-0 invert" />
-            </button>
-            <button
-              type="button"
-              onClick={openNext}
-              disabled={!nextPhoto}
-              aria-label="Next photo"
-              className={[
-                "absolute right-6 top-1/2 z-20 h-12 w-12 -translate-y-1/2 rounded-full bg-black/30 backdrop-blur-md",
-                "outline-none ring-0 focus:outline-none focus:ring-0",
-                "flex items-center justify-center transition hover:scale-110 hover:bg-black/40 disabled:opacity-35",
-                "opacity-80 hover:opacity-100",
-              ].join(" ")}
-            >
-              <NextImage src="/icons/ArrowRightBold.svg" alt="" width={24} height={24} className="h-6 w-6 brightness-0 invert" />
-            </button>
-          </>
-        ) : null}
-
-        {showCloseButton && onClose ? (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close viewer"
-            className={[
-              "absolute left-6 top-6 z-20 h-12 w-12 rounded-full bg-black/30 backdrop-blur-md",
-              "outline-none ring-0 focus:outline-none focus:ring-0",
-              "inline-flex items-center justify-center transition hover:scale-110 hover:bg-black/40",
-              "opacity-80 hover:opacity-100",
-            ].join(" ")}
-          >
-            <NextImage src="/icons/Grid.svg" alt="" width={24} height={24} className="h-6 w-6 brightness-0 invert" />
-          </button>
+        {showOverlayLike || showEdgeNav || showCloseButton || onOpenComments ? (
+          <PhotoViewerControls
+            photoId={activeId}
+            likesCount={likesCount}
+            likedByMe={likedByMe}
+            hasPrev={Boolean(prevPhoto)}
+            hasNext={Boolean(nextPhoto)}
+            onPrev={openPrev}
+            onNext={openNext}
+            showGridButton={showCloseButton}
+            showEdgeNav={showEdgeNav}
+            onGridClick={closeViewer}
+            onToggleComments={() => onOpenComments?.()}
+          />
         ) : null}
       </motion.div>
     </div>

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import PhotoSceneHero from "@/app/components/photo/PhotoSceneHero";
 import SectionContentReveal from "@/app/components/section/SectionContentReveal";
-import PhotoAlbumsView from "@/app/components/photo/PhotoAlbumsView";
+import PhotoSectionController from "@/app/components/photo/PhotoSectionController";
 import { prisma } from "@/lib/prisma";
 import { normalizeNavigationCharacter } from "@/lib/characterNavigation";
 import {
@@ -81,12 +81,8 @@ export default async function PhotoPage({
               <div className="flex h-full min-h-[220px] items-center justify-center rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 text-center text-white/70">
                 {getDatabaseUnavailableMessage()}
               </div>
-            ) : albums.length === 0 ? (
-              <div className="flex h-full min-h-[220px] items-center justify-center rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 text-center text-white/70">
-                No albums yet.
-              </div>
             ) : (
-              <PhotoAlbumsView albums={albums} />
+              <PhotoSectionController mode="view" albums={albums} />
             )}
           </div>
         </main>

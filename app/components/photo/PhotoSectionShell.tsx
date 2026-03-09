@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import PhotoViewer from "./PhotoViewer";
 import PhotoGrid from "./PhotoGrid";
@@ -32,7 +32,6 @@ export default function PhotoSectionShell({
   const pathname = usePathname();
   const contentRef = useRef<HTMLDivElement | null>(null);
   const savedGridScrollTop = useRef(0);
-  const [commentCounts, setCommentCounts] = useState<Record<number, number>>({});
 
   const photoIds = useMemo(() => photos.map((photo) => photo.id), [photos]);
 
@@ -71,8 +70,6 @@ export default function PhotoSectionShell({
   });
 
   const activePhoto = photos.find((photo) => photo.id === viewer.activePhotoId) ?? null;
-  const activeCommentCount = activePhoto ? commentCounts[activePhoto.id] ?? 0 : 0;
-
   return (
     <div
       ref={contentRef}
@@ -95,7 +92,6 @@ export default function PhotoSectionShell({
                 activeId={activePhoto.id}
                 likesCount={activePhoto.likesCount}
                 likedByMe={activePhoto.likedByMe}
-                commentCount={activeCommentCount}
                 onClose={() => viewer.closePhoto()}
                 onNavigate={(photoId) => viewer.openPhoto(photoId)}
                 onOpenComments={() => viewer.setCommentsOpen(true)}
@@ -107,9 +103,6 @@ export default function PhotoSectionShell({
             <PhotoCommentsSheet
               open={viewer.commentsOpen}
               photoId={activePhoto.id}
-              onCountChange={(count) =>
-                setCommentCounts((prev) => ({ ...prev, [activePhoto.id]: count }))
-              }
               onClose={() => viewer.setCommentsOpen(false)}
             />
           </motion.div>
