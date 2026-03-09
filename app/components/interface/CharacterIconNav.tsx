@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 import { useCharacterConsole, type CharacterConsoleSection } from "@/store/characterConsoleStore";
 
 type CharacterIconNavProps = {
@@ -51,7 +50,6 @@ function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string;
 }
 
 export default function CharacterIconNav({ onSelect, className }: CharacterIconNavProps) {
-  const router = useRouter();
   const section = useCharacterConsole((state) => state.section);
   const setSection = useCharacterConsole((state) => state.setSection);
 
@@ -69,9 +67,6 @@ export default function CharacterIconNav({ onSelect, className }: CharacterIconN
           onClick={() => {
             setSection(item.id);
             onSelect(item.id);
-            if (item.id === "photo") {
-              router.push("/photo");
-            }
           }}
         />
       ))}
