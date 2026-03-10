@@ -24,7 +24,7 @@ const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const CLOSE_DRAG_THRESHOLD = 140;
 const SWIPE_DISTANCE_THRESHOLD = 80;
-const SWIPE_VELOCITY_THRESHOLD = 0.55;
+const SWIPE_VELOCITY_THRESHOLD = 0.45;
 
 type Translate = { x: number; y: number };
 type GestureMode = "none" | "pan" | "swipe" | "close" | "pinch";
@@ -40,8 +40,9 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const setActivePhoto = usePhotoStore((state) => state.setActivePhoto);
 
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [controlsVisible, setControlsVisible] = useState(true);
+  const [uiVisible, setUiVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [showArrows, setShowArrows] = useState(true);
 
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState<Translate>({ x: 0, y: 0 });
@@ -77,6 +78,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const setActivePhotoRef = useRef(setActivePhoto);
   const scaleRef = useRef(scale);
   const controlsFadeTimeoutRef = useRef<number | null>(null);
+  const uiHideTimeoutRef = useRef<number | null>(null);
 
   const activeIndex = useMemo(() => {
     if (!activePhotoId) return -1;
@@ -110,10 +112,24 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767.98px)");
-    const update = () => setIsMobile(mediaQuery.matches);
+    const update = () => {
+      const mobile = mediaQuery.matches;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setShowArrows(true);
+        return;
+      }
+      setShowArrows(window.innerWidth > window.innerHeight);
+    };
     update();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
     mediaQuery.addEventListener("change", update);
-    return () => mediaQuery.removeEventListener("change", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+      mediaQuery.removeEventListener("change", update);
+    };
   }, []);
 
   useEffect(() => {
@@ -131,6 +147,21 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       document.documentElement.style.overflow = originalHtmlOverflow;
     };
   }, []);
+
+  const scheduleUiHide = useCallback(() => {
+    if (uiHideTimeoutRef.current) {
+      window.clearTimeout(uiHideTimeoutRef.current);
+    }
+    uiHideTimeoutRef.current = window.setTimeout(() => {
+      setUiVisible(false);
+      uiHideTimeoutRef.current = null;
+    }, 2500);
+  }, []);
+
+  const revealUi = useCallback(() => {
+    setUiVisible(true);
+    scheduleUiHide();
+  }, [scheduleUiHide]);
 
   const computePanBounds = useCallback((nextScale: number) => {
     const rect = viewerRef.current?.getBoundingClientRect();
@@ -166,7 +197,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     setDragY(0);
     setSwipeOffsetX(0);
     setControlsDimmed(false);
-    setControlsVisible(true);
+    setUiVisible(true);
     gestureModeRef.current = "none";
     resetPinch();
   }, [resetPinch]);
@@ -205,6 +236,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   }, [clampTranslate]);
 
   const bumpControlsFade = useCallback(() => {
+    revealUi();
     setControlsDimmed(true);
     if (controlsFadeTimeoutRef.current) {
       window.clearTimeout(controlsFadeTimeoutRef.current);
@@ -213,7 +245,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       setControlsDimmed(false);
       controlsFadeTimeoutRef.current = null;
     }, 1200);
-  }, []);
+  }, [revealUi]);
 
   const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
@@ -255,8 +287,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   const handleSingleTap = useCallback(() => {
     if (!isMobile) return;
-    setControlsVisible((value) => !value);
-  }, [isMobile]);
+    revealUi();
+  }, [isMobile, revealUi]);
 
   const zoomToPoint = useCallback((clientX: number, clientY: number, target: HTMLElement | null) => {
     if (!target) return;
@@ -294,6 +326,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   const onImageClick = (event: MouseEvent<HTMLImageElement>) => {
     if (!isMobile) return;
+    revealUi();
     const tapType = registerTap();
 
     if (tapType === "double") {
@@ -307,6 +340,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   };
 
   const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    revealUi();
     if (event.touches.length === 2) {
       bumpControlsFade();
       pinchStartDistanceRef.current = getTouchDistance(event.touches);
@@ -495,18 +529,33 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     const rafId = window.requestAnimationFrame(() => {
       resetInteractionState();
       setLoadedPhotoId(null);
-      setControlsVisible(true);
+      setUiVisible(true);
       setCommentsOpen(false);
+      scheduleUiHide();
     });
 
     return () => window.cancelAnimationFrame(rafId);
-  }, [currentPhotoKey, resetInteractionState]);
+  }, [currentPhotoKey, resetInteractionState, scheduleUiHide]);
+
+  useEffect(() => {
+    if (commentsOpen) {
+      if (uiHideTimeoutRef.current) {
+        window.clearTimeout(uiHideTimeoutRef.current);
+        uiHideTimeoutRef.current = null;
+      }
+      return;
+    }
+    scheduleUiHide();
+  }, [commentsOpen, scheduleUiHide]);
 
   useEffect(() => {
     return () => {
       clearTapTimers();
       if (controlsFadeTimeoutRef.current) {
         window.clearTimeout(controlsFadeTimeoutRef.current);
+      }
+      if (uiHideTimeoutRef.current) {
+        window.clearTimeout(uiHideTimeoutRef.current);
       }
     };
   }, [clearTapTimers]);
@@ -532,9 +581,9 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       style={{
         backgroundColor: `rgba(0,0,0,${overlayOpacity})`,
         opacity: viewerReady ? 1 : 0,
-        transform: viewerReady ? "scale(1)" : "scale(0.95)",
+        transform: viewerReady ? "scale(1)" : "scale(0.97)",
         touchAction: "none",
-        transition: "opacity 220ms ease-out, transform 220ms ease-out, background-color 220ms ease-out",
+        transition: "opacity 200ms ease-out, transform 200ms ease-out, background-color 220ms ease-out",
       }}
     >
       <div
@@ -544,10 +593,11 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         <motion.img
           src={currentPhoto.url}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-30 blur-3xl"
+          className="absolute inset-0 h-full w-full object-cover opacity-30"
           layoutId={`photo-bg-${currentPhoto.id}`}
           style={{
-            transform: `translate3d(${backgroundOffsetX}px, ${backgroundOffsetY}px, 0) scale(1.1) translateZ(0)`,
+            filter: "blur(40px) brightness(0.7)",
+            transform: `translate3d(${backgroundOffsetX}px, ${backgroundOffsetY}px, 0) scale(1.15) translateZ(0)`,
             willChange: "transform",
             backfaceVisibility: "hidden",
           }}
@@ -600,15 +650,18 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         photoId={currentPhoto.id}
         onBackToGrid={closeViewer}
         onToggleComments={() => {
+          setUiVisible(true);
           setCommentsOpen((prev) => !prev);
-          setControlsVisible(true);
         }}
         currentIndex={currentIndexLabel}
         totalPhotos={order.length}
         commentsOpen={commentsOpen}
+        style={{
+          transform: `translate3d(${backgroundOffsetX * 0.5}px, ${backgroundOffsetY * 0.5}px, 0)`,
+        }}
         className={[
           "transition-opacity duration-200",
-          isMobile && !controlsVisible && !commentsOpen
+          isMobile && !uiVisible && !commentsOpen
             ? "opacity-0 pointer-events-none"
             : controlsDimmed && !commentsOpen
               ? "opacity-40"
@@ -616,26 +669,41 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         ].join(" ")}
       />
 
-      <button
-        type="button"
-        onClick={prevPhoto}
-        disabled={!prevPhotoId}
-        aria-label="Previous photo"
-        className="pointer-events-auto absolute left-10 top-1/2 z-30 hidden -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30 md:block"
-      >
-        <Image src="/icons/ArrowLeftBold.svg" alt="" width={28} height={28} className="h-7 w-7 brightness-0 invert" />
-      </button>
-      <button
-        type="button"
-        onClick={nextPhoto}
-        disabled={!nextPhotoId}
-        aria-label="Next photo"
-        className="pointer-events-auto absolute right-10 top-1/2 z-30 hidden -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30 md:block"
-      >
-        <Image src="/icons/ArrowRightBold.svg" alt="" width={28} height={28} className="h-7 w-7 brightness-0 invert" />
-      </button>
+      <div className="pointer-events-none absolute inset-x-0 top-[120px] bottom-[120px] z-30">
+        <button
+          type="button"
+          onClick={prevPhoto}
+          disabled={!prevPhotoId}
+          aria-label="Previous photo"
+          className={[
+            "pointer-events-auto absolute left-10 top-1/2 -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30",
+            showArrows ? "block" : "hidden",
+          ].join(" ")}
+        >
+          <Image src="/icons/ArrowLeftBold.svg" alt="" width={28} height={28} className="h-7 w-7 brightness-0 invert" />
+        </button>
+        <button
+          type="button"
+          onClick={nextPhoto}
+          disabled={!nextPhotoId}
+          aria-label="Next photo"
+          className={[
+            "pointer-events-auto absolute right-10 top-1/2 -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30",
+            showArrows ? "block" : "hidden",
+          ].join(" ")}
+        >
+          <Image src="/icons/ArrowRightBold.svg" alt="" width={28} height={28} className="h-7 w-7 brightness-0 invert" />
+        </button>
+      </div>
 
-      <PhotoComments open={commentsOpen} photoId={currentPhoto.id} onClose={() => setCommentsOpen(false)} />
+      <PhotoComments
+        open={commentsOpen}
+        photoId={currentPhoto.id}
+        onClose={() => {
+          setCommentsOpen(false);
+          scheduleUiHide();
+        }}
+      />
     </div>
   );
 }
