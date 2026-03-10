@@ -112,6 +112,22 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     return () => mediaQuery.removeEventListener("change", update);
   }, []);
 
+  useEffect(() => {
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalBodyTouchAction = document.body.style.touchAction;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.touchAction = originalBodyTouchAction;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
+  }, []);
+
   const computePanBounds = useCallback((nextScale: number) => {
     const rect = viewerRef.current?.getBoundingClientRect();
     if (!rect) {
@@ -461,44 +477,48 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   return (
     <div
       ref={viewerRef}
-      className="relative flex h-[92vh] min-h-[420px] w-full items-center justify-center overflow-hidden pt-12 pb-10 opacity-100 transition-all duration-200"
+      className="fixed inset-0 z-[100] flex w-full items-center justify-center overflow-hidden bg-black opacity-100 transition-all duration-200"
       style={{
         backgroundColor: `rgba(0,0,0,${overlayOpacity})`,
+        backgroundImage: "radial-gradient(circle at center, rgba(0,0,0,0.2), rgba(0,0,0,0.9))",
         opacity: viewerReady ? 1 : 0,
         transform: viewerReady ? "scale(1)" : "scale(0.96)",
+        touchAction: "none",
       }}
     >
       <div
-        className="relative flex h-full w-full items-center justify-center"
+        className="relative flex h-full w-full items-center justify-center overflow-hidden px-4"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        <Image
-          key={currentPhoto.id}
-          src={currentPhoto.url}
-          alt=""
-          width={1800}
-          height={1200}
-          priority
-          onMouseDown={onMouseDown}
-          onClick={onImageClick}
-          onDoubleClick={handleDoubleClick}
-          onLoad={() => setLoadedPhotoId(currentPhoto.id)}
-          className={`block h-[70vh] w-full max-h-[75vh] object-contain transform-gpu will-change-transform transition-opacity duration-300 ${
-            loadedPhotoId === currentPhoto.id ? "opacity-100" : "opacity-0"
-          }`}
-          style={{
-            transform: `translate3d(${translate.x + swipeOffsetX}px, ${translate.y + dragY}px, 0) scale(${scale})`,
-            transition: dragging
-              ? "none"
-              : "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease",
-            opacity: scale === 1 ? Math.max(0.72, 1 - Math.abs(swipeOffsetX) / 420) : 1,
-            willChange: "transform",
-            backfaceVisibility: "hidden",
-            cursor: scale > 1 ? (dragging ? "grabbing" : "grab") : "zoom-in",
-          }}
-        />
+        <div className="flex h-full max-h-[calc(100vh-120px)] w-full items-center justify-center md:max-h-[92vh]">
+          <Image
+            key={currentPhoto.id}
+            src={currentPhoto.url}
+            alt=""
+            width={1800}
+            height={1200}
+            priority
+            onMouseDown={onMouseDown}
+            onClick={onImageClick}
+            onDoubleClick={handleDoubleClick}
+            onLoad={() => setLoadedPhotoId(currentPhoto.id)}
+            className={`block max-h-full max-w-full object-contain transform-gpu will-change-transform transition-opacity duration-300 ${
+              loadedPhotoId === currentPhoto.id ? "opacity-100" : "opacity-0"
+            }`}
+            style={{
+              transform: `translate3d(${translate.x + swipeOffsetX}px, ${translate.y + dragY}px, 0) scale(${scale})`,
+              transition: dragging
+                ? "none"
+                : "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease",
+              opacity: scale === 1 ? Math.max(0.72, 1 - Math.abs(swipeOffsetX) / 420) : 1,
+              willChange: "transform",
+              backfaceVisibility: "hidden",
+              cursor: scale > 1 ? (dragging ? "grabbing" : "grab") : "zoom-in",
+            }}
+          />
+        </div>
       </div>
 
       <PhotoControls

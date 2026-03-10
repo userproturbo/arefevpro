@@ -112,18 +112,18 @@ export default function PhotoControls({
             type="button"
             onClick={onBackToGrid}
             aria-label="Close viewer"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur transition-all duration-200"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur transition-all duration-200 active:scale-95"
           >
             ✕
           </button>
         </div>
 
-        <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-4 rounded-full bg-black/50 px-4 py-3 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-4 rounded-full border border-white/10 bg-black/50 px-4 py-3 backdrop-blur-md bottom-[calc(24px+env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onBackToGrid}
             aria-label="Open grid"
-            className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white transition-all duration-200 active:scale-95"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white transition-all duration-150 active:scale-95 active:bg-white/20"
           >
             <Image
               src="/icons/Grid.svg"
@@ -139,7 +139,7 @@ export default function PhotoControls({
             onClick={onLike}
             aria-label={photo.likedByMe ? "Unlike photo" : "Like photo"}
             className={[
-              "inline-flex min-h-[44px] items-center justify-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm text-white transition-all duration-200 active:scale-95",
+              "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white transition-all duration-150 active:scale-95",
               photo.likedByMe ? "bg-[#ff7a1a]/30" : "bg-white/10",
             ].join(" ")}
           >
@@ -149,9 +149,9 @@ export default function PhotoControls({
               width={22}
               height={22}
               className={[
-                "h-5 w-5 brightness-0 invert transition-all duration-200",
+                "h-5 w-5 brightness-0 invert transition-all duration-150",
                 photo.likedByMe
-                  ? "scale-110 opacity-100 drop-shadow-[0_0_8px_rgba(255,120,0,0.6)]"
+                  ? "scale-110 opacity-100 drop-shadow-[0_0_10px_rgba(255,120,0,0.75)]"
                   : "opacity-80",
               ].join(" ")}
             />
@@ -163,8 +163,8 @@ export default function PhotoControls({
             onClick={onToggleComments}
             aria-label="Open comments"
             className={[
-              "inline-flex min-h-[44px] items-center justify-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm text-white transition-all duration-200 active:scale-95",
-              commentsOpen ? "bg-white/20" : "bg-white/10",
+              "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white transition-all duration-150 active:scale-95",
+              commentsOpen ? "bg-white/20 shadow-[0_0_12px_rgba(255,255,255,0.18)]" : "bg-white/10",
             ].join(" ")}
           >
             <Image
