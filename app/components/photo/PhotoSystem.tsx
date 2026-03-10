@@ -63,6 +63,7 @@ export default function PhotoSystem({ albums }: PhotoSystemProps) {
         .map((photo) => ({
           id: photo.id,
           url: photo.url,
+          blurUrl: typeof photo.blurUrl === "string" ? photo.blurUrl : undefined,
           likesCount: typeof photo.likesCount === "number" ? photo.likesCount : 0,
           commentsCount: typeof photo.commentsCount === "number" ? photo.commentsCount : 0,
           likedByMe: typeof photo.likedByMe === "boolean" ? photo.likedByMe : false,

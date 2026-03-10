@@ -54,6 +54,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const [viewerReady, setViewerReady] = useState(false);
   const [controlsDimmed, setControlsDimmed] = useState(false);
   const [dominantColor, setDominantColor] = useState("rgb(20, 20, 20)");
+  const [viewerWidth, setViewerWidth] = useState(1);
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<Translate>({ x: 0, y: 0 });
@@ -93,6 +94,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const currentPhotoKey = currentPhoto?.id ?? null;
   const prevPhotoId = activeIndex > 0 ? order[activeIndex - 1] : null;
   const nextPhotoId = activeIndex >= 0 && activeIndex < order.length - 1 ? order[activeIndex + 1] : null;
+  const prevPhoto = prevPhotoId ? photos[prevPhotoId] : null;
+  const nextPhoto = nextPhotoId ? photos[nextPhotoId] : null;
   const currentIndexLabel = activeIndex >= 0 ? activeIndex + 1 : 0;
 
   useEffect(() => {
@@ -131,6 +134,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       const mobile = mediaQuery.matches;
       setIsMobile(mobile);
       setShowArrows(true);
+      setViewerWidth(Math.max(viewerRef.current?.clientWidth ?? window.innerWidth ?? 1, 1));
     };
     update();
     window.addEventListener("resize", update);
@@ -220,14 +224,14 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     onCloseRef.current();
   }, [resetInteractionState]);
 
-  const nextPhoto = useCallback(() => {
+  const goToNextPhoto = useCallback(() => {
     const id = nextPhotoIdRef.current;
     if (!id) return;
     resetInteractionState();
     setActivePhotoRef.current(id);
   }, [resetInteractionState]);
 
-  const prevPhoto = useCallback(() => {
+  const goToPrevPhoto = useCallback(() => {
     const id = prevPhotoIdRef.current;
     if (!id) return;
     resetInteractionState();
@@ -444,8 +448,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         SWIPE_DISTANCE_THRESHOLD,
         SWIPE_VELOCITY_THRESHOLD
       );
-      if (swipeDecision === "next") nextPhoto();
-      if (swipeDecision === "prev") prevPhoto();
+      if (swipeDecision === "next") goToNextPhoto();
+      if (swipeDecision === "prev") goToPrevPhoto();
       if (swipeDecision === "none") setSwipeOffsetX(0);
 
       gestureModeRef.current = "none";
@@ -493,11 +497,11 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       }
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        nextPhoto();
+        goToNextPhoto();
       }
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        prevPhoto();
+        goToPrevPhoto();
       }
       if (event.key === "+") {
         event.preventDefault();
@@ -516,7 +520,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [closeViewer, nextPhoto, prevPhoto, updateScale]);
+  }, [closeViewer, goToNextPhoto, goToPrevPhoto, updateScale]);
 
   useEffect(() => {
     window.addEventListener("wheel", handleWheel, { passive: false });
@@ -619,6 +623,10 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const tintValues = dominantColor.replace("rgb(", "").replace(")", "");
   const controlBarTint = `rgba(${tintValues}, 0.18)`;
   const backgroundTint = `rgba(${tintValues}, 0.12)`;
+  const swipeProgress = scale === 1 ? Math.min(Math.abs(swipeOffsetX) / viewerWidth, 1) : 0;
+  const currentOpacity = scale === 1 ? 1 - 0.3 * swipeProgress : 1;
+  const nextOpacity = swipeOffsetX < 0 ? 0.6 + 0.4 * swipeProgress : 0.6;
+  const prevOpacity = swipeOffsetX > 0 ? 0.6 + 0.4 * swipeProgress : 0.6;
 
   return (
     <div
@@ -669,34 +677,95 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        <div className="flex h-full max-h-[calc(100vh-120px)] w-full items-center justify-center md:max-h-[92vh]">
-          <motion.img
-            src={currentPhoto.url}
-            alt=""
-            onMouseDown={onMouseDown}
-            onClick={onImageClick}
-            onDoubleClick={handleDoubleClick}
-            onLoad={(event) => {
-              imgRef.current = event.currentTarget;
-              setLoadedPhotoId(currentPhoto.id);
-            }}
-            layoutId={`photo-${currentPhoto.id}`}
-            className={`block max-h-full max-w-full object-contain transform-gpu will-change-transform transition-opacity duration-300 ${
-              loadedPhotoId === currentPhoto.id ? "opacity-100" : "opacity-0"
-            }`}
+        <div className="relative h-full max-h-[calc(100vh-120px)] w-full overflow-hidden md:max-h-[92vh]">
+          <div
+            className="absolute inset-0 will-change-transform"
             style={{
               transform: `translate3d(${imageOffsetX}px, ${imageOffsetY}px, 0) scale(${scale}) translateZ(0)`,
               transition: dragging
                 ? "none"
                 : "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease",
-              opacity: scale === 1 ? Math.max(0.72, 1 - Math.abs(swipeOffsetX) / 420) : 1,
-              willChange: "transform",
               backfaceVisibility: "hidden",
               transformStyle: "preserve-3d",
-              cursor: scale > 1 ? (dragging ? "grabbing" : "grab") : "zoom-in",
             }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          />
+          >
+            {prevPhoto ? (
+              <div
+                className="absolute inset-0"
+                style={{
+                  transform: "translate3d(-100%, 0, 0)",
+                  opacity: prevOpacity,
+                  transition: "opacity 200ms ease",
+                }}
+              >
+                <Image
+                  src={prevPhoto.url}
+                  alt=""
+                  fill
+                  sizes="100vw"
+                  placeholder={prevPhoto.blurUrl ? "blur" : "empty"}
+                  blurDataURL={prevPhoto.blurUrl}
+                  className="object-contain"
+                />
+              </div>
+            ) : null}
+
+            <div
+              className="absolute inset-0"
+              onMouseDown={onMouseDown}
+              onClick={onImageClick}
+              onDoubleClick={handleDoubleClick}
+              style={{
+                cursor: scale > 1 ? (dragging ? "grabbing" : "grab") : "zoom-in",
+              }}
+            >
+              <Image
+                src={currentPhoto.url}
+                alt=""
+                fill
+                sizes="100vw"
+                placeholder={currentPhoto.blurUrl ? "blur" : "empty"}
+                blurDataURL={currentPhoto.blurUrl}
+                onLoadingComplete={(img) => {
+                  imgRef.current = img;
+                  setLoadedPhotoId(currentPhoto.id);
+                }}
+                className={[
+                  "object-contain transition-[opacity,filter,transform] duration-400",
+                  loadedPhotoId === currentPhoto.id
+                    ? "opacity-100 blur-0 scale-100"
+                    : "opacity-0 blur-[18px] scale-[1.03]",
+                ].join(" ")}
+                style={{
+                  opacity: loadedPhotoId === currentPhoto.id ? currentOpacity : 0,
+                  backfaceVisibility: "hidden",
+                  transform: "translateZ(0)",
+                }}
+                priority
+              />
+            </div>
+
+            {nextPhoto ? (
+              <div
+                className="absolute inset-0"
+                style={{
+                  transform: "translate3d(100%, 0, 0)",
+                  opacity: nextOpacity,
+                  transition: "opacity 200ms ease",
+                }}
+              >
+                <Image
+                  src={nextPhoto.url}
+                  alt=""
+                  fill
+                  sizes="100vw"
+                  placeholder={nextPhoto.blurUrl ? "blur" : "empty"}
+                  blurDataURL={nextPhoto.blurUrl}
+                  className="object-contain"
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -710,9 +779,6 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         currentIndex={currentIndexLabel}
         totalPhotos={order.length}
         commentsOpen={commentsOpen}
-        style={{
-          transform: `translate3d(${backgroundOffsetX * 0.5}px, ${backgroundOffsetY * 0.5}px, 0)`,
-        }}
         controlBarStyle={{
           backgroundColor: controlBarTint,
           transition: "background-color 300ms ease",
@@ -730,7 +796,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       <div className="pointer-events-none absolute inset-x-0 top-[120px] bottom-[120px] z-30">
         <button
           type="button"
-          onClick={prevPhoto}
+          onClick={goToPrevPhoto}
           disabled={!prevPhotoId}
           aria-label="Previous photo"
           className={[
@@ -742,7 +808,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         </button>
         <button
           type="button"
-          onClick={nextPhoto}
+          onClick={goToNextPhoto}
           disabled={!nextPhotoId}
           aria-label="Next photo"
           className={[
