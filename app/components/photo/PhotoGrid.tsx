@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { PhotoEntity } from "./photoStore";
 import { usePhotoStore } from "./photoStore";
@@ -66,18 +66,18 @@ function PhotoGridTile({ photo, onOpen }: { photo: PhotoEntity; onOpen: () => vo
         ) : (
           <>
             <div className="absolute inset-0 animate-pulse bg-white/5" aria-hidden="true" />
-            <motion.img
+            <Image
               src={photo.url}
               alt=""
-              onLoad={() => setIsLoaded(true)}
-              loading="lazy"
-              decoding="async"
-              layoutId={`photo-${photo.id}`}
+              fill
+              sizes="(max-width:768px) 100vw, (max-width:1200px) 50vw, 33vw"
+              placeholder={photo.blurUrl ? "blur" : "empty"}
+              blurDataURL={photo.blurUrl}
+              onLoadingComplete={() => setIsLoaded(true)}
               className={[
-                "absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]",
-                isLoaded ? "opacity-100" : "opacity-0",
+                "object-cover transition-[opacity,filter,transform] duration-400 group-hover:scale-[1.02]",
+                isLoaded ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-[18px] scale-[1.03]",
               ].join(" ")}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
           </>
         )}

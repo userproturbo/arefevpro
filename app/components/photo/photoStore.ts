@@ -5,6 +5,7 @@ import { create } from "zustand";
 export type PhotoEntity = {
   id: number;
   url: string;
+  blurUrl?: string;
   likesCount: number;
   commentsCount: number;
   likedByMe: boolean;
@@ -43,6 +44,7 @@ export const usePhotoStore = create<PhotoStoreState>((set) => ({
             {
               id: photo.id,
               url: photo.url,
+              blurUrl: typeof photo.blurUrl === "string" ? photo.blurUrl : undefined,
               likesCount: clampCount(photo.likesCount),
               commentsCount: clampCount(photo.commentsCount),
               likedByMe: !!photo.likedByMe,
@@ -97,6 +99,7 @@ export const usePhotoStore = create<PhotoStoreState>((set) => ({
         [id]: {
           id: photo.id,
           url: photo.url,
+          blurUrl: photo.blurUrl,
           likesCount: clampCount(photo.likesCount),
           commentsCount: clampCount(photo.commentsCount),
           likedByMe: !!photo.likedByMe,
@@ -111,6 +114,7 @@ export const photoStore = {
       state.photos[id] ?? {
         id,
         url: "",
+        blurUrl: undefined,
         likesCount: 0,
         commentsCount: 0,
         likedByMe: false,
