@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { FastAverageColor } from "fast-average-color";
 import { motion } from "framer-motion";
 import {
   useCallback,
@@ -52,6 +53,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const [loadedPhotoId, setLoadedPhotoId] = useState<number | null>(null);
   const [viewerReady, setViewerReady] = useState(false);
   const [controlsDimmed, setControlsDimmed] = useState(false);
+  const [dominantColor, setDominantColor] = useState("rgb(20, 20, 20)");
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<Translate>({ x: 0, y: 0 });
@@ -79,6 +81,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const scaleRef = useRef(scale);
   const controlsFadeTimeoutRef = useRef<number | null>(null);
   const uiHideTimeoutRef = useRef<number | null>(null);
+  const facRef = useRef<FastAverageColor | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   const activeIndex = useMemo(() => {
     if (!activePhotoId) return -1;
@@ -108,6 +112,17 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   useEffect(() => {
     const rafId = window.requestAnimationFrame(() => setViewerReady(true));
     return () => window.cancelAnimationFrame(rafId);
+  }, []);
+
+  useEffect(() => {
+    if (!facRef.current) {
+      facRef.current = new FastAverageColor();
+    }
+
+    return () => {
+      facRef.current?.destroy();
+      facRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -545,6 +560,38 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   }, [commentsOpen, scheduleUiHide]);
 
   useEffect(() => {
+    if (!imgRef.current || !currentPhoto || loadedPhotoId !== currentPhoto.id) {
+      return;
+    }
+
+    if (!facRef.current) {
+      facRef.current = new FastAverageColor();
+    }
+
+    facRef.current
+      .getColorAsync(imgRef.current)
+      .then((color) => {
+        const [cr = 20, cg = 20, cb = 20] = color.value ?? [20, 20, 20];
+        const luminance = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb;
+
+        if (luminance < 40) {
+          setDominantColor("rgb(20,20,20)");
+          return;
+        }
+
+        if (luminance > 200) {
+          setDominantColor(`rgb(${Math.floor(cr * 0.7)}, ${Math.floor(cg * 0.7)}, ${Math.floor(cb * 0.7)})`);
+          return;
+        }
+
+        setDominantColor(color.rgb ?? `rgb(${cr}, ${cg}, ${cb})`);
+      })
+      .catch(() => {
+        setDominantColor("rgb(20,20,20)");
+      });
+  }, [currentPhoto, loadedPhotoId]);
+
+  useEffect(() => {
     return () => {
       clearTapTimers();
       if (controlsFadeTimeoutRef.current) {
@@ -569,17 +616,22 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const imageOffsetY = translate.y + dragY;
   const backgroundOffsetX = imageOffsetX * 0.2;
   const backgroundOffsetY = imageOffsetY * 0.2;
+  const tintValues = dominantColor.replace("rgb(", "").replace(")", "");
+  const controlBarTint = `rgba(${tintValues}, 0.18)`;
+  const backgroundTint = `rgba(${tintValues}, 0.12)`;
 
   return (
     <div
       ref={viewerRef}
       className="fixed inset-0 z-[100] flex w-full items-center justify-center overflow-hidden bg-black opacity-100"
       style={{
-        backgroundColor: `rgba(0,0,0,${overlayOpacity})`,
+        backgroundColor: backgroundTint,
+        boxShadow: `inset 0 0 0 9999px rgba(0,0,0,${overlayOpacity})`,
         opacity: viewerReady ? 1 : 0,
         transform: viewerReady ? "scale(1)" : "scale(0.97)",
         touchAction: "none",
-        transition: "opacity 200ms ease-out, transform 200ms ease-out, background-color 220ms ease-out",
+        transition:
+          "opacity 200ms ease-out, transform 200ms ease-out, background-color 220ms ease-out, box-shadow 300ms ease",
       }}
     >
       <div
@@ -596,6 +648,9 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
             transform: `translate3d(${backgroundOffsetX}px, ${backgroundOffsetY}px, 0) scale(1.15) translateZ(0)`,
             willChange: "transform",
             backfaceVisibility: "hidden",
+            mixBlendMode: "screen",
+            backgroundColor: backgroundTint,
+            transition: "background-color 300ms ease",
           }}
           transition={{ type: "spring", stiffness: 260, damping: 28 }}
         />
@@ -621,7 +676,10 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
             onMouseDown={onMouseDown}
             onClick={onImageClick}
             onDoubleClick={handleDoubleClick}
-            onLoad={() => setLoadedPhotoId(currentPhoto.id)}
+            onLoad={(event) => {
+              imgRef.current = event.currentTarget;
+              setLoadedPhotoId(currentPhoto.id);
+            }}
             layoutId={`photo-${currentPhoto.id}`}
             className={`block max-h-full max-w-full object-contain transform-gpu will-change-transform transition-opacity duration-300 ${
               loadedPhotoId === currentPhoto.id ? "opacity-100" : "opacity-0"
@@ -654,6 +712,10 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         commentsOpen={commentsOpen}
         style={{
           transform: `translate3d(${backgroundOffsetX * 0.5}px, ${backgroundOffsetY * 0.5}px, 0)`,
+        }}
+        controlBarStyle={{
+          backgroundColor: controlBarTint,
+          transition: "background-color 300ms ease",
         }}
         className={[
           "transition-opacity duration-200",
