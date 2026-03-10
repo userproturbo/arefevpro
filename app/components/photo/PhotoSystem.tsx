@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LayoutGroup } from "framer-motion";
 import PhotoAlbums from "./PhotoAlbums";
 import PhotoGrid from "./PhotoGrid";
 import PhotoViewer from "./PhotoViewer";
@@ -86,53 +87,53 @@ export default function PhotoSystem({ albums }: PhotoSystemProps) {
     return <PhotoAlbums albums={albums} onOpenAlbum={openAlbum} />;
   }
 
-  if (panel === "viewer" || activePhotoId) {
-    return (
-      <PhotoViewer
-        onClose={() => {
-          setPanel("grid");
-        }}
-      />
-    );
-  }
-
   return (
-    <div className="space-y-3 md:space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => {
-            photoStore.setActivePhoto(null);
-            setPanel("albums");
+    <LayoutGroup id="photo-gallery">
+      {panel === "viewer" || activePhotoId ? (
+        <PhotoViewer
+          onClose={() => {
+            setPanel("grid");
           }}
-          className="text-xs uppercase tracking-[0.18em] text-[#ffb16e]"
-        >
-          ← Albums
-        </button>
-        <p className="text-xs text-white/70 md:text-sm">{activeAlbumTitle}</p>
-      </div>
-
-      {loadingAlbum ? (
-        <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center text-white/70">
-          Loading album...
-        </div>
-      ) : null}
-
-      {albumError ? (
-        <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center text-white/70">
-          {albumError}
-        </div>
-      ) : null}
-
-      {!loadingAlbum && !albumError ? (
-        photos.length > 0 ? (
-          <PhotoGrid photos={photos} />
-        ) : (
-          <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center text-white/70">
-            Photos will be added later.
+        />
+      ) : (
+        <div className="space-y-3 md:space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                photoStore.setActivePhoto(null);
+                setPanel("albums");
+              }}
+              className="text-xs uppercase tracking-[0.18em] text-[#ffb16e]"
+            >
+              ← Albums
+            </button>
+            <p className="text-xs text-white/70 md:text-sm">{activeAlbumTitle}</p>
           </div>
-        )
-      ) : null}
-    </div>
+
+          {loadingAlbum ? (
+            <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center text-white/70">
+              Loading album...
+            </div>
+          ) : null}
+
+          {albumError ? (
+            <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center text-white/70">
+              {albumError}
+            </div>
+          ) : null}
+
+          {!loadingAlbum && !albumError ? (
+            photos.length > 0 ? (
+              <PhotoGrid photos={photos} />
+            ) : (
+              <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center text-white/70">
+                Photos will be added later.
+              </div>
+            )
+          ) : null}
+        </div>
+      )}
+    </LayoutGroup>
   );
 }

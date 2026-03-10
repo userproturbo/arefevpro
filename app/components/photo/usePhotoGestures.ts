@@ -63,6 +63,10 @@ export function usePhotoGestures() {
     lastTapAt.current = 0;
   }, []);
 
+  const rubberBand = useCallback((distance: number, factor = 0.55) => {
+    return distance > 0 ? distance * factor : distance;
+  }, []);
+
   return {
     pinchStartDistanceRef,
     pinchStartScaleRef,
@@ -72,5 +76,6 @@ export function usePhotoGestures() {
     registerTap,
     scheduleSingleTap,
     clearTapTimers,
+    rubberBand,
   };
 }

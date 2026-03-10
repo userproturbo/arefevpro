@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import type { PhotoEntity } from "./photoStore";
 import { usePhotoStore } from "./photoStore";
@@ -57,6 +57,7 @@ function PhotoGridTile({ photo, onOpen }: { photo: PhotoEntity; onOpen: () => vo
       ref={containerRef}
       type="button"
       onClick={onOpen}
+      data-photo-id={photo.id}
       className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all duration-200"
     >
       <div className="relative aspect-[4/5] w-full">
@@ -65,16 +66,18 @@ function PhotoGridTile({ photo, onOpen }: { photo: PhotoEntity; onOpen: () => vo
         ) : (
           <>
             <div className="absolute inset-0 animate-pulse bg-white/5" aria-hidden="true" />
-            <Image
+            <motion.img
               src={photo.url}
               alt=""
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               onLoad={() => setIsLoaded(true)}
+              loading="lazy"
+              decoding="async"
+              layoutId={`photo-${photo.id}`}
               className={[
-                "object-cover transition duration-300 group-hover:scale-[1.02]",
+                "absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]",
                 isLoaded ? "opacity-100" : "opacity-0",
               ].join(" ")}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
           </>
         )}

@@ -99,27 +99,26 @@ export default function PhotoComments({ open, photoId, onClose }: PhotoCommentsP
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/10 bg-[#111] shadow-2xl transition-transform duration-200"
+          className="absolute inset-x-0 bottom-0 max-h-[80vh] rounded-t-3xl border-t border-white/10 bg-[#0b0b0b] shadow-[0_-20px_80px_rgba(0,0,0,0.8)] transition-transform duration-200"
           style={{
             height: "75vh",
-            maxHeight: "85vh",
             transform: `translate3d(0, ${sheetVisible ? sheetDragY : 520}px, 0)`,
           }}
         >
           <div className="mx-auto mb-4 mt-3 h-1.5 w-12 rounded-full bg-white/20" />
-          <div className="mb-2 flex items-center justify-between px-4 pb-3">
-            <p className="text-sm font-medium text-white">Комментарии {commentsCount}</p>
+          <div className="mb-2 flex items-center justify-between px-5 pb-3">
+            <p className="text-lg font-medium text-white">Комментарии ({commentsCount})</p>
             <button
               type="button"
               onClick={handleClose}
               aria-label="Close comments"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white/80"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/80 transition-transform duration-150 active:scale-95"
             >
               ✕
             </button>
           </div>
 
-          <div className="h-[calc(75vh-72px)] overflow-y-auto px-4 pb-4">
+          <div className="h-[calc(75vh-72px)] overflow-y-auto px-4 pb-4 [&_button]:transition-transform [&_button]:duration-150 [&_button]:active:scale-95 [&_textarea]:min-h-0 [&_textarea]:rounded-full [&_textarea]:border-white/10 [&_textarea]:bg-white/5 [&_textarea]:px-4 [&_textarea]:py-3">
             <BasePhotoComments photoId={photoId} onCountChange={onCountChange} />
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { motion } from "framer-motion";
 import {
   useCallback,
   useEffect,
@@ -66,6 +67,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     registerTap,
     scheduleSingleTap,
     clearTapTimers,
+    rubberBand,
   } = usePhotoGestures();
 
   const prevPhotoIdRef = useRef<number | null>(null);
@@ -239,26 +241,46 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     setControlsVisible((value) => !value);
   }, [isMobile]);
 
-  const toggleZoom = useCallback(() => {
-    if (scale === 1) {
+  const zoomToPoint = useCallback((clientX: number, clientY: number, target: HTMLElement | null) => {
+    if (!target) return;
+
+    if (scale !== 1) {
+      setScale(1);
+      setTranslate({ x: 0, y: 0 });
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
       updateScale(() => 2);
       return;
     }
 
-    setScale(1);
-    setTranslate({ x: 0, y: 0 });
-  }, [scale, updateScale]);
+    const ratioX = (clientX - rect.left) / rect.width - 0.5;
+    const ratioY = (clientY - rect.top) / rect.height - 0.5;
+    const nextScale = 2;
+    const nextTranslate = clampTranslate(
+      {
+        x: -ratioX * rect.width,
+        y: -ratioY * rect.height,
+      },
+      nextScale
+    );
 
-  const handleDoubleClick = () => {
-    toggleZoom();
+    setScale(nextScale);
+    setTranslate(nextTranslate);
+  }, [clampTranslate, scale, updateScale]);
+
+  const handleDoubleClick = (event: MouseEvent<HTMLImageElement>) => {
+    zoomToPoint(event.clientX, event.clientY, event.currentTarget);
   };
 
-  const onImageClick = () => {
+  const onImageClick = (event: MouseEvent<HTMLImageElement>) => {
     if (!isMobile) return;
     const tapType = registerTap();
 
     if (tapType === "double") {
-      toggleZoom();
+      zoomToPoint(event.clientX, event.clientY, event.currentTarget);
       return;
     }
 
@@ -332,7 +354,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
     if (deltaY > 0) {
       gestureModeRef.current = "close";
-      setDragY(deltaY);
+      setDragY(rubberBand(deltaY));
       setSwipeOffsetX(0);
     }
   };
@@ -487,23 +509,33 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       }}
     >
       <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <motion.img
+          src={currentPhoto.url}
+          alt=""
+          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-3xl"
+          layoutId={`photo-bg-${currentPhoto.id}`}
+          transition={{ type: "spring", stiffness: 260, damping: 28 }}
+        />
+      </div>
+
+      <div
         className="relative flex h-full w-full items-center justify-center overflow-hidden px-4"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
         <div className="flex h-full max-h-[calc(100vh-120px)] w-full items-center justify-center md:max-h-[92vh]">
-          <Image
-            key={currentPhoto.id}
+          <motion.img
             src={currentPhoto.url}
             alt=""
-            width={1800}
-            height={1200}
-            priority
             onMouseDown={onMouseDown}
             onClick={onImageClick}
             onDoubleClick={handleDoubleClick}
             onLoad={() => setLoadedPhotoId(currentPhoto.id)}
+            layoutId={`photo-${currentPhoto.id}`}
             className={`block max-h-full max-w-full object-contain transform-gpu will-change-transform transition-opacity duration-300 ${
               loadedPhotoId === currentPhoto.id ? "opacity-100" : "opacity-0"
             }`}
@@ -515,8 +547,10 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
               opacity: scale === 1 ? Math.max(0.72, 1 - Math.abs(swipeOffsetX) / 420) : 1,
               willChange: "transform",
               backfaceVisibility: "hidden",
+              transformStyle: "preserve-3d",
               cursor: scale > 1 ? (dragging ? "grabbing" : "grab") : "zoom-in",
             }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         </div>
       </div>
