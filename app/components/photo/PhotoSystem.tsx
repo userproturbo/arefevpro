@@ -97,8 +97,8 @@ export default function PhotoSystem({ albums }: PhotoSystemProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
+    <div className="space-y-3 md:space-y-4">
+      <div className="flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => {
@@ -109,7 +109,7 @@ export default function PhotoSystem({ albums }: PhotoSystemProps) {
         >
           ← Albums
         </button>
-        <p className="text-sm text-white/70">{activeAlbumTitle}</p>
+        <p className="text-xs text-white/70 md:text-sm">{activeAlbumTitle}</p>
       </div>
 
       {loadingAlbum ? (

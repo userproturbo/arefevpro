@@ -13,6 +13,7 @@ import {
 import PhotoComments from "./PhotoComments";
 import PhotoControls from "./PhotoControls";
 import { usePhotoStore } from "./photoStore";
+import { usePhotoGestures } from "./usePhotoGestures";
 
 type PhotoViewerProps = {
   onClose: () => void;
@@ -22,8 +23,7 @@ const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const CLOSE_DRAG_THRESHOLD = 140;
 const SWIPE_DISTANCE_THRESHOLD = 80;
-const SWIPE_VELOCITY_THRESHOLD = 0.6;
-const SINGLE_TAP_DELAY_MS = 220;
+const SWIPE_VELOCITY_THRESHOLD = 0.55;
 
 type Translate = { x: number; y: number };
 type GestureMode = "none" | "pan" | "swipe" | "close" | "pinch";
@@ -31,13 +31,6 @@ type GestureMode = "none" | "pan" | "swipe" | "close" | "pinch";
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
-
-const getTouchDistance = (touches: TouchList | React.TouchList) => {
-  if (touches.length < 2) return 0;
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.sqrt(dx * dx + dy * dy);
-};
 
 export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const activePhotoId = usePhotoStore((state) => state.activePhotoId);
@@ -55,6 +48,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const [dragY, setDragY] = useState(0);
   const [swipeOffsetX, setSwipeOffsetX] = useState(0);
   const [loadedPhotoId, setLoadedPhotoId] = useState<number | null>(null);
+  const [viewerReady, setViewerReady] = useState(false);
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<Translate>({ x: 0, y: 0 });
@@ -63,11 +57,16 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const startY = useRef(0);
   const gestureStartX = useRef(0);
   const gestureStartTime = useRef(0);
-
-  const pinchStartDistance = useRef<number | null>(null);
-  const pinchStartScale = useRef(1);
-
-  const tapTimeoutRef = useRef<number | null>(null);
+  const {
+    pinchStartDistanceRef,
+    pinchStartScaleRef,
+    getTouchDistance,
+    resolveSwipe,
+    resetPinch,
+    registerTap,
+    scheduleSingleTap,
+    clearTapTimers,
+  } = usePhotoGestures();
 
   const prevPhotoIdRef = useRef<number | null>(null);
   const nextPhotoIdRef = useRef<number | null>(null);
@@ -84,6 +83,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const currentPhotoKey = currentPhoto?.id ?? null;
   const prevPhotoId = activeIndex > 0 ? order[activeIndex - 1] : null;
   const nextPhotoId = activeIndex >= 0 && activeIndex < order.length - 1 ? order[activeIndex + 1] : null;
+  const currentIndexLabel = activeIndex >= 0 ? activeIndex + 1 : 0;
 
   useEffect(() => {
     scaleRef.current = scale;
@@ -98,6 +98,11 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     onCloseRef.current = onClose;
     setActivePhotoRef.current = setActivePhoto;
   }, [onClose, setActivePhoto]);
+
+  useEffect(() => {
+    const rafId = window.requestAnimationFrame(() => setViewerReady(true));
+    return () => window.cancelAnimationFrame(rafId);
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767.98px)");
@@ -142,9 +147,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     setSwipeOffsetX(0);
     setControlsVisible(true);
     gestureModeRef.current = "none";
-    pinchStartDistance.current = null;
-    pinchStartScale.current = 1;
-  }, []);
+    resetPinch();
+  }, [resetPinch]);
 
   const closeViewer = useCallback(() => {
     setCommentsOpen(false);
@@ -219,12 +223,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     setControlsVisible((value) => !value);
   }, [isMobile]);
 
-  const handleDoubleClick = () => {
-    if (tapTimeoutRef.current) {
-      window.clearTimeout(tapTimeoutRef.current);
-      tapTimeoutRef.current = null;
-    }
-
+  const toggleZoom = useCallback(() => {
     if (scale === 1) {
       updateScale(() => 2);
       return;
@@ -232,22 +231,30 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
     setScale(1);
     setTranslate({ x: 0, y: 0 });
+  }, [scale, updateScale]);
+
+  const handleDoubleClick = () => {
+    toggleZoom();
   };
 
   const onImageClick = () => {
     if (!isMobile) return;
-    if (tapTimeoutRef.current) return;
+    const tapType = registerTap();
 
-    tapTimeoutRef.current = window.setTimeout(() => {
-      tapTimeoutRef.current = null;
+    if (tapType === "double") {
+      toggleZoom();
+      return;
+    }
+
+    scheduleSingleTap(() => {
       handleSingleTap();
-    }, SINGLE_TAP_DELAY_MS);
+    });
   };
 
   const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 2) {
-      pinchStartDistance.current = getTouchDistance(event.touches as unknown as TouchList);
-      pinchStartScale.current = scaleRef.current;
+      pinchStartDistanceRef.current = getTouchDistance(event.touches);
+      pinchStartScaleRef.current = scaleRef.current;
       gestureModeRef.current = "pinch";
       return;
     }
@@ -274,10 +281,10 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   const onTouchMove = (event: TouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 2) {
-      if (!pinchStartDistance.current) return;
-      const distance = getTouchDistance(event.touches as unknown as TouchList);
-      const ratio = distance / pinchStartDistance.current;
-      const nextScale = clamp(pinchStartScale.current * ratio, MIN_SCALE, MAX_SCALE);
+      if (!pinchStartDistanceRef.current) return;
+      const distance = getTouchDistance(event.touches);
+      const ratio = distance / pinchStartDistanceRef.current;
+      const nextScale = clamp(pinchStartScaleRef.current * ratio, MIN_SCALE, MAX_SCALE);
       setScale(nextScale);
       setTranslate((prev) => clampTranslate(prev, nextScale));
       gestureModeRef.current = "pinch";
@@ -315,8 +322,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   };
 
   const onTouchEnd = () => {
-    if (pinchStartDistance.current && gestureModeRef.current === "pinch") {
-      pinchStartDistance.current = null;
+    if (pinchStartDistanceRef.current && gestureModeRef.current === "pinch") {
+      resetPinch();
       gestureModeRef.current = "none";
       setDragging(false);
       return;
@@ -326,14 +333,15 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       const duration = Math.max(Date.now() - gestureStartTime.current, 1);
       const deltaX = swipeOffsetX;
       const velocity = deltaX / duration;
-
-      if (deltaX < -SWIPE_DISTANCE_THRESHOLD || velocity < -SWIPE_VELOCITY_THRESHOLD) {
-        nextPhoto();
-      } else if (deltaX > SWIPE_DISTANCE_THRESHOLD || velocity > SWIPE_VELOCITY_THRESHOLD) {
-        prevPhoto();
-      } else {
-        setSwipeOffsetX(0);
-      }
+      const swipeDecision = resolveSwipe(
+        deltaX,
+        velocity,
+        SWIPE_DISTANCE_THRESHOLD,
+        SWIPE_VELOCITY_THRESHOLD
+      );
+      if (swipeDecision === "next") nextPhoto();
+      if (swipeDecision === "prev") prevPhoto();
+      if (swipeDecision === "none") setSwipeOffsetX(0);
 
       gestureModeRef.current = "none";
       setDragging(false);
@@ -428,6 +436,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       resetInteractionState();
       setLoadedPhotoId(null);
       setControlsVisible(true);
+      setCommentsOpen(false);
     });
 
     return () => window.cancelAnimationFrame(rafId);
@@ -435,11 +444,9 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   useEffect(() => {
     return () => {
-      if (tapTimeoutRef.current) {
-        window.clearTimeout(tapTimeoutRef.current);
-      }
+      clearTapTimers();
     };
-  }, []);
+  }, [clearTapTimers]);
 
   if (!currentPhoto) {
     return (
@@ -454,9 +461,11 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   return (
     <div
       ref={viewerRef}
-      className="relative flex h-[92vh] min-h-[420px] w-full items-center justify-center overflow-hidden pt-12 pb-10"
+      className="relative flex h-[92vh] min-h-[420px] w-full items-center justify-center overflow-hidden pt-12 pb-10 opacity-100 transition-all duration-200"
       style={{
         backgroundColor: `rgba(0,0,0,${overlayOpacity})`,
+        opacity: viewerReady ? 1 : 0,
+        transform: viewerReady ? "scale(1)" : "scale(0.96)",
       }}
     >
       <div
@@ -476,7 +485,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
           onClick={onImageClick}
           onDoubleClick={handleDoubleClick}
           onLoad={() => setLoadedPhotoId(currentPhoto.id)}
-          className={`block h-auto max-h-full max-w-full object-contain transform-gpu will-change-transform transition-opacity duration-300 ${
+          className={`block h-[70vh] w-full max-h-[75vh] object-contain transform-gpu will-change-transform transition-opacity duration-300 ${
             loadedPhotoId === currentPhoto.id ? "opacity-100" : "opacity-0"
           }`}
           style={{
@@ -484,6 +493,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
             transition: dragging
               ? "none"
               : "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease",
+            opacity: scale === 1 ? Math.max(0.72, 1 - Math.abs(swipeOffsetX) / 420) : 1,
             willChange: "transform",
             backfaceVisibility: "hidden",
             cursor: scale > 1 ? (dragging ? "grabbing" : "grab") : "zoom-in",
@@ -498,6 +508,9 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
           setCommentsOpen((prev) => !prev);
           setControlsVisible(true);
         }}
+        currentIndex={currentIndexLabel}
+        totalPhotos={order.length}
+        commentsOpen={commentsOpen}
         className={[
           "transition-opacity duration-200",
           isMobile && !controlsVisible && !commentsOpen ? "opacity-0 pointer-events-none" : "opacity-100",
@@ -509,7 +522,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         onClick={prevPhoto}
         disabled={!prevPhotoId}
         aria-label="Previous photo"
-        className="pointer-events-auto absolute left-10 top-1/2 z-30 -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30"
+        className="pointer-events-auto absolute left-10 top-1/2 z-30 hidden -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30 md:block"
       >
         <Image src="/icons/ArrowLeftBold.svg" alt="" width={28} height={28} className="h-7 w-7 brightness-0 invert" />
       </button>
@@ -518,7 +531,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         onClick={nextPhoto}
         disabled={!nextPhotoId}
         aria-label="Next photo"
-        className="pointer-events-auto absolute right-10 top-1/2 z-30 -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30"
+        className="pointer-events-auto absolute right-10 top-1/2 z-30 hidden -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30 md:block"
       >
         <Image src="/icons/ArrowRightBold.svg" alt="" width={28} height={28} className="h-7 w-7 brightness-0 invert" />
       </button>
