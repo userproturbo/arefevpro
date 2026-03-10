@@ -55,6 +55,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const [controlsDimmed, setControlsDimmed] = useState(false);
   const [dominantColor, setDominantColor] = useState("rgb(20, 20, 20)");
   const [viewerWidth, setViewerWidth] = useState(1);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<Translate>({ x: 0, y: 0 });
@@ -90,13 +91,15 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     return order.findIndex((id) => id === activePhotoId);
   }, [activePhotoId, order]);
 
-  const currentPhoto = activePhotoId ? photos[activePhotoId] : null;
+  const photoList = order.map((id) => photos[id]).filter(Boolean);
+  const safeIndex = Math.max(0, Math.min(activeIndex, photoList.length - 1));
+  const currentPhoto = photoList[safeIndex] ?? null;
   const currentPhotoKey = currentPhoto?.id ?? null;
-  const prevPhotoId = activeIndex > 0 ? order[activeIndex - 1] : null;
-  const nextPhotoId = activeIndex >= 0 && activeIndex < order.length - 1 ? order[activeIndex + 1] : null;
-  const prevPhoto = prevPhotoId ? photos[prevPhotoId] : null;
-  const nextPhoto = nextPhotoId ? photos[nextPhotoId] : null;
-  const currentIndexLabel = activeIndex >= 0 ? activeIndex + 1 : 0;
+  const prevPhoto = safeIndex > 0 ? photoList[safeIndex - 1] : null;
+  const nextPhoto = safeIndex >= 0 && safeIndex < photoList.length - 1 ? photoList[safeIndex + 1] : null;
+  const prevPhotoId = prevPhoto?.id ?? null;
+  const nextPhotoId = nextPhoto?.id ?? null;
+  const currentIndexLabel = photoList.length > 0 ? safeIndex + 1 : 0;
 
   useEffect(() => {
     scaleRef.current = scale;
@@ -544,6 +547,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     const rafId = window.requestAnimationFrame(() => {
       resetInteractionState();
       setLoadedPhotoId(null);
+      setImageFailed(false);
       setUiVisible(true);
       setCommentsOpen(false);
       scheduleUiHide();
@@ -607,13 +611,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     };
   }, [clearTapTimers]);
 
-  if (!currentPhoto) {
-    return (
-      <div className="flex h-full w-full items-center justify-center text-sm text-white/70">
-        Photo not found.
-      </div>
-    );
-  }
+  if (!currentPhoto) return null;
 
   const overlayOpacity = Math.max(0.35, 1 - dragY / 300);
   const imageOffsetX = translate.x + swipeOffsetX;
@@ -704,7 +702,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                   fill
                   sizes="100vw"
                   placeholder={prevPhoto.blurUrl ? "blur" : "empty"}
-                  blurDataURL={prevPhoto.blurUrl}
+                  blurDataURL={prevPhoto.blurUrl || undefined}
                   className="object-contain"
                 />
               </div>
@@ -725,10 +723,13 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 fill
                 sizes="100vw"
                 placeholder={currentPhoto.blurUrl ? "blur" : "empty"}
-                blurDataURL={currentPhoto.blurUrl}
+                blurDataURL={currentPhoto.blurUrl || undefined}
                 onLoadingComplete={(img) => {
                   imgRef.current = img;
                   setLoadedPhotoId(currentPhoto.id);
+                }}
+                onError={() => {
+                  setImageFailed(true);
                 }}
                 className={[
                   "object-contain transition-[opacity,filter,transform] duration-400",
@@ -743,6 +744,12 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 }}
                 priority
               />
+              {imageFailed ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/30 backdrop-blur-md" />
+                  <div className="relative h-9 w-9 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
+                </div>
+              ) : null}
             </div>
 
             {nextPhoto ? (
@@ -760,7 +767,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                   fill
                   sizes="100vw"
                   placeholder={nextPhoto.blurUrl ? "blur" : "empty"}
-                  blurDataURL={nextPhoto.blurUrl}
+                  blurDataURL={nextPhoto.blurUrl || undefined}
                   className="object-contain"
                 />
               </div>
