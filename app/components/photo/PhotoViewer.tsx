@@ -115,11 +115,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     const update = () => {
       const mobile = mediaQuery.matches;
       setIsMobile(mobile);
-      if (!mobile) {
-        setShowArrows(true);
-        return;
-      }
-      setShowArrows(window.innerWidth > window.innerHeight);
+      setShowArrows(true);
     };
     update();
     window.addEventListener("resize", update);
@@ -676,7 +672,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
           disabled={!prevPhotoId}
           aria-label="Previous photo"
           className={[
-            "pointer-events-auto absolute left-10 top-1/2 -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30",
+            "pointer-events-auto absolute left-[max(24px,10vw)] top-1/2 -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30",
             showArrows ? "block" : "hidden",
           ].join(" ")}
         >
@@ -688,7 +684,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
           disabled={!nextPhotoId}
           aria-label="Next photo"
           className={[
-            "pointer-events-auto absolute right-10 top-1/2 -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30",
+            "pointer-events-auto absolute right-[max(24px,10vw)] top-1/2 -translate-y-1/2 opacity-80 transition hover:opacity-100 disabled:opacity-30",
             showArrows ? "block" : "hidden",
           ].join(" ")}
         >
