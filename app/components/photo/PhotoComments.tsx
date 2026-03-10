@@ -99,7 +99,7 @@ export default function PhotoComments({ open, photoId, onClose }: PhotoCommentsP
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="absolute inset-x-0 bottom-0 max-h-[80vh] rounded-t-3xl border-t border-white/10 bg-[#0b0b0b] shadow-[0_-20px_80px_rgba(0,0,0,0.8)] transition-transform duration-200"
+          className="absolute inset-x-0 bottom-0 max-h-[80vh] rounded-t-3xl border-t border-white/10 bg-[#0b0b0b]/95 shadow-[0_-30px_80px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-transform duration-200"
           style={{
             height: "75vh",
             transform: `translate3d(0, ${sheetVisible ? sheetDragY : 520}px, 0)`,
