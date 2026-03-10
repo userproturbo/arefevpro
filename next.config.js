@@ -5,7 +5,7 @@ const path = require("path");
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  serverExternalPackages: ["@prisma/client", "prisma", "heic-convert", "libheif-js"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.storage.yandexcloud.net" },

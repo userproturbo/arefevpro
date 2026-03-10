@@ -1,5 +1,6 @@
 "use client";
 
+import type { TouchList as ReactTouchList } from "react";
 import { useCallback, useRef } from "react";
 
 type SwipeDecision = "next" | "prev" | "none";
@@ -12,7 +13,9 @@ export function usePhotoGestures() {
   const lastTapAt = useRef(0);
   const tapTimeout = useRef<number | null>(null);
 
-  const getTouchDistance = useCallback((touches: ArrayLike<TouchPointLike>) => {
+  const getTouchDistance = useCallback((
+    touches: TouchList | ReactTouchList | ArrayLike<TouchPointLike>
+  ) => {
     if (touches.length < 2) return 0;
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
