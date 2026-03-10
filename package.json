@@ -15,6 +15,7 @@
     "argon2": "^0.44.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "fast-average-color": "^9.5.0",
     "framer-motion": "^12.35.1",
     "heic-convert": "^2.1.0",
     "jsonwebtoken": "^9.0.2",

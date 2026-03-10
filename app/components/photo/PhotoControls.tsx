@@ -13,6 +13,7 @@ type PhotoControlsProps = {
   commentsOpen: boolean;
   className?: string;
   style?: CSSProperties;
+  controlBarStyle?: CSSProperties;
 };
 
 export default function PhotoControls({
@@ -24,6 +25,7 @@ export default function PhotoControls({
   commentsOpen,
   className,
   style,
+  controlBarStyle,
 }: PhotoControlsProps) {
   const photo = photoStore.usePhoto(photoId);
   const [likeTapped, setLikeTapped] = useState(false);
@@ -139,7 +141,10 @@ export default function PhotoControls({
           </button>
         </div>
 
-        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-7 rounded-full bg-black/40 px-[22px] py-[14px] backdrop-blur-xl bottom-[calc(32px+env(safe-area-inset-bottom))]">
+        <div
+          className="absolute left-1/2 flex -translate-x-1/2 items-center gap-7 rounded-full bg-black/40 px-[22px] py-[14px] backdrop-blur-xl bottom-[calc(32px+env(safe-area-inset-bottom))]"
+          style={controlBarStyle}
+        >
           <button
             type="button"
             onClick={onBackToGrid}
