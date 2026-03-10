@@ -118,12 +118,12 @@ export default function PhotoControls({
           </button>
         </div>
 
-        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-8 rounded-full bg-black/40 px-6 py-4 backdrop-blur-xl bottom-[calc(24px+env(safe-area-inset-bottom))]">
+        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-8 rounded-full bg-black/40 px-6 py-4 backdrop-blur-xl bottom-[calc(32px+env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onBackToGrid}
             aria-label="Open grid"
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-95 active:opacity-100"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100"
           >
             <Image
               src="/icons/Grid.svg"
@@ -139,7 +139,7 @@ export default function PhotoControls({
             onClick={onLike}
             aria-label={photo.likedByMe ? "Unlike photo" : "Like photo"}
             className={[
-              "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-95 active:opacity-100",
+              "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100",
               photo.likedByMe ? "scale-105" : "",
             ].join(" ")}
           >
@@ -163,7 +163,7 @@ export default function PhotoControls({
             onClick={onToggleComments}
             aria-label="Open comments"
             className={[
-              "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-95 active:opacity-100",
+              "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100",
               commentsOpen ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]" : "",
             ].join(" ")}
           >

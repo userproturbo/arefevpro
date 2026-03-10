@@ -50,6 +50,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const [swipeOffsetX, setSwipeOffsetX] = useState(0);
   const [loadedPhotoId, setLoadedPhotoId] = useState<number | null>(null);
   const [viewerReady, setViewerReady] = useState(false);
+  const [controlsDimmed, setControlsDimmed] = useState(false);
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<Translate>({ x: 0, y: 0 });
@@ -75,6 +76,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const onCloseRef = useRef(onClose);
   const setActivePhotoRef = useRef(setActivePhoto);
   const scaleRef = useRef(scale);
+  const controlsFadeTimeoutRef = useRef<number | null>(null);
 
   const activeIndex = useMemo(() => {
     if (!activePhotoId) return -1;
@@ -163,6 +165,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     setDragging(false);
     setDragY(0);
     setSwipeOffsetX(0);
+    setControlsDimmed(false);
     setControlsVisible(true);
     gestureModeRef.current = "none";
     resetPinch();
@@ -201,15 +204,28 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     });
   }, [clampTranslate]);
 
+  const bumpControlsFade = useCallback(() => {
+    setControlsDimmed(true);
+    if (controlsFadeTimeoutRef.current) {
+      window.clearTimeout(controlsFadeTimeoutRef.current);
+    }
+    controlsFadeTimeoutRef.current = window.setTimeout(() => {
+      setControlsDimmed(false);
+      controlsFadeTimeoutRef.current = null;
+    }, 1200);
+  }, []);
+
   const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
+    bumpControlsFade();
 
     updateScale((prev) => prev + (event.deltaY < 0 ? 0.15 : -0.15));
-  }, [updateScale]);
+  }, [bumpControlsFade, updateScale]);
 
   const onMouseDown = (event: MouseEvent<HTMLImageElement>) => {
     if (scale <= 1) return;
     event.preventDefault();
+    bumpControlsFade();
     setDragging(true);
     gestureModeRef.current = "pan";
     dragStart.current = {
@@ -220,6 +236,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   const onMouseMove = useCallback((event: globalThis.MouseEvent) => {
     if (!dragging || scaleRef.current <= 1) return;
+    bumpControlsFade();
 
     const next = {
       x: event.clientX - dragStart.current.x,
@@ -227,7 +244,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     };
 
     setTranslate(clampTranslate(next, scaleRef.current));
-  }, [clampTranslate, dragging]);
+  }, [bumpControlsFade, clampTranslate, dragging]);
 
   const onMouseUp = useCallback(() => {
     setDragging(false);
@@ -291,6 +308,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 2) {
+      bumpControlsFade();
       pinchStartDistanceRef.current = getTouchDistance(event.touches);
       pinchStartScaleRef.current = scaleRef.current;
       gestureModeRef.current = "pinch";
@@ -320,6 +338,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const onTouchMove = (event: TouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 2) {
       if (!pinchStartDistanceRef.current) return;
+      bumpControlsFade();
       const distance = getTouchDistance(event.touches);
       const ratio = distance / pinchStartDistanceRef.current;
       const nextScale = clamp(pinchStartScaleRef.current * ratio, MIN_SCALE, MAX_SCALE);
@@ -336,6 +355,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     const deltaY = touch.clientY - startY.current;
 
     if (scaleRef.current > 1 || gestureModeRef.current === "pan") {
+      bumpControlsFade();
       gestureModeRef.current = "pan";
       const next = {
         x: touch.clientX - dragStart.current.x,
@@ -346,6 +366,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     }
 
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 8) {
+      bumpControlsFade();
       gestureModeRef.current = "swipe";
       setSwipeOffsetX(deltaX);
       setDragY(0);
@@ -353,6 +374,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     }
 
     if (deltaY > 0) {
+      bumpControlsFade();
       gestureModeRef.current = "close";
       setDragY(rubberBand(deltaY));
       setSwipeOffsetX(0);
@@ -483,6 +505,9 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   useEffect(() => {
     return () => {
       clearTapTimers();
+      if (controlsFadeTimeoutRef.current) {
+        window.clearTimeout(controlsFadeTimeoutRef.current);
+      }
     };
   }, [clearTapTimers]);
 
@@ -495,17 +520,21 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   }
 
   const overlayOpacity = Math.max(0.35, 1 - dragY / 300);
+  const imageOffsetX = translate.x + swipeOffsetX;
+  const imageOffsetY = translate.y + dragY;
+  const backgroundOffsetX = imageOffsetX * 0.2;
+  const backgroundOffsetY = imageOffsetY * 0.2;
 
   return (
     <div
       ref={viewerRef}
-      className="fixed inset-0 z-[100] flex w-full items-center justify-center overflow-hidden bg-black opacity-100 transition-all duration-200"
+      className="fixed inset-0 z-[100] flex w-full items-center justify-center overflow-hidden bg-black opacity-100"
       style={{
         backgroundColor: `rgba(0,0,0,${overlayOpacity})`,
-        backgroundImage: "radial-gradient(circle at center, rgba(0,0,0,0.2), rgba(0,0,0,0.9))",
         opacity: viewerReady ? 1 : 0,
-        transform: viewerReady ? "scale(1)" : "scale(0.96)",
+        transform: viewerReady ? "scale(1)" : "scale(0.95)",
         touchAction: "none",
+        transition: "opacity 220ms ease-out, transform 220ms ease-out, background-color 220ms ease-out",
       }}
     >
       <div
@@ -515,11 +544,23 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         <motion.img
           src={currentPhoto.url}
           alt=""
-          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-3xl"
+          className="absolute inset-0 h-full w-full object-cover opacity-30 blur-3xl"
           layoutId={`photo-bg-${currentPhoto.id}`}
+          style={{
+            transform: `translate3d(${backgroundOffsetX}px, ${backgroundOffsetY}px, 0) scale(1.1) translateZ(0)`,
+            willChange: "transform",
+            backfaceVisibility: "hidden",
+          }}
           transition={{ type: "spring", stiffness: 260, damping: 28 }}
         />
       </div>
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.95) 100%)",
+        }}
+      />
 
       <div
         className="relative flex h-full w-full items-center justify-center overflow-hidden px-4"
@@ -540,7 +581,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
               loadedPhotoId === currentPhoto.id ? "opacity-100" : "opacity-0"
             }`}
             style={{
-              transform: `translate3d(${translate.x + swipeOffsetX}px, ${translate.y + dragY}px, 0) scale(${scale})`,
+              transform: `translate3d(${imageOffsetX}px, ${imageOffsetY}px, 0) scale(${scale}) translateZ(0)`,
               transition: dragging
                 ? "none"
                 : "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease",
@@ -567,7 +608,11 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         commentsOpen={commentsOpen}
         className={[
           "transition-opacity duration-200",
-          isMobile && !controlsVisible && !commentsOpen ? "opacity-0 pointer-events-none" : "opacity-100",
+          isMobile && !controlsVisible && !commentsOpen
+            ? "opacity-0 pointer-events-none"
+            : controlsDimmed && !commentsOpen
+              ? "opacity-40"
+              : "opacity-100",
         ].join(" ")}
       />
 
