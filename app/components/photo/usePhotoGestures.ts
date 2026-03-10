@@ -19,7 +19,7 @@ export function usePhotoGestures() {
     return Math.sqrt(dx * dx + dy * dy);
   }, []);
 
-  const resolveSwipe = useCallback((deltaX: number, velocity: number, distanceThreshold = 80, velocityThreshold = 0.6): SwipeDecision => {
+  const resolveSwipe = useCallback((deltaX: number, velocity: number, distanceThreshold = 80, velocityThreshold = 0.45): SwipeDecision => {
     if (deltaX < -distanceThreshold || velocity < -velocityThreshold) return "next";
     if (deltaX > distanceThreshold || velocity > velocityThreshold) return "prev";
     return "none";

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { photoStore, usePhotoStore } from "./photoStore";
 
 type PhotoControlsProps = {
@@ -11,6 +12,8 @@ type PhotoControlsProps = {
   totalPhotos: number;
   commentsOpen: boolean;
   className?: string;
+  style?: CSSProperties;
+  controlBarStyle?: CSSProperties;
 };
 
 export default function PhotoControls({
@@ -21,8 +24,20 @@ export default function PhotoControls({
   totalPhotos,
   commentsOpen,
   className,
+  style,
+  controlBarStyle,
 }: PhotoControlsProps) {
   const photo = photoStore.usePhoto(photoId);
+  const [likeTapped, setLikeTapped] = useState(false);
+  const likeTapTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (likeTapTimeoutRef.current) {
+        window.clearTimeout(likeTapTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const onLike = async () => {
     const previous = usePhotoStore.getState().photos[photoId] ?? photo;
@@ -38,11 +53,19 @@ export default function PhotoControls({
       }
     } catch {
       photoStore.setPhoto(photoId, previous);
+    } finally {
+      setLikeTapped(true);
+      if (likeTapTimeoutRef.current) {
+        window.clearTimeout(likeTapTimeoutRef.current);
+      }
+      likeTapTimeoutRef.current = window.setTimeout(() => {
+        setLikeTapped(false);
+      }, 300);
     }
   };
 
   return (
-    <div className={["pointer-events-none absolute inset-0 z-30", className ?? ""].join(" ")}>
+    <div className={["pointer-events-none absolute inset-0 z-30", className ?? ""].join(" ")} style={style}>
       <div className="absolute left-6 top-20 hidden flex-col gap-6 md:flex">
         <button
           type="button"
@@ -118,19 +141,22 @@ export default function PhotoControls({
           </button>
         </div>
 
-        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-8 rounded-full bg-black/40 px-6 py-4 backdrop-blur-xl bottom-[calc(32px+env(safe-area-inset-bottom))]">
+        <div
+          className="absolute left-1/2 flex -translate-x-1/2 items-center gap-7 rounded-full bg-black/40 px-[22px] py-[14px] backdrop-blur-xl bottom-[calc(32px+env(safe-area-inset-bottom))]"
+          style={controlBarStyle}
+        >
           <button
             type="button"
             onClick={onBackToGrid}
             aria-label="Open grid"
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-[18px] text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100"
           >
             <Image
               src="/icons/Grid.svg"
               alt="grid"
-              width={24}
-              height={24}
-              className="h-6 w-6 brightness-0 invert opacity-90"
+              width={26}
+              height={26}
+              className="h-[26px] w-[26px] brightness-0 invert opacity-90"
             />
           </button>
 
@@ -141,21 +167,22 @@ export default function PhotoControls({
             className={[
               "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100",
               photo.likedByMe ? "scale-105" : "",
+              likeTapped ? "shadow-[0_0_12px_rgba(255,120,60,0.35)]" : "",
             ].join(" ")}
           >
             <Image
               src="/icons/Fire.svg"
               alt="like"
-              width={22}
-              height={22}
+              width={26}
+              height={26}
               className={[
-                "h-5 w-5 brightness-0 invert transition-all duration-150",
+                "h-[26px] w-[26px] brightness-0 invert transition-all duration-150",
                 photo.likedByMe
                   ? "scale-110 opacity-100 drop-shadow-[0_0_10px_rgba(255,120,0,0.75)]"
                   : "opacity-80",
               ].join(" ")}
             />
-            {photo.likesCount > 0 ? <span className="text-xs">{photo.likesCount}</span> : null}
+            {photo.likesCount > 0 ? <span className="text-sm opacity-90">{photo.likesCount}</span> : null}
           </button>
 
           <button
@@ -163,18 +190,18 @@ export default function PhotoControls({
             onClick={onToggleComments}
             aria-label="Open comments"
             className={[
-              "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100",
+              "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-[18px] text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100",
               commentsOpen ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]" : "",
             ].join(" ")}
           >
             <Image
               src="/icons/CommentAlt.svg"
               alt="comments"
-              width={22}
-              height={22}
-              className="h-5 w-5 brightness-0 invert opacity-90"
+              width={26}
+              height={26}
+              className="h-[26px] w-[26px] brightness-0 invert opacity-90"
             />
-            {photo.commentsCount > 0 ? <span className="text-xs">{photo.commentsCount}</span> : null}
+            {photo.commentsCount > 0 ? <span className="text-sm opacity-90">{photo.commentsCount}</span> : null}
           </button>
         </div>
       </div>

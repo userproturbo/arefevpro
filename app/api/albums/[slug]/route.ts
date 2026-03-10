@@ -75,6 +75,7 @@ export async function GET(
         photos: album.photos.map((photo) => ({
           id: photo.id,
           url: photo.media?.url ?? "",
+          blurUrl: photo.media?.url ?? "",
           width: photo.width,
           height: photo.height,
           likesCount: photo._count.likes,
