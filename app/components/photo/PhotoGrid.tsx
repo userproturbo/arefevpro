@@ -13,7 +13,7 @@ export default function PhotoGrid({ photos }: PhotoGridProps) {
   const setActivePhoto = usePhotoStore((state) => state.setActivePhoto);
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
       {photos.map((photo) => (
         <PhotoGridTile
           key={photo.id}
@@ -69,7 +69,7 @@ function PhotoGridTile({ photo, onOpen }: { photo: PhotoEntity; onOpen: () => vo
               src={photo.url}
               alt=""
               fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               onLoad={() => setIsLoaded(true)}
               className={[
                 "object-cover transition duration-300 group-hover:scale-[1.02]",

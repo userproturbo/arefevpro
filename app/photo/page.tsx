@@ -79,9 +79,9 @@ export default async function PhotoPage({
           <Image
             src="/images/portrait.jpg"
             alt="Portrait"
-            width={56}
-            height={56}
-            className="h-14 w-14 rounded-full border border-white/20 object-cover shadow-lg"
+            width={64}
+            height={64}
+            className="h-16 w-16 rounded-full border border-white/20 object-cover shadow-lg"
           />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">

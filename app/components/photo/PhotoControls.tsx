@@ -7,6 +7,9 @@ type PhotoControlsProps = {
   photoId: number;
   onBackToGrid: () => void;
   onToggleComments: () => void;
+  currentIndex: number;
+  totalPhotos: number;
+  commentsOpen: boolean;
   className?: string;
 };
 
@@ -14,6 +17,9 @@ export default function PhotoControls({
   photoId,
   onBackToGrid,
   onToggleComments,
+  currentIndex,
+  totalPhotos,
+  commentsOpen,
   className,
 }: PhotoControlsProps) {
   const photo = photoStore.usePhoto(photoId);
@@ -96,12 +102,28 @@ export default function PhotoControls({
       </div>
 
       <div className="pointer-events-auto md:hidden">
-        <div className="absolute left-4 top-4">
+        <div className="pointer-events-none absolute left-0 right-0 top-4 flex items-center justify-center">
+          <div className="pointer-events-auto rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
+            {currentIndex} / {totalPhotos}
+          </div>
+        </div>
+        <div className="absolute right-4 top-4">
           <button
             type="button"
             onClick={onBackToGrid}
-            aria-label="Back to grid"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 backdrop-blur transition-all duration-200"
+            aria-label="Close viewer"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur transition-all duration-200"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-4 rounded-full bg-black/50 px-4 py-3 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+          <button
+            type="button"
+            onClick={onBackToGrid}
+            aria-label="Open grid"
+            className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white transition-all duration-200 active:scale-95"
           >
             <Image
               src="/icons/Grid.svg"
@@ -111,25 +133,15 @@ export default function PhotoControls({
               className="h-6 w-6 brightness-0 invert opacity-90"
             />
           </button>
-        </div>
 
-        <div className="absolute right-4 top-4">
-          <button
-            type="button"
-            onClick={onBackToGrid}
-            aria-label="Close viewer"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/90 backdrop-blur transition-all duration-200"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8 pb-[env(safe-area-inset-bottom)]">
           <button
             type="button"
             onClick={onLike}
             aria-label={photo.likedByMe ? "Unlike photo" : "Like photo"}
-            className="inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 text-white backdrop-blur transition-all duration-200"
+            className={[
+              "inline-flex min-h-[44px] items-center justify-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm text-white transition-all duration-200 active:scale-95",
+              photo.likedByMe ? "bg-[#ff7a1a]/30" : "bg-white/10",
+            ].join(" ")}
           >
             <Image
               src="/icons/Fire.svg"
@@ -150,7 +162,10 @@ export default function PhotoControls({
             type="button"
             onClick={onToggleComments}
             aria-label="Open comments"
-            className="inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 text-white backdrop-blur transition-all duration-200"
+            className={[
+              "inline-flex min-h-[44px] items-center justify-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm text-white transition-all duration-200 active:scale-95",
+              commentsOpen ? "bg-white/20" : "bg-white/10",
+            ].join(" ")}
           >
             <Image
               src="/icons/CommentAlt.svg"
