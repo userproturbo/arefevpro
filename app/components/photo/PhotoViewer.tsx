@@ -26,6 +26,7 @@ const MAX_SCALE = 4;
 const CLOSE_DRAG_THRESHOLD = 140;
 const SWIPE_DISTANCE_THRESHOLD = 80;
 const SWIPE_VELOCITY_THRESHOLD = 0.45;
+const PREFETCH_RANGE = 4;
 
 type Translate = { x: number; y: number };
 type GestureMode = "none" | "pan" | "swipe" | "close" | "pinch";
@@ -558,14 +559,24 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   }, [closeViewer, goToNextPhoto, goToPrevPhoto, updateScale]);
 
   useEffect(() => {
-    const neighbors = [order[activeIndex - 1], order[activeIndex + 1]]
-      .map((id) => (id ? photos[id] : null))
-      .filter((photo): photo is NonNullable<typeof photo> => Boolean(photo));
+    const neighbors = [];
 
-    neighbors.forEach((photo) => {
+    for (let i = 1; i <= PREFETCH_RANGE; i++) {
+      const prev = order[activeIndex - i];
+      const next = order[activeIndex + i];
+
+      if (prev) neighbors.push(photos[prev]);
+      if (next) neighbors.push(photos[next]);
+    }
+
+    neighbors
+      .filter((photo): photo is NonNullable<typeof photo> => Boolean(photo))
+      .forEach((photo) => {
       const img = new window.Image();
       img.src = photo.url;
-      img.decode?.().catch(() => {});
+      if (img.decode) {
+        img.decode().catch(() => {});
+      }
     });
   }, [activeIndex, order, photos]);
 
@@ -694,7 +705,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
           layoutId={`photo-bg-${currentPhoto.id}`}
           style={{
             filter: "blur(60px) brightness(0.7)",
-            transform: `translate3d(${backgroundOffsetX}px, ${backgroundOffsetY}px, 0) scale(1.2) translateZ(0)`,
+            transform: `translate3d(${backgroundOffsetX}px, ${backgroundOffsetY}px, 0) scale(1.2)`,
             willChange: "transform",
             backfaceVisibility: "hidden",
             mixBlendMode: "screen",
@@ -723,9 +734,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
             className="absolute inset-0 will-change-transform"
             style={{
               transform: `translate3d(${imageOffsetX}px, ${imageOffsetY}px, 0) scale(${scale})`,
-              transition: dragging
-                ? "none"
-                : "transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease",
+              transition: dragging ? "none" : "transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
               willChange: "transform",
               contain: "layout paint size",
               backfaceVisibility: "hidden",
@@ -790,8 +799,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 ].join(" ")}
                 style={{
                   opacity: isCurrentImageVisible ? currentOpacity : 0,
+                  imageRendering: "auto",
                   backfaceVisibility: "hidden",
-                  transform: "translateZ(0)",
                 }}
                 priority
               />
