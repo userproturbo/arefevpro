@@ -7,10 +7,10 @@ export default function AdminStatusBadge({ status }: AdminStatusBadgeProps) {
 
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.08em] ${
+      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] ${
         isPublished
-          ? "border-emerald-300/45 bg-emerald-400/14 text-emerald-200"
-          : "border-white/20 bg-white/10 text-white/70"
+          ? "border-[color:var(--admin-border)] bg-[color:var(--admin-glow)]/10 text-[color:var(--admin-text)]"
+          : "border-white/10 bg-white/5 text-[color:var(--admin-text-muted)]"
       }`}
     >
       {isPublished ? "Published" : "Draft"}

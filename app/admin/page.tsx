@@ -1,103 +1,62 @@
 import { requireAdmin } from "@/app/admin/lib/requireAdmin";
-import { ADMIN_STATION_SECTIONS } from "@/app/admin/components/station/adminSections";
+import AdminCharacterSidebar from "@/app/admin/components/character/AdminCharacterSidebar";
+import AdminContentWorkspace from "@/app/admin/components/character/AdminContentWorkspace";
 import {
-  AdminCard,
-  AdminEmptyState,
-  AdminPageHeader,
-  AdminSectionCard,
-  AdminShell,
-  AdminToolbar,
-} from "@/app/admin/components/foundation";
-import { prisma } from "@/lib/prisma";
-import { logServerError } from "@/lib/db";
+  renderAdminDashboard,
+  renderAdminSection,
+} from "@/app/admin/components/character/adminSectionRegistry";
+import { getAdminCharacterSection } from "@/app/admin/components/character/adminSectionMeta";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type DashboardMetrics = {
-  posts: number;
-  albums: number;
-  photos: number;
-  videos: number;
-};
+type SearchParams = Record<string, string | string[] | undefined>;
 
-async function loadDashboardMetrics(): Promise<DashboardMetrics | null> {
+function getSingleValue(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function decodeSafe(value: string): string {
   try {
-    const [posts, albums, photos, videos] = await Promise.all([
-      prisma.post.count(),
-      prisma.album.count({ where: { deletedAt: null } }),
-      prisma.photo.count({ where: { deletedAt: null } }),
-      prisma.video.count(),
-    ]);
-
-    return { posts, albums, photos, videos };
-  } catch (error) {
-    logServerError("Admin dashboard metrics error:", error);
-    return null;
+    return decodeURIComponent(value);
+  } catch {
+    return value;
   }
 }
 
-export default async function AdminPage() {
-  await requireAdmin("/admin");
-  const metrics = await loadDashboardMetrics();
-  const navItems = ADMIN_STATION_SECTIONS;
-  const manageableSections = ADMIN_STATION_SECTIONS.filter((section) => section.key !== "idle");
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const query = await searchParams;
 
-  const sectionMetrics: Record<string, string | number | undefined> = {
-    projects: metrics?.posts,
-    photo: metrics?.albums,
-    video: metrics?.videos,
-    audio: metrics?.posts,
-    blog: metrics?.posts,
-  };
+  const rawSearch = new URLSearchParams();
+  Object.entries(query ?? {}).forEach(([key, value]) => {
+    const single = getSingleValue(value);
+    if (single) rawSearch.set(key, single);
+  });
+
+  const requestedPath = `/admin${rawSearch.size > 0 ? `?${rawSearch.toString()}` : ""}`;
+  await requireAdmin(requestedPath);
+
+  const activeSection = getAdminCharacterSection(getSingleValue(query?.section));
+  const createMode = getSingleValue(query?.create) === "1";
+  const editParam = getSingleValue(query?.edit);
+  const editId = editParam && Number.isFinite(Number(editParam)) ? Number(editParam) : null;
+  const editSlug = editParam ? decodeSafe(editParam) : null;
+  const sectionContent = renderAdminSection(activeSection, {
+    createMode,
+    editId,
+    editSlug,
+    dashboard: renderAdminDashboard(),
+  });
 
   return (
-    <AdminShell navItems={navItems}>
-      <div className="space-y-6">
-        <AdminPageHeader
-          eyebrow="Control Room"
-          title="Admin Dashboard"
-          description="Manage public content and media flows without changing APIs or section workflows."
-        />
-
-        <AdminToolbar>
-          <div className="text-xs uppercase tracking-[0.16em] text-white/55">System snapshot</div>
-          <div className="flex items-center gap-4 text-xs text-white/65">
-            <span>Posts: {metrics?.posts ?? "-"}</span>
-            <span>Albums: {metrics?.albums ?? "-"}</span>
-            <span>Photos: {metrics?.photos ?? "-"}</span>
-            <span>Videos: {metrics?.videos ?? "-"}</span>
-          </div>
-        </AdminToolbar>
-
-        {manageableSections.length === 0 ? (
-          <AdminEmptyState
-            title="No sections configured"
-            description="Add admin sections to begin managing content."
-          />
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {manageableSections.map((section) => (
-              <AdminSectionCard
-                key={section.key}
-                title={section.label}
-                description={section.description}
-                href={section.href}
-                metricLabel="Records"
-                metricValue={sectionMetrics[section.key]}
-              />
-            ))}
-          </div>
-        )}
-
-        <AdminCard>
-          <h2 className="text-lg font-medium text-white">Migration-ready foundation</h2>
-          <p className="mt-2 text-sm leading-6 text-white/58">
-            This dashboard uses the new reusable admin UI primitives. Existing section modules and CRUD logic stay
-            untouched and can be migrated incrementally.
-          </p>
-        </AdminCard>
-      </div>
-    </AdminShell>
+    <main className="flex h-[100dvh] min-h-[100dvh] w-full flex-col overflow-hidden bg-[color:var(--admin-bg)] md:flex-row">
+      <AdminCharacterSidebar activeSection={activeSection} />
+      <AdminContentWorkspace activeSection={activeSection}>{sectionContent}</AdminContentWorkspace>
+    </main>
   );
 }
