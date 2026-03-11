@@ -51,6 +51,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const [dragging, setDragging] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [swipeOffsetX, setSwipeOffsetX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
   const [loadedPhotoId, setLoadedPhotoId] = useState<number | null>(null);
   const [viewerReady, setViewerReady] = useState(false);
   const [controlsDimmed, setControlsDimmed] = useState(false);
@@ -87,6 +88,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const uiHideTimeoutRef = useRef<number | null>(null);
   const facRef = useRef<FastAverageColor | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const swipeRafRef = useRef<number | null>(null);
 
   const activeIndex = useMemo(() => {
     if (!activePhotoId) return -1;
@@ -215,11 +217,16 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     setTranslate({ x: 0, y: 0 });
     setDragging(false);
     setDragY(0);
+    setIsSwiping(false);
     setSwipeOffsetX(0);
     setControlsDimmed(false);
     setUiVisible(true);
     gestureModeRef.current = "none";
     resetPinch();
+    if (swipeRafRef.current !== null) {
+      window.cancelAnimationFrame(swipeRafRef.current);
+      swipeRafRef.current = null;
+    }
   }, [resetPinch]);
 
   const closeViewer = useCallback(() => {
@@ -279,6 +286,17 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       setLoadedPhotoId(currentPhotoKey);
     }
   }, [currentPhotoKey]);
+
+  const setSwipeOffsetXDeferred = useCallback((value: number) => {
+    if (swipeRafRef.current !== null) {
+      window.cancelAnimationFrame(swipeRafRef.current);
+    }
+
+    swipeRafRef.current = window.requestAnimationFrame(() => {
+      setSwipeOffsetX(value);
+      swipeRafRef.current = null;
+    });
+  }, []);
 
   const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
@@ -374,6 +392,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     revealUi();
+    setIsSwiping(false);
     if (event.touches.length === 2) {
       bumpControlsFade();
       pinchStartDistanceRef.current = getTouchDistance(event.touches);
@@ -438,13 +457,15 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 8) {
       bumpControlsFade();
       gestureModeRef.current = "swipe";
-      setSwipeOffsetX(deltaX);
+      setIsSwiping(true);
+      setSwipeOffsetXDeferred(deltaX);
       setDragY(0);
       return;
     }
 
     if (deltaY > 0) {
       bumpControlsFade();
+      setIsSwiping(false);
       gestureModeRef.current = "close";
       setDragY(rubberBand(deltaY));
       setSwipeOffsetX(0);
@@ -452,6 +473,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   };
 
   const onTouchEnd = () => {
+    setIsSwiping(false);
     if (pinchStartDistanceRef.current && gestureModeRef.current === "pinch") {
       resetPinch();
       gestureModeRef.current = "none";
@@ -650,6 +672,9 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   useEffect(() => {
     return () => {
+      if (swipeRafRef.current !== null) {
+        window.cancelAnimationFrame(swipeRafRef.current);
+      }
       clearTapTimers();
       if (controlsFadeTimeoutRef.current) {
         window.clearTimeout(controlsFadeTimeoutRef.current);
@@ -724,7 +749,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       />
 
       <div
-        className="relative flex h-full w-full items-center justify-center overflow-hidden px-4"
+        className="relative flex h-full w-full items-center justify-center overflow-hidden"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -734,7 +759,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
             className="absolute inset-0 will-change-transform"
             style={{
               transform: `translate3d(${imageOffsetX}px, ${imageOffsetY}px, 0) scale(${scale})`,
-              transition: dragging ? "none" : "transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
+              transition: dragging || isSwiping ? "none" : "transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
               willChange: "transform",
               contain: "layout paint size",
               backfaceVisibility: "hidden",
@@ -757,7 +782,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 sizes="100vw"
                 placeholder={prevPhoto.blurUrl ? "blur" : "empty"}
                 blurDataURL={prevPhoto.blurUrl || undefined}
-                className="h-full max-w-full object-contain"
+                className="block h-screen w-auto max-w-none object-contain md:max-h-full md:max-w-full"
               />
             </div>
           ) : null}
@@ -792,7 +817,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                   setImageFailed(true);
                 }}
                 className={[
-                  "relative z-10 h-full max-w-full object-contain transition-[opacity,filter,transform] duration-400",
+                  "relative z-10 block h-screen w-auto max-w-none object-contain transition-[opacity,filter,transform] duration-400 md:max-h-full md:max-w-full",
                   isCurrentImageVisible
                     ? "opacity-100 blur-0 scale-100"
                     : "opacity-0 blur-[18px] scale-[1.03]",
@@ -828,7 +853,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 sizes="100vw"
                 placeholder={nextPhoto.blurUrl ? "blur" : "empty"}
                 blurDataURL={nextPhoto.blurUrl || undefined}
-                className="h-full max-w-full object-contain"
+                className="block h-screen w-auto max-w-none object-contain md:max-h-full md:max-w-full"
               />
             </div>
           ) : null}
