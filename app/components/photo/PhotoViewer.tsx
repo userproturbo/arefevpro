@@ -645,6 +645,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         aria-hidden="true"
       >
         <motion.img
+          key={currentPhoto.id}
           src={currentPhoto.url}
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-30"
