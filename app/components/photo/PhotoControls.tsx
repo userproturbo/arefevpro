@@ -130,78 +130,85 @@ export default function PhotoControls({
             {currentIndex} / {totalPhotos}
           </div>
         </div>
-        <div className="absolute right-4 top-4">
+
+        <div
+          className="absolute bottom-[calc(32px+env(safe-area-inset-bottom))] left-1/2 flex min-w-[260px] -translate-x-1/2 items-center justify-center rounded-full bg-transparent px-[22px] py-[14px] pr-16"
+          style={controlBarStyle}
+        >
+          <div className="flex items-center gap-7">
+            <button
+              type="button"
+              onClick={onBackToGrid}
+              aria-label="Open grid"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-[18px] text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100"
+            >
+              <Image
+                src="/icons/Grid.svg"
+                alt="grid"
+                width={26}
+                height={26}
+                className="h-[26px] w-[26px] brightness-0 invert opacity-90"
+              />
+            </button>
+
+            <button
+              type="button"
+              onClick={onLike}
+              aria-label={photo.likedByMe ? "Unlike photo" : "Like photo"}
+              className={[
+                "group inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:opacity-100 hover:opacity-100",
+                photo.likedByMe ? "scale-105" : "",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "inline-flex transition-all duration-150 group-active:scale-90",
+                  likeTapped ? "drop-shadow-[0_0_12px_rgba(255,120,60,0.35)]" : "",
+                ].join(" ")}
+              >
+                <Image
+                  src="/icons/Fire.svg"
+                  alt="like"
+                  width={26}
+                  height={26}
+                  className={[
+                    "h-[26px] w-[26px] brightness-0 invert transition-all duration-150",
+                    photo.likedByMe
+                      ? "scale-110 opacity-100 drop-shadow-[0_0_10px_rgba(255,120,0,0.75)]"
+                      : "opacity-80",
+                  ].join(" ")}
+                />
+              </span>
+              {photo.likesCount > 0 ? <span className="text-sm opacity-90">{photo.likesCount}</span> : null}
+            </button>
+
+            <button
+              type="button"
+              onClick={onToggleComments}
+              aria-label="Open comments"
+              className={[
+                "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-[18px] text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100",
+                commentsOpen ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]" : "",
+              ].join(" ")}
+            >
+              <Image
+                src="/icons/CommentAlt.svg"
+                alt="comments"
+                width={26}
+                height={26}
+                className="h-[26px] w-[26px] brightness-0 invert opacity-90"
+              />
+              {photo.commentsCount > 0 ? <span className="text-sm opacity-90">{photo.commentsCount}</span> : null}
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={onBackToGrid}
             aria-label="Close viewer"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur transition-all duration-200 active:scale-95"
+            className="absolute right-4 inline-flex min-h-[44px] items-center justify-center text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100"
           >
-            ✕
-          </button>
-        </div>
-
-        <div
-          className="absolute left-1/2 flex -translate-x-1/2 items-center gap-7 rounded-full bg-black/40 px-[22px] py-[14px] backdrop-blur-xl bottom-[calc(32px+env(safe-area-inset-bottom))]"
-          style={controlBarStyle}
-        >
-          <button
-            type="button"
-            onClick={onBackToGrid}
-            aria-label="Open grid"
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-[18px] text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100"
-          >
-            <Image
-              src="/icons/Grid.svg"
-              alt="grid"
-              width={26}
-              height={26}
-              className="h-[26px] w-[26px] brightness-0 invert opacity-90"
-            />
-          </button>
-
-          <button
-            type="button"
-            onClick={onLike}
-            aria-label={photo.likedByMe ? "Unlike photo" : "Like photo"}
-            className={[
-              "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-sm text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100",
-              photo.likedByMe ? "scale-105" : "",
-              likeTapped ? "shadow-[0_0_12px_rgba(255,120,60,0.35)]" : "",
-            ].join(" ")}
-          >
-            <Image
-              src="/icons/Fire.svg"
-              alt="like"
-              width={26}
-              height={26}
-              className={[
-                "h-[26px] w-[26px] brightness-0 invert transition-all duration-150",
-                photo.likedByMe
-                  ? "scale-110 opacity-100 drop-shadow-[0_0_10px_rgba(255,120,0,0.75)]"
-                  : "opacity-80",
-              ].join(" ")}
-            />
-            {photo.likesCount > 0 ? <span className="text-sm opacity-90">{photo.likesCount}</span> : null}
-          </button>
-
-          <button
-            type="button"
-            onClick={onToggleComments}
-            aria-label="Open comments"
-            className={[
-              "inline-flex min-h-[44px] items-center justify-center gap-2 px-1 text-[18px] text-white opacity-90 transition-all duration-150 active:scale-90 active:opacity-100 hover:opacity-100",
-              commentsOpen ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]" : "",
-            ].join(" ")}
-          >
-            <Image
-              src="/icons/CommentAlt.svg"
-              alt="comments"
-              width={26}
-              height={26}
-              className="h-[26px] w-[26px] brightness-0 invert opacity-90"
-            />
-            {photo.commentsCount > 0 ? <span className="text-sm opacity-90">{photo.commentsCount}</span> : null}
+            <span className="text-[26px] leading-none">✕</span>
           </button>
         </div>
       </div>

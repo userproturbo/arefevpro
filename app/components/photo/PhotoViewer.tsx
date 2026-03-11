@@ -657,7 +657,6 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const backgroundOffsetX = imageOffsetX * 0.2;
   const backgroundOffsetY = imageOffsetY * 0.2;
   const tintValues = dominantColor.replace("rgb(", "").replace(")", "");
-  const controlBarTint = `rgba(${tintValues}, 0.18)`;
   const backgroundTint = `rgba(${tintValues}, 0.12)`;
   const swipeProgress = scale === 1 ? Math.min(Math.abs(swipeOffsetX) / viewerWidth, 1) : 0;
   const currentOpacity = scale === 1 ? 1 - 0.3 * swipeProgress : 1;
@@ -719,7 +718,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        <div className="relative h-full max-h-[calc(100vh-120px)] w-full overflow-hidden md:max-h-[92vh]">
+        <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
           <div
             className="absolute inset-0 will-change-transform"
             style={{
@@ -745,14 +744,14 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 <Image
                   src={prevPhoto.url}
                   alt=""
-                  fill
-                  sizes="100vw"
-                  placeholder={prevPhoto.blurUrl ? "blur" : "empty"}
-                  blurDataURL={prevPhoto.blurUrl || undefined}
-                  className="object-contain"
-                />
-              </div>
-            ) : null}
+                fill
+                sizes="100vw"
+                placeholder={prevPhoto.blurUrl ? "blur" : "empty"}
+                blurDataURL={prevPhoto.blurUrl || undefined}
+                className="h-full max-w-full object-contain"
+              />
+            </div>
+          ) : null}
 
             <div
               className="absolute inset-0"
@@ -771,6 +770,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 fill
                 loading="eager"
                 decoding="async"
+                fetchPriority="high"
                 sizes="100vw"
                 placeholder={currentPhoto.blurUrl ? "blur" : "empty"}
                 blurDataURL={currentPhoto.blurUrl || undefined}
@@ -783,7 +783,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                   setImageFailed(true);
                 }}
                 className={[
-                  "relative z-10 object-contain transition-[opacity,filter,transform] duration-400",
+                  "relative z-10 h-full max-w-full object-contain transition-[opacity,filter,transform] duration-400",
                   isCurrentImageVisible
                     ? "opacity-100 blur-0 scale-100"
                     : "opacity-0 blur-[18px] scale-[1.03]",
@@ -815,14 +815,14 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 <Image
                   src={nextPhoto.url}
                   alt=""
-                  fill
-                  sizes="100vw"
-                  placeholder={nextPhoto.blurUrl ? "blur" : "empty"}
-                  blurDataURL={nextPhoto.blurUrl || undefined}
-                  className="object-contain"
-                />
-              </div>
-            ) : null}
+                fill
+                sizes="100vw"
+                placeholder={nextPhoto.blurUrl ? "blur" : "empty"}
+                blurDataURL={nextPhoto.blurUrl || undefined}
+                className="h-full max-w-full object-contain"
+              />
+            </div>
+          ) : null}
           </div>
         </div>
       </div>
@@ -838,7 +838,6 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         totalPhotos={order.length}
         commentsOpen={commentsOpen}
         controlBarStyle={{
-          backgroundColor: controlBarTint,
           transition: "background-color 300ms ease",
         }}
         className={[
