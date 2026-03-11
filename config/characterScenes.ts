@@ -64,5 +64,6 @@ export const characterScenes: CharacterSceneMap = {
     microAnimation: { rotate: [-1, 1] },
   },
   video: droneScene,
+  projects: droneScene,
   drone: droneScene,
 };

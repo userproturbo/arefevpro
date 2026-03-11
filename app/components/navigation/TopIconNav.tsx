@@ -48,6 +48,12 @@ const NAV_ITEMS: NavItem[] = [
     iconSrc: "/icons/audio.svg",
     activeMatch: (pathname) => pathname === "/music" || pathname.startsWith("/music/"),
   },
+  {
+    label: "Projects",
+    href: "/projects",
+    iconSrc: "/icons/Grid.svg",
+    activeMatch: (pathname) => pathname === "/projects" || pathname.startsWith("/projects/"),
+  },
 ];
 
 export default function TopIconNav() {
@@ -68,7 +74,7 @@ export default function TopIconNav() {
                 href={item.href}
                 aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
-                className="group relative flex h-11 w-11 items-center justify-center opacity-70 transition duration-200 hover:scale-105 hover:opacity-100 focus:outline-none focus-visible:opacity-100"
+                className="group relative flex min-h-[44px] min-w-[44px] items-center justify-center opacity-70 transition duration-200 hover:scale-105 hover:opacity-100 focus:outline-none focus-visible:opacity-100"
               >
                 <Image
                   src={item.iconSrc}

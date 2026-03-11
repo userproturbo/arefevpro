@@ -1,6 +1,11 @@
 import type { Section } from "@/store/uiStore";
 
-export type CharacterNavSection = "photo" | "music" | "video" | "blog";
+export type CharacterNavSection =
+  | "photo"
+  | "music"
+  | "video"
+  | "blog"
+  | "projects";
 
 export type SectionNavItem = {
   id: CharacterNavSection;
@@ -15,10 +20,17 @@ export const SECTION_NAV_ITEMS: SectionNavItem[] = [
   { id: "music", label: "Music", title: "Music Deck", iconSrc: "/icons/audio.svg", soundSrc: "/audio/Music.mp3" },
   { id: "video", label: "Video", title: "Video Feed", iconSrc: "/icons/video.svg", soundSrc: "/audio/Phew-action.mp3" },
   { id: "blog", label: "Blog", title: "Blog Stream", iconSrc: "/icons/blog.svg", soundSrc: "/audio/drawing.mp3" },
+  { id: "projects", label: "Projects", title: "Projects Grid", iconSrc: "/icons/Grid.svg", soundSrc: "/audio/Drone.mp3" },
 ];
 
 export function isCharacterNavSection(section: Section | null): section is CharacterNavSection {
-  return section === "photo" || section === "music" || section === "video" || section === "blog";
+  return (
+    section === "photo" ||
+    section === "music" ||
+    section === "video" ||
+    section === "blog" ||
+    section === "projects"
+  );
 }
 
 export function getSectionMeta(section: Section | null) {

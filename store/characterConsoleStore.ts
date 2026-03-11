@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
-export type CharacterConsoleSection = "photo" | "music" | "video" | "blog";
+export type CharacterConsoleSection =
+  | "photo"
+  | "music"
+  | "video"
+  | "blog"
+  | "projects";
 
 type CharacterConsoleState = {
   section: CharacterConsoleSection | null;

@@ -14,6 +14,7 @@ const ICON_ITEMS: { id: CharacterConsoleSection; label: string; iconSrc: string 
   { id: "music", label: "Music", iconSrc: "/icons/audio.svg" },
   { id: "video", label: "Video", iconSrc: "/icons/video.svg" },
   { id: "blog", label: "Blog", iconSrc: "/icons/blog.svg" },
+  { id: "projects", label: "Projects", iconSrc: "/icons/Grid.svg" },
 ];
 
 function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string; label: string; isActive: boolean; onClick: () => void }) {
@@ -21,13 +22,13 @@ function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string;
     <motion.button
       type="button"
       onClick={onClick}
-      className={`group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border p-2 transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9f8e]/75 md:h-14 md:w-14 ${
+      className={`group relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border p-2 transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9f8e]/75 md:h-14 md:w-14 ${
         isActive
           ? "border-[#ff8f7c] bg-[#6b1616]/75 shadow-[0_0_22px_rgba(255,137,112,0.35)]"
           : "border-white/35 bg-white/[0.14] shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:border-[#ff9f8e]/80 hover:bg-white/[0.22]"
       }`}
       whileHover={{ y: -1 }}
-      whileTap={{ scale: 0.98 }}
+      whileTap={{ scale: 0.9 }}
       transition={{ duration: 0.16, ease: "easeOut" }}
       aria-pressed={isActive}
       aria-label={label}
@@ -55,7 +56,7 @@ export default function CharacterIconNav({ onSelect, className }: CharacterIconN
 
   return (
     <nav
-      className={["flex w-full items-center justify-center gap-5", className ?? ""].join(" ")}
+      className={["flex w-full items-center justify-center gap-3 md:gap-5", className ?? ""].join(" ")}
       aria-label="Character sections"
     >
       {ICON_ITEMS.map((item) => (

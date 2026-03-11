@@ -23,6 +23,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
   const musicSound = useHoverSound({ src: characterScenes.music.sound, volume: characterScenes.music.soundVolume });
   const videoSound = useHoverSound({ src: characterScenes.video.sound, volume: characterScenes.video.soundVolume });
   const blogSound = useHoverSound({ src: characterScenes.blog.sound, volume: characterScenes.blog.soundVolume });
+  const projectsSound = useHoverSound({ src: characterScenes.projects.sound, volume: characterScenes.projects.soundVolume });
 
   useEffect(() => {
     if (_activeSection === null) {
@@ -30,7 +31,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
       return;
     }
 
-    if (_activeSection === "photo" || _activeSection === "music" || _activeSection === "video" || _activeSection === "blog") {
+    if (_activeSection === "photo" || _activeSection === "music" || _activeSection === "video" || _activeSection === "blog" || _activeSection === "projects") {
       setSection(_activeSection);
     }
   }, [_activeSection, setSection]);
@@ -40,6 +41,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
     musicSound.stopAndReset();
     videoSound.stopAndReset();
     blogSound.stopAndReset();
+    projectsSound.stopAndReset();
   };
 
   const playForSection = () => {
@@ -57,6 +59,10 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
     }
     if (section === "blog") {
       blogSound.play();
+      return;
+    }
+    if (section === "projects") {
+      projectsSound.play();
     }
   };
 
