@@ -339,7 +339,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
     const ratioX = (clientX - rect.left) / rect.width - 0.5;
     const ratioY = (clientY - rect.top) / rect.height - 0.5;
-    const nextScale = 2;
+    const nextScale = Math.min(MAX_SCALE, Math.max(2, rect.width / 600));
     const nextTranslate = clampTranslate(
       {
         x: -ratioX * rect.width,
@@ -409,6 +409,9 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       const ratio = distance / pinchStartDistanceRef.current;
       const nextScale = clamp(pinchStartScaleRef.current * ratio, MIN_SCALE, MAX_SCALE);
       setScale(nextScale);
+      if (nextScale <= 1) {
+        setTranslate({ x: 0, y: 0 });
+      }
       setTranslate((prev) => clampTranslate(prev, nextScale));
       gestureModeRef.current = "pinch";
       return;
@@ -467,7 +470,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       );
       if (swipeDecision === "next") goToNextPhoto();
       if (swipeDecision === "prev") goToPrevPhoto();
-      if (swipeDecision === "none") setSwipeOffsetX(0);
+      if (swipeDecision === "none") setSwipeOffsetX((prev) => prev * 0.25);
 
       gestureModeRef.current = "none";
       setDragging(false);
@@ -507,6 +510,21 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   }, [onMouseMove, onMouseUp]);
 
   useEffect(() => {
+    const resetDrag = () => {
+      setDragging(false);
+      gestureModeRef.current = "none";
+    };
+
+    window.addEventListener("blur", resetDrag);
+    document.addEventListener("mouseleave", resetDrag);
+
+    return () => {
+      window.removeEventListener("blur", resetDrag);
+      document.removeEventListener("mouseleave", resetDrag);
+    };
+  }, []);
+
+  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -540,11 +558,6 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   }, [closeViewer, goToNextPhoto, goToPrevPhoto, updateScale]);
 
   useEffect(() => {
-    window.addEventListener("wheel", handleWheel, { passive: false });
-    return () => window.removeEventListener("wheel", handleWheel);
-  }, [handleWheel]);
-
-  useEffect(() => {
     const neighbors = [order[activeIndex - 1], order[activeIndex + 1]]
       .map((id) => (id ? photos[id] : null))
       .filter((photo): photo is NonNullable<typeof photo> => Boolean(photo));
@@ -552,6 +565,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     neighbors.forEach((photo) => {
       const img = new window.Image();
       img.src = photo.url;
+      img.decode?.().catch(() => {});
     });
   }, [activeIndex, order, photos]);
 
@@ -616,6 +630,15 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
 
   useEffect(() => {
     return () => {
+      const img = imageRef.current;
+      if (img) {
+        img.src = "";
+      }
+    };
+  }, [currentPhoto.id]);
+
+  useEffect(() => {
+    return () => {
       clearTapTimers();
       if (controlsFadeTimeoutRef.current) {
         window.clearTimeout(controlsFadeTimeoutRef.current);
@@ -645,6 +668,10 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   return (
     <div
       ref={viewerRef}
+      onWheel={(e) => {
+        if (!viewerRef.current?.contains(e.target as Node)) return;
+        handleWheel(e.nativeEvent);
+      }}
       className="fixed inset-0 z-[100] flex w-full items-center justify-center overflow-hidden bg-black opacity-100"
       style={{
         backgroundColor: backgroundTint,
@@ -663,11 +690,12 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         <motion.img
           src={currentPhoto.url}
           alt=""
+          loading="lazy"
           className="absolute inset-0 h-full w-full object-cover opacity-30"
           layoutId={`photo-bg-${currentPhoto.id}`}
           style={{
-            filter: "blur(40px) brightness(0.7)",
-            transform: `translate3d(${backgroundOffsetX}px, ${backgroundOffsetY}px, 0) scale(1.15) translateZ(0)`,
+            filter: "blur(60px) brightness(0.7)",
+            transform: `translate3d(${backgroundOffsetX}px, ${backgroundOffsetY}px, 0) scale(1.2) translateZ(0)`,
             willChange: "transform",
             backfaceVisibility: "hidden",
             mixBlendMode: "screen",
@@ -695,10 +723,12 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
           <div
             className="absolute inset-0 will-change-transform"
             style={{
-              transform: `translate3d(${imageOffsetX}px, ${imageOffsetY}px, 0) scale(${scale}) translateZ(0)`,
+              transform: `translate3d(${imageOffsetX}px, ${imageOffsetY}px, 0) scale(${scale})`,
               transition: dragging
                 ? "none"
-                : "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease",
+                : "transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease",
+              willChange: "transform",
+              contain: "layout paint size",
               backfaceVisibility: "hidden",
               transformStyle: "preserve-3d",
             }}
@@ -739,6 +769,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 src={currentPhoto.url}
                 alt=""
                 fill
+                loading="eager"
+                decoding="async"
                 sizes="100vw"
                 placeholder={currentPhoto.blurUrl ? "blur" : "empty"}
                 blurDataURL={currentPhoto.blurUrl || undefined}
