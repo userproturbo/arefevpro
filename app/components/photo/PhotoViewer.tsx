@@ -56,6 +56,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const [dominantColor, setDominantColor] = useState("rgb(20, 20, 20)");
   const [viewerWidth, setViewerWidth] = useState(1);
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<Translate>({ x: 0, y: 0 });
@@ -84,7 +85,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const controlsFadeTimeoutRef = useRef<number | null>(null);
   const uiHideTimeoutRef = useRef<number | null>(null);
   const facRef = useRef<FastAverageColor | null>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
 
   const activeIndex = useMemo(() => {
     if (!activePhotoId) return -1;
@@ -264,6 +265,19 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
       controlsFadeTimeoutRef.current = null;
     }, 1200);
   }, [revealUi]);
+
+  const setImageElement = useCallback((img: HTMLImageElement | null) => {
+    imageRef.current = img;
+
+    if (!img || currentPhotoKey === null) {
+      return;
+    }
+
+    if (img.complete && img.naturalWidth > 0) {
+      setImageReady(true);
+      setLoadedPhotoId(currentPhotoKey);
+    }
+  }, [currentPhotoKey]);
 
   const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
@@ -547,6 +561,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     const rafId = window.requestAnimationFrame(() => {
       resetInteractionState();
       setLoadedPhotoId(null);
+      setImageReady(false);
       setImageFailed(false);
       setUiVisible(true);
       setCommentsOpen(false);
@@ -568,7 +583,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   }, [commentsOpen, scheduleUiHide]);
 
   useEffect(() => {
-    if (!imgRef.current || !currentPhoto || loadedPhotoId !== currentPhoto.id) {
+    if (!imageRef.current || !currentPhoto || loadedPhotoId !== currentPhoto.id) {
       return;
     }
 
@@ -577,7 +592,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
     }
 
     facRef.current
-      .getColorAsync(imgRef.current)
+      .getColorAsync(imageRef.current)
       .then((color) => {
         const [cr = 20, cg = 20, cb = 20] = color.value ?? [20, 20, 20];
         const luminance = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb;
@@ -625,6 +640,7 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
   const currentOpacity = scale === 1 ? 1 - 0.3 * swipeProgress : 1;
   const nextOpacity = swipeOffsetX < 0 ? 0.6 + 0.4 * swipeProgress : 0.6;
   const prevOpacity = swipeOffsetX > 0 ? 0.6 + 0.4 * swipeProgress : 0.6;
+  const isCurrentImageVisible = loadedPhotoId === currentPhoto.id || imageReady;
 
   return (
     <div
@@ -645,7 +661,6 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
         aria-hidden="true"
       >
         <motion.img
-          key={currentPhoto.id}
           src={currentPhoto.url}
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-30"
@@ -719,6 +734,8 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
               }}
             >
               <Image
+                key={currentPhoto.id}
+                ref={setImageElement}
                 src={currentPhoto.url}
                 alt=""
                 fill
@@ -726,20 +743,21 @@ export default function PhotoViewer({ onClose }: PhotoViewerProps) {
                 placeholder={currentPhoto.blurUrl ? "blur" : "empty"}
                 blurDataURL={currentPhoto.blurUrl || undefined}
                 onLoadingComplete={(img) => {
-                  imgRef.current = img;
+                  imageRef.current = img;
+                  setImageReady(true);
                   setLoadedPhotoId(currentPhoto.id);
                 }}
                 onError={() => {
                   setImageFailed(true);
                 }}
                 className={[
-                  "object-contain transition-[opacity,filter,transform] duration-400",
-                  loadedPhotoId === currentPhoto.id
+                  "relative z-10 object-contain transition-[opacity,filter,transform] duration-400",
+                  isCurrentImageVisible
                     ? "opacity-100 blur-0 scale-100"
                     : "opacity-0 blur-[18px] scale-[1.03]",
                 ].join(" ")}
                 style={{
-                  opacity: loadedPhotoId === currentPhoto.id ? currentOpacity : 0,
+                  opacity: isCurrentImageVisible ? currentOpacity : 0,
                   backfaceVisibility: "hidden",
                   transform: "translateZ(0)",
                 }}
