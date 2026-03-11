@@ -8,6 +8,7 @@ import { isCharacterNavSection } from "./sectionMeta";
 import type { SectionViewer } from "./viewerTypes";
 import BlogViewer from "@/app/components/viewers/BlogViewer";
 import PhotoSystem from "@/app/components/photo/PhotoSystem";
+import VideoViewerPanel from "@/app/components/video/VideoViewerPanel";
 
 type AlbumDTO = {
   id: number;
@@ -33,6 +34,8 @@ type VideoDTO = {
   thumbnailUrl: string | null;
   videoUrl: string | null;
   embedUrl: string | null;
+  likesCount: number;
+  isLikedByMe: boolean;
 };
 
 type ContentCache = {
@@ -116,6 +119,25 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
     );
   }
 
+  if (viewer?.type === "video") {
+    return (
+      <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0b]">
+        <motion.div
+          key={`video-viewer-${viewer.video.id}`}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.26, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
+          className="h-full min-h-0"
+        >
+          <VideoViewerPanel
+            video={viewer.video}
+            onBack={() => setViewer(null)}
+          />
+        </motion.div>
+      </section>
+    );
+  }
+
   const renderSection = () => {
     if (activeSection === "photo") {
       const albums = cacheRef.current.photo ?? [];
@@ -172,23 +194,61 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {videos.map((video) => (
             <article key={video.id} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-              {video.thumbnailUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={video.thumbnailUrl} alt={video.title} className="aspect-video h-auto w-full object-cover" />
-              ) : (
-                <div className="aspect-video w-full bg-white/5" aria-hidden="true" />
-              )}
+              <button
+                type="button"
+                onClick={() =>
+                  (video.embedUrl || video.videoUrl) &&
+                  setViewer({ type: "video", video })
+                }
+                disabled={!video.embedUrl && !video.videoUrl}
+                className="group relative block w-full overflow-hidden text-left disabled:cursor-default"
+                onMouseEnter={(event) => {
+                  const preview = event.currentTarget.querySelector("video");
+                  if (!(preview instanceof HTMLVideoElement)) return;
+                  void preview.play().catch(() => {});
+                }}
+                onMouseLeave={(event) => {
+                  const preview = event.currentTarget.querySelector("video");
+                  if (!(preview instanceof HTMLVideoElement)) return;
+                  preview.pause();
+                  preview.currentTime = 0;
+                }}
+              >
+                {video.thumbnailUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={video.thumbnailUrl}
+                      alt={video.title}
+                      className="aspect-video h-auto w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    />
+                    {video.videoUrl ? (
+                      <video
+                        src={video.videoUrl}
+                        poster={video.thumbnailUrl}
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition duration-300 group-hover:opacity-100"
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="aspect-video w-full bg-white/5" aria-hidden="true" />
+                )}
+              </button>
               <div className="p-4">
                 <h3 className="text-base font-medium text-white">{video.title}</h3>
                 <p className="mt-2 line-clamp-2 text-sm text-white/60">{video.description ?? "Cinematic cut"}</p>
-                {video.embedUrl ? (
-                  <a href={video.embedUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs uppercase tracking-[0.18em] text-[#8bc7ff]">
-                    Watch
-                  </a>
-                ) : video.videoUrl ? (
-                  <a href={video.videoUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs uppercase tracking-[0.18em] text-[#8bc7ff]">
+                {video.embedUrl || video.videoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setViewer({ type: "video", video })}
+                    className="mt-3 inline-block text-xs uppercase tracking-[0.18em] text-[#8bc7ff]"
+                  >
                     Open video
-                  </a>
+                  </button>
                 ) : null}
               </div>
             </article>
