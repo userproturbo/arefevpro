@@ -8,6 +8,7 @@ import { isCharacterNavSection } from "./sectionMeta";
 import type { SectionViewer } from "./viewerTypes";
 import BlogViewer from "@/app/components/viewers/BlogViewer";
 import PhotoSystem from "@/app/components/photo/PhotoSystem";
+import VideoCard from "@/app/components/video/VideoCard";
 import VideoViewerPanel from "@/app/components/video/VideoViewerPanel";
 
 type AlbumDTO = {
@@ -63,6 +64,7 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
   const cacheRef = useRef<ContentCache>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progressById, setProgressById] = useState<Record<number, number>>({});
   const [, forceRender] = useState(0);
 
   useEffect(() => {
@@ -87,6 +89,19 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
         } else if (activeSection === "video") {
           const data = await fetchJson<{ videos: VideoDTO[] }>("/api/videos", controller.signal);
           cacheRef.current.video = data.videos;
+          const nextProgress: Record<number, number> = {};
+          for (const video of data.videos) {
+            try {
+              const saved = window.localStorage.getItem(`video-progress-${video.id}`);
+              const seconds = Number(saved);
+              if (Number.isFinite(seconds) && seconds > 0) {
+                nextProgress[video.id] = Math.min(seconds / 600, 0.98);
+              }
+            } catch (error) {
+              console.error(error);
+            }
+          }
+          setProgressById(nextProgress);
         }
 
         forceRender((value) => value + 1);
@@ -132,6 +147,9 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
           <VideoViewerPanel
             video={viewer.video}
             onBack={() => setViewer(null)}
+            onProgressChange={(videoId, progress) =>
+              setProgressById((prev) => ({ ...prev, [videoId]: progress }))
+            }
           />
         </motion.div>
       </section>
@@ -193,65 +211,20 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
       return (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {videos.map((video) => (
-            <article key={video.id} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-              <button
-                type="button"
-                onClick={() =>
-                  (video.embedUrl || video.videoUrl) &&
-                  setViewer({ type: "video", video })
-                }
-                disabled={!video.embedUrl && !video.videoUrl}
-                className="group relative block w-full overflow-hidden text-left disabled:cursor-default"
-                onMouseEnter={(event) => {
-                  const preview = event.currentTarget.querySelector("video");
-                  if (!(preview instanceof HTMLVideoElement)) return;
-                  void preview.play().catch(() => {});
-                }}
-                onMouseLeave={(event) => {
-                  const preview = event.currentTarget.querySelector("video");
-                  if (!(preview instanceof HTMLVideoElement)) return;
-                  preview.pause();
-                  preview.currentTime = 0;
-                }}
-              >
-                {video.thumbnailUrl ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={video.thumbnailUrl}
-                      alt={video.title}
-                      className="aspect-video h-auto w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                    />
-                    {video.videoUrl ? (
-                      <video
-                        src={video.videoUrl}
-                        poster={video.thumbnailUrl}
-                        muted
-                        loop
-                        playsInline
-                        preload="metadata"
-                        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition duration-300 group-hover:opacity-100"
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="aspect-video w-full bg-white/5" aria-hidden="true" />
-                )}
-              </button>
-              <div className="p-4">
-                <h3 className="text-base font-medium text-white">{video.title}</h3>
-                <p className="mt-2 line-clamp-2 text-sm text-white/60">{video.description ?? "Cinematic cut"}</p>
-                {video.embedUrl || video.videoUrl ? (
-                  <button
-                    type="button"
-                    onClick={() => setViewer({ type: "video", video })}
-                    className="mt-3 inline-block text-xs uppercase tracking-[0.18em] text-[#8bc7ff]"
-                  >
-                    Open video
-                  </button>
-                ) : null}
-              </div>
-            </article>
+            <VideoCard
+              key={video.id}
+              video={{
+                id: video.id,
+                title: video.title,
+                description: video.description,
+                thumbnailUrl: video.thumbnailUrl ?? "/img/placeholder.jpg",
+                videoUrl: video.videoUrl,
+                embedUrl: video.embedUrl,
+                categoryLabel: video.embedUrl ? "External stream" : "Video archive",
+                progress: progressById[video.id] ?? 0,
+              }}
+              onOpen={() => setViewer({ type: "video", video })}
+            />
           ))}
           {videos.length === 0 ? <EmptyState label="No videos published yet." /> : null}
         </div>

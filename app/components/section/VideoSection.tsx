@@ -1,8 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { MediaDTO } from "@/types/media";
+import VideoCard, { type VideoCardItem } from "../video/VideoCard";
 import VideoViewerPanel, {
   type VideoViewerItem,
 } from "../video/VideoViewerPanel";
@@ -29,6 +30,8 @@ export default function VideoSection() {
     "idle"
   );
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
+  const [progressById, setProgressById] = useState<Record<number, number>>({});
+
   useEffect(() => {
     let cancelled = false;
 
@@ -55,6 +58,29 @@ export default function VideoSection() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (videos.length === 0) return;
+
+    const nextProgress: Record<number, number> = {};
+
+    for (const video of videos) {
+      const playableUrl = video.media?.url ?? video.videoUrl;
+      if (!playableUrl) continue;
+
+      try {
+        const saved = window.localStorage.getItem(`video-progress-${video.id}`);
+        const seconds = Number(saved);
+        if (Number.isFinite(seconds) && seconds > 0) {
+          nextProgress[video.id] = Math.min(seconds / 600, 0.98);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setProgressById(nextProgress);
+  }, [videos]);
 
   const formatDate = (createdAt: string) =>
     new Date(createdAt).toLocaleDateString("ru-RU", {
@@ -101,6 +127,9 @@ export default function VideoSection() {
               <VideoViewerPanel
                 video={toViewerItem(activeVideo, getPlayableUrl, getPreviewUrl)}
                 onBack={() => setActiveVideo(null)}
+                onProgressChange={(videoId, progress) =>
+                  setProgressById((prev) => ({ ...prev, [videoId]: progress }))
+                }
               />
             </motion.div>
           ) : (
@@ -115,10 +144,13 @@ export default function VideoSection() {
               {videos.map((video) => (
                 <VideoCard
                   key={video.id}
-                  video={video}
-                  previewUrl={getPreviewUrl(video)}
-                  playableUrl={getPlayableUrl(video)}
-                  formattedDate={formatDate(video.createdAt)}
+                  video={toCardItem(
+                    video,
+                    getPlayableUrl,
+                    getPreviewUrl,
+                    formatDate(video.createdAt),
+                    progressById[video.id] ?? 0
+                  )}
                   onOpen={() => setActiveVideo(video)}
                 />
               ))}
@@ -127,109 +159,6 @@ export default function VideoSection() {
         </AnimatePresence>
       ) : null}
     </>
-  );
-}
-
-type VideoCardProps = {
-  video: VideoItem;
-  previewUrl: string;
-  playableUrl: string | null;
-  formattedDate: string;
-  onOpen: () => void;
-};
-
-function VideoCard({
-  video,
-  previewUrl,
-  playableUrl,
-  formattedDate,
-  onOpen,
-}: VideoCardProps) {
-  const previewRef = useRef<HTMLVideoElement | null>(null);
-  const [previewPlaying, setPreviewPlaying] = useState(false);
-  const hasPlayable = Boolean(video.embedUrl || playableUrl);
-
-  const startPreview = async () => {
-    if (!playableUrl || !previewRef.current) return;
-
-    try {
-      previewRef.current.currentTime = 0;
-      await previewRef.current.play();
-      setPreviewPlaying(true);
-    } catch {
-      setPreviewPlaying(false);
-    }
-  };
-
-  const stopPreview = () => {
-    if (!previewRef.current) return;
-
-    previewRef.current.pause();
-    previewRef.current.currentTime = 0;
-    setPreviewPlaying(false);
-  };
-
-  return (
-    <article className="flex h-full flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <button
-        type="button"
-        onClick={() => hasPlayable && onOpen()}
-        onMouseEnter={() => void startPreview()}
-        onMouseLeave={stopPreview}
-        onFocus={() => void startPreview()}
-        onBlur={stopPreview}
-        disabled={!hasPlayable}
-        className="group relative overflow-hidden rounded-xl border border-white/10 bg-black/50 disabled:cursor-default"
-        aria-label={hasPlayable ? `Открыть видео ${video.title}` : `Видео ${video.title} недоступно`}
-        style={{ aspectRatio: "16 / 9" }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={previewUrl}
-          alt={video.title}
-          className={[
-            "h-full w-full object-cover transition duration-300",
-            previewPlaying ? "opacity-0" : "opacity-100 group-hover:scale-[1.02]",
-          ].join(" ")}
-        />
-        {playableUrl ? (
-          <video
-            ref={previewRef}
-            src={playableUrl}
-            poster={previewUrl}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            className={[
-              "absolute inset-0 h-full w-full object-cover transition duration-300",
-              previewPlaying ? "opacity-100" : "pointer-events-none opacity-0",
-            ].join(" ")}
-          />
-        ) : null}
-        {hasPlayable ? (
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span className="rounded-full border border-white/40 bg-black/60 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white">
-              {previewPlaying ? "Preview" : "Play"}
-            </span>
-          </span>
-        ) : null}
-      </button>
-
-      <div className="flex flex-1 flex-col gap-2">
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-white">{video.title}</h3>
-          {video.description ? (
-            <p className="line-clamp-2 text-sm text-white/70">
-              {video.description}
-            </p>
-          ) : null}
-        </div>
-        <p className="text-xs uppercase tracking-[0.18em] text-white/45">
-          {formattedDate}
-        </p>
-      </div>
-    </article>
   );
 }
 
@@ -248,5 +177,25 @@ function toViewerItem(
     likesCount: video.likesCount,
     isLikedByMe: video.isLikedByMe,
     createdAt: video.createdAt,
+  };
+}
+
+function toCardItem(
+  video: VideoItem,
+  getPlayableUrl: (video: VideoItem) => string | null,
+  getPreviewUrl: (video: VideoItem) => string,
+  formattedDate: string,
+  progress: number
+): VideoCardItem {
+  return {
+    id: video.id,
+    title: video.title,
+    description: video.description,
+    thumbnailUrl: getPreviewUrl(video),
+    videoUrl: getPlayableUrl(video),
+    embedUrl: video.embedUrl,
+    categoryLabel: video.embedUrl ? "External stream" : "Video archive",
+    metaLabel: formattedDate,
+    progress,
   };
 }
