@@ -5,8 +5,7 @@ export type Section =
   | "music"
   | "video"
   | "drone"
-  | "blog"
-  | "projects";
+  | "blog";
 
 type UIState = {
   activeSection: Section | null;

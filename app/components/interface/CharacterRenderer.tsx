@@ -80,7 +80,7 @@ export default function CharacterRenderer({ activeSection }: { activeSection: Se
     if (activeSection === "music") return <MusicNavCharacter {...sharedProps} />;
     if (activeSection === "blog") return <BlogNavCharacter {...sharedProps} />;
 
-    // No dedicated video/projects sprite set exists yet; keep cinematic continuity with drone actor.
+    // No dedicated video sprite set exists yet; keep cinematic continuity with drone actor.
     return <DroneNavCharacter {...sharedProps} />;
   };
 

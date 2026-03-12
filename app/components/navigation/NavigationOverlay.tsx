@@ -8,7 +8,6 @@ import { useNavigation } from "@/store/navigationStore";
 
 const links = [
   { label: "Home", href: "/" },
-  { label: "Projects", href: "/projects" },
   { label: "Photo", href: "/photo" },
   { label: "Video", href: "/video" },
   { label: "Music", href: "/music" },

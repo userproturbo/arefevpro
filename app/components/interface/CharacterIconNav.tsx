@@ -14,7 +14,6 @@ const ICON_ITEMS: { id: CharacterConsoleSection; label: string; iconSrc: string 
   { id: "music", label: "Music", iconSrc: "/icons/audio.svg" },
   { id: "video", label: "Video", iconSrc: "/icons/video.svg" },
   { id: "blog", label: "Blog", iconSrc: "/icons/blog.svg" },
-  { id: "projects", label: "Projects", iconSrc: "/icons/Grid.svg" },
 ];
 
 function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string; label: string; isActive: boolean; onClick: () => void }) {
