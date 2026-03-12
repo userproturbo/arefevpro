@@ -2,14 +2,15 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useCharacterConsole, type CharacterConsoleSection } from "@/store/characterConsoleStore";
+import { useCharacterConsole } from "@/store/characterConsoleStore";
+import type { CharacterNavSection } from "./sectionMeta";
 
 type CharacterIconNavProps = {
-  onSelect: (section: CharacterConsoleSection) => void;
+  onSelect: (section: CharacterNavSection) => void;
   className?: string;
 };
 
-const ICON_ITEMS: { id: CharacterConsoleSection; label: string; iconSrc: string }[] = [
+const ICON_ITEMS: { id: CharacterNavSection; label: string; iconSrc: string }[] = [
   { id: "photo", label: "Photo", iconSrc: "/icons/photo.svg" },
   { id: "music", label: "Music", iconSrc: "/icons/audio.svg" },
   { id: "video", label: "Video", iconSrc: "/icons/video.svg" },

@@ -6,7 +6,7 @@ import SectionContentPanel from "./SectionContentPanel";
 import { photoStore } from "@/app/components/photo/photoStore";
 import { useUIStore } from "@/store/uiStore";
 import type { SectionViewer } from "./viewerTypes";
-import type { CharacterConsoleSection } from "@/store/characterConsoleStore";
+import type { CharacterNavSection } from "./sectionMeta";
 
 type CharacterInterfaceLayoutProps = {
   viewer: SectionViewer;
@@ -18,7 +18,7 @@ export default function CharacterInterfaceLayout({ viewer, setViewer }: Characte
   const setActiveSection = useUIStore((state) => state.setActiveSection);
 
   const handleSectionChange = useCallback(
-    (nextSection: CharacterConsoleSection) => {
+    (nextSection: CharacterNavSection) => {
       setViewer(null);
       photoStore.setActivePhoto(null);
       setActiveSection(nextSection);

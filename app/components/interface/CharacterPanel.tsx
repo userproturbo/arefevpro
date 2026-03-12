@@ -6,12 +6,13 @@ import LayeredNavCharacter from "@/app/components/home/LayeredNavCharacter";
 import CharacterWindow from "./CharacterWindow";
 import type { Section } from "@/store/uiStore";
 import { useHoverSound } from "@/app/hooks/useHoverSound";
-import { useCharacterConsole, type CharacterConsoleSection } from "@/store/characterConsoleStore";
+import { useCharacterConsole } from "@/store/characterConsoleStore";
 import { characterScenes } from "@/config/characterScenes";
+import type { CharacterNavSection } from "./sectionMeta";
 
 type CharacterPanelProps = {
   activeSection: Section | null;
-  onSectionChange: (section: CharacterConsoleSection) => void;
+  onSectionChange: (section: CharacterNavSection) => void;
 };
 
 export default function CharacterPanel({ activeSection: _activeSection, onSectionChange }: CharacterPanelProps) {
