@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSectionConfig } from "@/lib/sections";
 import { logServerError } from "@/lib/db";
-import StationShell from "@/app/components/station/StationShell";
+import VideoSection from "@/app/components/section/VideoSection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +21,11 @@ export default async function SectionPage({
   }
 
   if (section.toLowerCase() === "video" || section.toLowerCase() === "videos") {
-    return <StationShell initialMode="video" />;
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-10">
+        <VideoSection />
+      </main>
+    );
   }
 
   let posts: Array<{

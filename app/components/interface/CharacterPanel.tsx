@@ -2,12 +2,12 @@
 
 import { useEffect } from "react";
 import CharacterIconNav from "./CharacterIconNav";
-import LayeredNavCharacter from "@/app/components/home/LayeredNavCharacter";
 import CharacterWindow from "./CharacterWindow";
 import { useHoverSound } from "@/app/hooks/useHoverSound";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
-import { characterScenes } from "@/config/characterScenes";
 import type { SiteSection } from "@/app/types/siteSections";
+import CharacterRenderer from "./CharacterRenderer";
+import { scenes } from "@/app/scenes/sceneRegistry";
 
 type CharacterPanelProps = {
   activeSection: SiteSection | null;
@@ -19,11 +19,8 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
   const hover = useCharacterConsole((state) => state.hover);
   const setSection = useCharacterConsole((state) => state.setSection);
   const setHover = useCharacterConsole((state) => state.setHover);
-  const photoSound = useHoverSound({ src: characterScenes.photo.sound, volume: characterScenes.photo.soundVolume });
-  const musicSound = useHoverSound({ src: characterScenes.music.sound, volume: characterScenes.music.soundVolume });
-  const videoSound = useHoverSound({ src: characterScenes.video.sound, volume: characterScenes.video.soundVolume });
-  const blogSound = useHoverSound({ src: characterScenes.blog.sound, volume: characterScenes.blog.soundVolume });
-  const projectsSound = useHoverSound({ src: characterScenes.projects.sound, volume: characterScenes.projects.soundVolume });
+  const activeScene = section ? scenes[section] : null;
+  const hoverSound = useHoverSound({ src: activeScene?.sound ?? "/audio/Drone.mp3", volume: 0.3 });
 
   useEffect(() => {
     if (_activeSection === null) {
@@ -42,36 +39,6 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
     }
   }, [_activeSection, setSection]);
 
-  const stopAllSounds = () => {
-    photoSound.stopAndReset();
-    musicSound.stopAndReset();
-    videoSound.stopAndReset();
-    blogSound.stopAndReset();
-    projectsSound.stopAndReset();
-  };
-
-  const playForSection = () => {
-    if (section === "photo") {
-      photoSound.play();
-      return;
-    }
-    if (section === "music") {
-      musicSound.play();
-      return;
-    }
-    if (section === "video") {
-      videoSound.play();
-      return;
-    }
-    if (section === "blog") {
-      blogSound.play();
-      return;
-    }
-    if (section === "projects") {
-      projectsSound.play();
-    }
-  };
-
   return (
     <aside className="relative flex w-full flex-none flex-col gap-4 border-b border-[#3c0f0f] bg-[linear-gradient(180deg,#201010,#131313_55%)] p-4 md:h-full md:w-[300px] md:border-b-0 md:border-r md:p-5 lg:w-[380px] xl:w-[420px]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(156,30,30,0.25),transparent_40%)]" />
@@ -81,17 +48,17 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
           onMouseEnter={() => {
             if (!section) return;
             setHover(true);
-            stopAllSounds();
-            playForSection();
+            hoverSound.stopAndReset();
+            hoverSound.play();
           }}
           onMouseLeave={() => {
             if (!hover) return;
             setHover(false);
-            stopAllSounds();
+            hoverSound.stopAndReset();
           }}
         >
           <CharacterWindow>
-            <LayeredNavCharacter />
+            <CharacterRenderer activeSection={_activeSection} />
           </CharacterWindow>
         </div>
 
@@ -99,7 +66,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
           className="mt-2 hidden md:flex"
           onSelect={(nextSection) => {
             setHover(false);
-            stopAllSounds();
+            hoverSound.stopAndReset();
             onSectionChange(nextSection);
           }}
         />
@@ -110,7 +77,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
           className="mx-auto max-w-md justify-between gap-3"
           onSelect={(nextSection) => {
             setHover(false);
-            stopAllSounds();
+            hoverSound.stopAndReset();
             onSectionChange(nextSection);
           }}
         />
