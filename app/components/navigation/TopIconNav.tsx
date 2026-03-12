@@ -48,6 +48,12 @@ const NAV_ITEMS: NavItem[] = [
     iconSrc: "/icons/audio.svg",
     activeMatch: (pathname) => pathname === "/music" || pathname.startsWith("/music/"),
   },
+  {
+    label: "Projects",
+    href: "/projects",
+    iconSrc: "/icons/Grid.svg",
+    activeMatch: (pathname) => pathname === "/projects" || pathname.startsWith("/projects/"),
+  },
 ];
 
 export default function TopIconNav() {

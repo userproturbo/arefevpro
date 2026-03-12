@@ -3,18 +3,19 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
-import type { CharacterNavSection } from "./sectionMeta";
+import type { SiteSection } from "@/app/types/siteSections";
 
 type CharacterIconNavProps = {
-  onSelect: (section: CharacterNavSection) => void;
+  onSelect: (section: SiteSection) => void;
   className?: string;
 };
 
-const ICON_ITEMS: { id: CharacterNavSection; label: string; iconSrc: string }[] = [
+const ICON_ITEMS: { id: SiteSection; label: string; iconSrc: string }[] = [
   { id: "photo", label: "Photo", iconSrc: "/icons/photo.svg" },
   { id: "music", label: "Music", iconSrc: "/icons/audio.svg" },
   { id: "video", label: "Video", iconSrc: "/icons/video.svg" },
   { id: "blog", label: "Blog", iconSrc: "/icons/blog.svg" },
+  { id: "projects", label: "Projects", iconSrc: "/icons/Grid.svg" },
 ];
 
 function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string; label: string; isActive: boolean; onClick: () => void }) {

@@ -1,16 +1,10 @@
 import { create } from "zustand";
-
-export type CharacterConsoleSection =
-  | "photo"
-  | "music"
-  | "video"
-  | "blog"
-  | "projects";
+import type { SiteSection } from "@/app/types/siteSections";
 
 type CharacterConsoleState = {
-  section: CharacterConsoleSection | null;
+  section: SiteSection | null;
   hover: boolean;
-  setSection: (section: CharacterConsoleSection | null) => void;
+  setSection: (section: SiteSection | null) => void;
   setHover: (hover: boolean) => void;
 };
 

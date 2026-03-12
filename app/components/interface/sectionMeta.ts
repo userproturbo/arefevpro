@@ -1,13 +1,7 @@
-import type { Section } from "@/store/uiStore";
-
-export type CharacterNavSection =
-  | "photo"
-  | "music"
-  | "video"
-  | "blog";
+import type { SiteSection } from "@/app/types/siteSections";
 
 export type SectionNavItem = {
-  id: CharacterNavSection;
+  id: SiteSection;
   label: string;
   title: string;
   iconSrc: string;
@@ -19,18 +13,20 @@ export const SECTION_NAV_ITEMS: SectionNavItem[] = [
   { id: "music", label: "Music", title: "Music Deck", iconSrc: "/icons/audio.svg", soundSrc: "/audio/Music.mp3" },
   { id: "video", label: "Video", title: "Video Feed", iconSrc: "/icons/video.svg", soundSrc: "/audio/Phew-action.mp3" },
   { id: "blog", label: "Blog", title: "Blog Stream", iconSrc: "/icons/blog.svg", soundSrc: "/audio/drawing.mp3" },
+  { id: "projects", label: "Projects", title: "Projects Grid", iconSrc: "/icons/Grid.svg", soundSrc: "/audio/Drone.mp3" },
 ];
 
-export function isCharacterNavSection(section: Section | null): section is CharacterNavSection {
+export function isCharacterNavSection(section: SiteSection | null): section is SiteSection {
   return (
     section === "photo" ||
     section === "music" ||
     section === "video" ||
-    section === "blog"
+    section === "blog" ||
+    section === "projects"
   );
 }
 
-export function getSectionMeta(section: Section | null) {
+export function getSectionMeta(section: SiteSection | null) {
   if (isCharacterNavSection(section)) {
     return SECTION_NAV_ITEMS.find((item) => item.id === section) ?? SECTION_NAV_ITEMS[0];
   }

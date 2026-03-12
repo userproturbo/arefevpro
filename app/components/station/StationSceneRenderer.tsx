@@ -1,12 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { StationSceneId } from "@/types/stationScene";
-import { MODULE_REGISTRY, type StationModuleName } from "./modules/moduleRegistry";
+import type { SiteSection } from "@/app/types/siteSections";
+import { MODULE_REGISTRY } from "./modules/moduleRegistry";
 import { SCENES } from "./scenes/sceneRegistry";
 
 type Props = {
-  sceneId: StationSceneId;
+  sceneId: SiteSection;
 };
 
 export default function StationSceneRenderer({ sceneId }: Props) {
@@ -16,7 +16,7 @@ export default function StationSceneRenderer({ sceneId }: Props) {
   return (
     <>
       {scene.modules.map((name) => {
-        const Component = MODULE_REGISTRY[name as StationModuleName];
+        const Component = MODULE_REGISTRY[name];
         if (!Component) return null;
         return (
           <motion.div

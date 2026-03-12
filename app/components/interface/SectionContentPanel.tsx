@@ -3,13 +3,14 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import SectionContentReveal from "@/app/components/section/SectionContentReveal";
-import type { Section } from "@/store/uiStore";
+import type { SiteSection } from "@/app/types/siteSections";
 import { isCharacterNavSection } from "./sectionMeta";
 import type { SectionViewer } from "./viewerTypes";
 import BlogViewer from "@/app/components/viewers/BlogViewer";
 import PhotoSystem from "@/app/components/photo/PhotoSystem";
 import VideoCard from "@/app/components/video/VideoCard";
 import VideoViewerPanel from "@/app/components/video/VideoViewerPanel";
+import ProjectsContent from "@/app/components/panel/content/ProjectsContent";
 
 type AlbumDTO = {
   id: number;
@@ -55,7 +56,7 @@ async function fetchJson<T>(url: string, signal: AbortSignal): Promise<T> {
 }
 
 type SectionContentPanelProps = {
-  activeSection: Section | null;
+  activeSection: SiteSection | null;
   viewer: SectionViewer;
   setViewer: (viewer: SectionViewer) => void;
 };
@@ -229,6 +230,10 @@ export default function SectionContentPanel({ activeSection, viewer, setViewer }
           {videos.length === 0 ? <EmptyState label="No videos published yet." /> : null}
         </div>
       );
+    }
+
+    if (activeSection === "projects") {
+      return <ProjectsContent />;
     }
 
     return null;

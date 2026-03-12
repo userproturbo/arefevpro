@@ -1,13 +1,12 @@
 import { create } from "zustand";
-
-export type SectionDrawerSection = "projects" | "photo" | "video" | "music" | "blog";
+import type { SiteSection } from "@/app/types/siteSections";
 
 type SectionDrawerState = {
-  activeSection: SectionDrawerSection | null;
-  open: (section: SectionDrawerSection) => void;
+  activeSection: SiteSection | null;
+  open: (section: SiteSection) => void;
   close: () => void;
-  switchTo: (section: SectionDrawerSection) => void;
-  toggle: (section: SectionDrawerSection) => void;
+  switchTo: (section: SiteSection) => void;
+  toggle: (section: SiteSection) => void;
 };
 
 export const useSectionDrawerStore = create<SectionDrawerState>((set) => ({

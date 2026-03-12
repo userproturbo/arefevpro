@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { type SectionDrawerSection } from "@/store/useSectionDrawerStore";
+import type { SiteSection } from "@/app/types/siteSections";
 import SectionDrawerShell from "./SectionDrawerShell";
 import DrawerList, { type DrawerListItem } from "./DrawerList";
 
@@ -224,7 +224,7 @@ function DrawerPlaceholderSection({
   );
 }
 
-export default function DrawerContent({ section }: { section: SectionDrawerSection }) {
+export default function DrawerContent({ section }: { section: SiteSection }) {
   const title = useMemo(() => {
     switch (section) {
       case "projects":

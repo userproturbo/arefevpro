@@ -1,4 +1,4 @@
-import type { CharacterConsoleSection } from "@/store/characterConsoleStore";
+import type { SiteSection } from "@/app/types/siteSections";
 
 export type CharacterSceneAnimationType = "music" | "blog" | "photo" | "drone";
 
@@ -19,7 +19,7 @@ export type CharacterSceneConfig = {
   microAnimation: CharacterSceneMicroAnimation;
 };
 
-type CharacterSceneMap = Record<CharacterConsoleSection | "drone", CharacterSceneConfig>;
+type CharacterSceneMap = Record<SiteSection | "drone", CharacterSceneConfig>;
 
 const droneScene: CharacterSceneConfig = {
   idleImage: "/img/Drone-idle.png",

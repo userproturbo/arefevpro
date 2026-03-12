@@ -1,15 +1,9 @@
 import { create } from "zustand";
-
-export type Section =
-  | "photo"
-  | "music"
-  | "video"
-  | "drone"
-  | "blog";
+import type { SiteSection } from "@/app/types/siteSections";
 
 type UIState = {
-  activeSection: Section | null;
-  setActiveSection: (section: Section | null) => void;
+  activeSection: SiteSection | null;
+  setActiveSection: (section: SiteSection | null) => void;
 };
 
 export const useUIStore = create<UIState>((set) => ({

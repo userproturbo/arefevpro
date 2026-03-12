@@ -3,22 +3,23 @@
 import Image from "next/image";
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
-import type { Section } from "@/store/uiStore";
+import type { SiteSection } from "@/app/types/siteSections";
 import BlogNavCharacter from "@/app/components/home/BlogNavCharacter";
 import DroneNavCharacter from "@/app/components/home/DroneNavCharacter";
 import MusicNavCharacter from "@/app/components/home/MusicNavCharacter";
 import PhotoNavCharacter from "@/app/components/home/PhotoNavCharacter";
 import { isCharacterNavSection } from "./sectionMeta";
 
-function getCharacterLabel(section: Section | null) {
+function getCharacterLabel(section: SiteSection | null) {
   if (section === "photo") return "Photo";
   if (section === "music") return "Music";
   if (section === "video") return "Video";
   if (section === "blog") return "Blog";
+  if (section === "projects") return "Projects";
   return "Home";
 }
 
-export default function CharacterRenderer({ activeSection }: { activeSection: Section | null }) {
+export default function CharacterRenderer({ activeSection }: { activeSection: SiteSection | null }) {
   const pointerInsideRef = useRef(false);
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
 
@@ -80,7 +81,7 @@ export default function CharacterRenderer({ activeSection }: { activeSection: Se
     if (activeSection === "music") return <MusicNavCharacter {...sharedProps} />;
     if (activeSection === "blog") return <BlogNavCharacter {...sharedProps} />;
 
-    // No dedicated video sprite set exists yet; keep cinematic continuity with drone actor.
+    // No dedicated video/projects sprite set exists yet; keep cinematic continuity with drone actor.
     return <DroneNavCharacter {...sharedProps} />;
   };
 

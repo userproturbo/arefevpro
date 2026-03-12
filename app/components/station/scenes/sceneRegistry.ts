@@ -1,34 +1,35 @@
-import type { StationSceneConfig, StationSceneId } from "@/types/stationScene";
+import type { SiteSection } from "@/app/types/siteSections";
+import type { StationSceneConfig } from "@/types/stationScene";
 
-export const SCENES: Record<StationSceneId, StationSceneConfig> = {
-  home: {
-    id: "home",
-    label: "Home",
-    modules: [],
-    layout: "default",
-  },
+export const SCENES: Record<SiteSection, StationSceneConfig> = {
   blog: {
     id: "blog",
     label: "Blog",
-    modules: ["StationBlogModule"],
+    modules: ["blog"],
     layout: "editorial",
   },
   photo: {
     id: "photo",
     label: "Photo",
-    modules: ["StationPhotoModule"],
+    modules: ["photo"],
     layout: "media",
   },
   video: {
     id: "video",
     label: "Video",
-    modules: ["StationVideoModule"],
+    modules: ["video"],
     layout: "media",
   },
-  audio: {
-    id: "audio",
-    label: "Audio",
-    modules: ["StationAudioModule"],
+  music: {
+    id: "music",
+    label: "Music",
+    modules: ["music"],
     layout: "media",
+  },
+  projects: {
+    id: "projects",
+    label: "Projects",
+    modules: ["projects"],
+    layout: "default",
   },
 };
