@@ -54,9 +54,13 @@ export default async function AdminPage({
   });
 
   return (
-    <main className="flex h-[100dvh] min-h-[100dvh] w-full flex-col overflow-hidden bg-[color:var(--admin-bg)] md:flex-row">
-      <AdminCharacterSidebar activeSection={activeSection} />
-      <AdminContentWorkspace activeSection={activeSection}>{sectionContent}</AdminContentWorkspace>
+    <main className="grid min-h-[100dvh] w-full grid-cols-1 bg-[color:var(--admin-bg)] md:h-[100dvh] md:grid-cols-[360px_minmax(0,1fr)] md:overflow-hidden">
+      <div className="min-h-0 border-b border-[color:var(--admin-border)] md:overflow-y-auto md:border-b-0 md:border-r">
+        <AdminCharacterSidebar activeSection={activeSection} />
+      </div>
+      <div className="min-w-0 min-h-0 overflow-y-auto">
+        <AdminContentWorkspace activeSection={activeSection}>{sectionContent}</AdminContentWorkspace>
+      </div>
     </main>
   );
 }
