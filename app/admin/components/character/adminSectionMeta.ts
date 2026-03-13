@@ -1,3 +1,5 @@
+import { AudioIcon, BlogIcon, HomeIcon, PhotoIcon, RocketIcon, VideoIcon, type AppIcon } from "@/app/components/icons";
+
 export type AdminCharacterSection = "dashboard" | "projects" | "photo" | "video" | "audio" | "blog";
 
 export const ADMIN_CHARACTER_SECTIONS: Array<{
@@ -5,49 +7,49 @@ export const ADMIN_CHARACTER_SECTIONS: Array<{
   label: string;
   title: string;
   description: string;
-  iconSrc: string;
+  icon: AppIcon;
 }> = [
   {
     id: "dashboard",
     label: "Dashboard",
     title: "System Dashboard",
     description: "Visitor metrics, users table and online presence.",
-    iconSrc: "/icons/home.svg",
+    icon: HomeIcon,
   },
   {
     id: "blog",
     label: "Blog",
     title: "Blog Editor",
     description: "Manage blog entries and publishing.",
-    iconSrc: "/icons/blog.svg",
+    icon: BlogIcon,
   },
   {
     id: "audio",
     label: "Audio",
     title: "Audio Editor",
     description: "Manage music and audio posts.",
-    iconSrc: "/icons/audio.svg",
+    icon: AudioIcon,
   },
   {
     id: "photo",
     label: "Photo",
     title: "Photo Editor",
     description: "Manage albums, uploads and cover images.",
-    iconSrc: "/icons/photo.svg",
+    icon: PhotoIcon,
   },
   {
     id: "video",
     label: "Video",
     title: "Video Editor",
     description: "Manage uploaded videos and publication state.",
-    iconSrc: "/icons/video.svg",
+    icon: VideoIcon,
   },
   {
     id: "projects",
     label: "Projects",
     title: "Projects Editor",
     description: "Manage project and about entries.",
-    iconSrc: "/icons/RocketTwotone.svg",
+    icon: RocketIcon,
   },
 ];
 

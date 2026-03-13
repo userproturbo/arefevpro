@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import CharacterWindow from "@/app/components/interface/CharacterWindow";
@@ -146,6 +145,7 @@ export default function AdminCharacterSidebar({ activeSection }: AdminCharacterS
           <nav className="grid grid-cols-3 gap-3" aria-label="Admin CMS sections">
             {ADMIN_CHARACTER_SECTIONS.map((item) => {
               const isActive = item.id === activeSection;
+              const Icon = item.icon;
 
               return (
                 <motion.div key={item.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
@@ -165,14 +165,10 @@ export default function AdminCharacterSidebar({ activeSection }: AdminCharacterS
                     aria-pressed={isActive}
                   >
                     <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/20">
-                      <Image
-                        src={item.iconSrc}
-                        alt=""
+                      <Icon
                         aria-hidden="true"
-                        width={22}
-                        height={22}
-                        className={`h-5 w-5 object-contain transition ${
-                          isActive ? "invert brightness-125" : "invert brightness-90 group-hover:brightness-125"
+                        className={`icon h-5 w-5 transition ${
+                          isActive ? "text-white brightness-125" : "text-white/80 group-hover:text-white"
                         }`}
                       />
                     </span>

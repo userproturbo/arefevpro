@@ -1,13 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AudioIcon, BlogIcon, HomeIcon, PhotoIcon, RocketIcon, VideoIcon, type AppIcon } from "@/app/components/icons";
 
 type NavItem = {
   label: string;
   href: string;
-  iconSrc: string;
+  Icon: AppIcon;
   activeMatch?: (pathname: string) => boolean;
 };
 
@@ -15,17 +15,17 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: "Home",
     href: "/",
-    iconSrc: "/icons/home.svg",
+    Icon: HomeIcon,
   },
   {
     label: "Blog",
     href: "/blog",
-    iconSrc: "/icons/blog.svg",
+    Icon: BlogIcon,
   },
   {
     label: "Photo",
     href: "/photo",
-    iconSrc: "/icons/photo.svg",
+    Icon: PhotoIcon,
     activeMatch: (pathname) =>
       pathname === "/photo" ||
       pathname.startsWith("/photo/") ||
@@ -35,7 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: "Video",
     href: "/video",
-    iconSrc: "/icons/video.svg",
+    Icon: VideoIcon,
     activeMatch: (pathname) =>
       pathname === "/video" ||
       pathname.startsWith("/video/") ||
@@ -45,13 +45,13 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: "Audio",
     href: "/music",
-    iconSrc: "/icons/audio.svg",
+    Icon: AudioIcon,
     activeMatch: (pathname) => pathname === "/music" || pathname.startsWith("/music/"),
   },
   {
     label: "Projects",
     href: "/projects",
-    iconSrc: "/icons/RocketTwotone.svg",
+    Icon: RocketIcon,
     activeMatch: (pathname) => pathname === "/projects" || pathname.startsWith("/projects/"),
   },
 ];
@@ -67,6 +67,7 @@ export default function TopIconNav() {
       <ul className="flex items-center justify-center gap-5 sm:gap-7">
         {NAV_ITEMS.map((item) => {
           const isActive = item.activeMatch ? item.activeMatch(pathname) : pathname === item.href;
+          const Icon = item.Icon;
 
           return (
             <li key={item.label}>
@@ -76,14 +77,7 @@ export default function TopIconNav() {
                 aria-current={isActive ? "page" : undefined}
                 className="group relative flex min-h-[44px] min-w-[44px] items-center justify-center opacity-70 transition duration-200 hover:scale-105 hover:opacity-100 focus:outline-none focus-visible:opacity-100"
               >
-                <Image
-                  src={item.iconSrc}
-                  alt=""
-                  width={24}
-                  height={24}
-                  aria-hidden="true"
-                  className="h-6 w-6 select-none object-contain invert"
-                />
+                <Icon aria-hidden="true" className="icon h-6 w-6 select-none text-white" />
                 <span className="sr-only">{item.label}</span>
                 <span
                   aria-hidden="true"

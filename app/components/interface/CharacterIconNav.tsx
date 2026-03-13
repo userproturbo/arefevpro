@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
+import { AudioIcon, BlogIcon, PhotoIcon, RocketIcon, VideoIcon, type AppIcon } from "@/app/components/icons";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
 import type { SiteSection } from "@/app/types/siteSections";
 
@@ -10,15 +10,15 @@ type CharacterIconNavProps = {
   className?: string;
 };
 
-const ICON_ITEMS: { id: SiteSection; label: string; iconSrc: string }[] = [
-  { id: "photo", label: "Photo", iconSrc: "/icons/photo.svg" },
-  { id: "music", label: "Music", iconSrc: "/icons/audio.svg" },
-  { id: "video", label: "Video", iconSrc: "/icons/video.svg" },
-  { id: "blog", label: "Blog", iconSrc: "/icons/blog.svg" },
-  { id: "projects", label: "Projects", iconSrc: "/icons/RocketTwotone.svg" },
+const ICON_ITEMS: { id: SiteSection; label: string; Icon: AppIcon }[] = [
+  { id: "photo", label: "Photo", Icon: PhotoIcon },
+  { id: "music", label: "Music", Icon: AudioIcon },
+  { id: "video", label: "Video", Icon: VideoIcon },
+  { id: "blog", label: "Blog", Icon: BlogIcon },
+  { id: "projects", label: "Projects", Icon: RocketIcon },
 ];
 
-function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string; label: string; isActive: boolean; onClick: () => void }) {
+function NavIconButton({ Icon, label, isActive, onClick }: { Icon: AppIcon; label: string; isActive: boolean; onClick: () => void }) {
   return (
     <motion.button
       type="button"
@@ -35,16 +35,12 @@ function NavIconButton({ iconSrc, label, isActive, onClick }: { iconSrc: string;
       aria-label={label}
       title={label}
     >
-      <Image
-        src={iconSrc}
-        alt=""
+      <Icon
         aria-hidden="true"
-        width={26}
-        height={26}
-        className={`h-6 w-6 object-contain transition duration-200 md:h-7 md:w-7 ${
+        className={`icon ${isActive ? "text-white" : "text-white"} h-6 w-6 transition duration-200 md:h-7 md:w-7 ${
           isActive
-            ? "invert brightness-125 drop-shadow-[0_0_8px_rgba(255,196,170,0.45)]"
-            : "invert brightness-110 group-hover:brightness-125"
+            ? "brightness-125 drop-shadow-[0_0_8px_rgba(255,196,170,0.45)]"
+            : "group-hover:brightness-125"
         }`}
       />
     </motion.button>
@@ -63,7 +59,7 @@ export default function CharacterIconNav({ onSelect, className }: CharacterIconN
       {ICON_ITEMS.map((item) => (
         <NavIconButton
           key={item.id}
-          iconSrc={item.iconSrc}
+          Icon={item.Icon}
           label={item.label}
           isActive={section === item.id}
           onClick={() => {
