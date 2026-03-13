@@ -14,8 +14,8 @@ export default function AdminStationShell({ activeSection, children }: Props) {
   const current = ADMIN_STATION_SECTIONS.find((item) => item.key === activeSection);
 
   return (
-    <div className="h-full min-h-0">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col px-4 py-4 md:py-6">
+    <div>
+      <div className="mx-auto flex w-full max-w-6xl flex-col px-4 py-4 md:py-6">
         <AdminPresenceHeartbeat />
         <AdminFrame>
           <AdminSystemBar mode={activeSection.toUpperCase()} scope="/ADMIN" />
@@ -44,7 +44,7 @@ export default function AdminStationShell({ activeSection, children }: Props) {
             })}
           </nav>
 
-          <section className="mb-3 flex min-h-0 flex-1 flex-col rounded-2xl border border-[color:var(--admin-border)] bg-[color:var(--admin-panel)]/85 p-4">
+          <section className="mb-3 rounded-2xl border border-[color:var(--admin-border)] bg-[color:var(--admin-panel)]/85 p-4">
             <div className="mb-3 border-b border-[color:var(--admin-border)] pb-3">
               <h1 className="text-lg font-semibold tracking-wide text-[color:var(--admin-text)]">
                 {current?.label ?? "Admin"} Control
@@ -54,7 +54,7 @@ export default function AdminStationShell({ activeSection, children }: Props) {
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+            <div>
               {children}
             </div>
           </section>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
-  AdminGrid,
   AdminMetric,
   AdminPanel,
   AdminTable,
@@ -47,6 +47,39 @@ type OnlineResponse = {
   onlineUsers: OnlineUser[];
   onlineUsersCount: number;
   anonymousOnlineCount: number;
+};
+
+type PostsSummaryResponse = {
+  total: number;
+  posts?: Array<{
+    _count?: {
+      comments?: number;
+    };
+  }>;
+};
+
+type AlbumsSummaryResponse = {
+  albums?: Array<unknown>;
+};
+
+type VideosSummaryResponse = {
+  videos?: Array<unknown>;
+};
+
+type ContentMetrics = {
+  video: { count: number | string; views: number | string; comments: number | string };
+  photo: { count: number | string; views: number | string; comments: number | string };
+  articles: { count: number | string; views: number | string; comments: number | string };
+  music: { count: number | string; views: number | string; comments: number | string };
+  projects: { count: number | string; views: number | string; comments: number | string };
+};
+
+const CONTENT_PLACEHOLDER: ContentMetrics = {
+  video: { count: "...", views: "-", comments: "-" },
+  photo: { count: "...", views: "-", comments: "-" },
+  articles: { count: "...", views: "-", comments: "-" },
+  music: { count: "...", views: "-", comments: "-" },
+  projects: { count: "...", views: "-", comments: "-" },
 };
 
 function formatDate(value: string | null): string {
@@ -102,6 +135,7 @@ function AdminDialog({
 export default function AdminIdleMetrics() {
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
   const [online, setOnline] = useState<OnlineResponse | null>(null);
+  const [contentMetrics, setContentMetrics] = useState<ContentMetrics>(CONTENT_PLACEHOLDER);
   const [error, setError] = useState<string | null>(null);
   const [actionUserId, setActionUserId] = useState<number | null>(null);
   const [banDialogUser, setBanDialogUser] = useState<MetricsUser | null>(null);
@@ -128,9 +162,73 @@ export default function AdminIdleMetrics() {
     setOnline(data);
   }, []);
 
+  const loadContentMetrics = useCallback(async () => {
+    const [videosRes, albumsRes, blogRes, musicRes, projectsRes] = await Promise.all([
+      fetch("/api/videos", { cache: "no-store" }),
+      fetch("/api/albums", { cache: "no-store" }),
+      fetch("/api/posts?type=BLOG&take=100", { cache: "no-store" }),
+      fetch("/api/posts?type=MUSIC&take=100", { cache: "no-store" }),
+      fetch("/api/posts?type=ABOUT&take=100", { cache: "no-store" }),
+    ]);
+
+    const [
+      videosData,
+      albumsData,
+      blogData,
+      musicData,
+      projectsData,
+    ] = (await Promise.all([
+      videosRes.ok ? videosRes.json() : Promise.resolve({ videos: [] }),
+      albumsRes.ok ? albumsRes.json() : Promise.resolve({ albums: [] }),
+      blogRes.ok ? blogRes.json() : Promise.resolve({ total: 0, posts: [] }),
+      musicRes.ok ? musicRes.json() : Promise.resolve({ total: 0, posts: [] }),
+      projectsRes.ok ? projectsRes.json() : Promise.resolve({ total: 0, posts: [] }),
+    ])) as [
+      VideosSummaryResponse,
+      AlbumsSummaryResponse,
+      PostsSummaryResponse,
+      PostsSummaryResponse,
+      PostsSummaryResponse,
+    ];
+
+    const sumComments = (response: PostsSummaryResponse) =>
+      (response.posts ?? []).reduce(
+        (total, post) => total + (post._count?.comments ?? 0),
+        0
+      );
+
+    setContentMetrics({
+      video: {
+        count: Array.isArray(videosData.videos) ? videosData.videos.length : 0,
+        views: "-",
+        comments: "-",
+      },
+      photo: {
+        count: Array.isArray(albumsData.albums) ? albumsData.albums.length : 0,
+        views: "-",
+        comments: "-",
+      },
+      articles: {
+        count: blogData.total ?? 0,
+        views: "-",
+        comments: sumComments(blogData),
+      },
+      music: {
+        count: musicData.total ?? 0,
+        views: "-",
+        comments: sumComments(musicData),
+      },
+      projects: {
+        count: projectsData.total ?? 0,
+        views: "-",
+        comments: sumComments(projectsData),
+      },
+    });
+  }, []);
+
   const reloadAll = useCallback(async () => {
-    await Promise.all([loadMetrics(), loadOnline()]);
-  }, [loadMetrics, loadOnline]);
+    await Promise.all([loadMetrics(), loadOnline(), loadContentMetrics()]);
+  }, [loadContentMetrics, loadMetrics, loadOnline]);
 
   useEffect(() => {
     let cancelled = false;
@@ -229,7 +327,34 @@ export default function AdminIdleMetrics() {
         </div>
       ) : null}
 
-      <AdminGrid>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <QuickActionLink href="/admin?section=blog&create=1" label="Create Post" detail="Open blog composer" />
+        <QuickActionLink href="/admin?section=photo&create=1" label="Upload Photo" detail="Jump to albums" />
+        <QuickActionLink href="/admin?section=video&create=1" label="Add Video" detail="Open video manager" />
+        <QuickActionCard label="Storage Status" detail="Uploads, videos and images linked" />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <AdminPanel title="Content Metrics">
+          <AdminTable>
+            <thead className="border-b border-[color:var(--admin-border)] bg-[color:var(--admin-panel-alt)]/80">
+              <tr className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">
+                <th className="px-4 py-3 text-left font-medium">Content Type</th>
+                <th className="px-4 py-3 text-left font-medium">Count</th>
+                <th className="px-4 py-3 text-left font-medium">Views</th>
+                <th className="px-4 py-3 text-left font-medium">Comments</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ContentMetricRow label="Video" metric={contentMetrics.video} />
+              <ContentMetricRow label="Photo" metric={contentMetrics.photo} />
+              <ContentMetricRow label="Articles" metric={contentMetrics.articles} />
+              <ContentMetricRow label="Music" metric={contentMetrics.music} />
+              <ContentMetricRow label="Projects" metric={contentMetrics.projects} />
+            </tbody>
+          </AdminTable>
+        </AdminPanel>
+
         <AdminPanel title="Visitor Metrics">
           <div className="space-y-4">
             <AdminMetric
@@ -244,7 +369,7 @@ export default function AdminIdleMetrics() {
           </div>
         </AdminPanel>
 
-        <AdminPanel title="Users Table" className="md:col-span-1 xl:col-span-2">
+        <AdminPanel title="Users Table" className="xl:col-span-2">
           <div className="mb-3 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.18em] text-[color:var(--admin-text-muted)]">
             <span>Total Users: {metrics?.totalUsers ?? "..."}</span>
             <span>Window: Latest 50</span>
@@ -318,40 +443,41 @@ export default function AdminIdleMetrics() {
             </tbody>
           </AdminTable>
         </AdminPanel>
-      </AdminGrid>
 
-      <AdminPanel
-        title="Online Presence"
-        aside={
-          <div className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">
-            Online Users: {online?.onlineUsersCount ?? metrics?.onlineUsersCount ?? "..."}
-          </div>
-        }
-      >
-        <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">
-          Anonymous Online: {online?.anonymousOnlineCount ?? metrics?.anonymousOnlineCount ?? "..."}
-        </div>
-        <div className="max-h-56 overflow-y-auto rounded-xl border border-[color:var(--admin-border)] [scrollbar-gutter:stable]">
-          {(online?.onlineUsers ?? []).length === 0 ? (
-            <div className="px-4 py-6 text-sm text-[color:var(--admin-text-muted)]">
-              No authenticated users online
+        <AdminPanel
+          title="Online Presence"
+          className="xl:col-span-2"
+          aside={
+            <div className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">
+              Online Users: {online?.onlineUsersCount ?? metrics?.onlineUsersCount ?? "..."}
             </div>
-          ) : (
-            (online?.onlineUsers ?? []).map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 border-b border-[color:var(--admin-border)]/70 px-4 py-3 text-sm text-[color:var(--admin-text)] last:border-0"
-              >
-                <span className="inline-flex min-w-0 items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[color:var(--admin-glow)] shadow-[0_0_8px_var(--admin-glow)]" />
-                  <span className="truncate">{displayName(item)}</span>
-                </span>
-                <span className="shrink-0 text-[color:var(--admin-text-muted)]">{formatDate(item.lastSeenAt)}</span>
+          }
+        >
+          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">
+            Anonymous Online: {online?.anonymousOnlineCount ?? metrics?.anonymousOnlineCount ?? "..."}
+          </div>
+          <div className="rounded-xl border border-[color:var(--admin-border)]">
+            {(online?.onlineUsers ?? []).length === 0 ? (
+              <div className="px-4 py-6 text-sm text-[color:var(--admin-text-muted)]">
+                No authenticated users online
               </div>
-            ))
-          )}
-        </div>
-      </AdminPanel>
+            ) : (
+              (online?.onlineUsers ?? []).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--admin-border)]/70 px-4 py-3 text-sm text-[color:var(--admin-text)] last:border-0"
+                >
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[color:var(--admin-glow)] shadow-[0_0_8px_var(--admin-glow)]" />
+                    <span className="truncate">{displayName(item)}</span>
+                  </span>
+                  <span className="shrink-0 text-[color:var(--admin-text-muted)]">{formatDate(item.lastSeenAt)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </AdminPanel>
+      </div>
 
       {banDialogUser ? (
         <AdminDialog title="Ban User">
@@ -421,5 +547,53 @@ export default function AdminIdleMetrics() {
         </AdminDialog>
       ) : null}
     </div>
+  );
+}
+
+function QuickActionLink({
+  href,
+  label,
+  detail,
+}: {
+  href: string;
+  label: string;
+  detail: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-2xl border border-[color:var(--admin-border)] bg-[color:var(--admin-panel-alt)]/70 px-4 py-4 transition hover:bg-[color:var(--admin-glow)]/10"
+    >
+      <div className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">Quick Action</div>
+      <div className="mt-2 text-base font-medium text-[color:var(--admin-text)]">{label}</div>
+      <div className="mt-1 text-sm text-[color:var(--admin-text-muted)]">{detail}</div>
+    </Link>
+  );
+}
+
+function QuickActionCard({ label, detail }: { label: string; detail: string }) {
+  return (
+    <div className="rounded-2xl border border-[color:var(--admin-border)] bg-[color:var(--admin-panel-alt)]/70 px-4 py-4">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">Status</div>
+      <div className="mt-2 text-base font-medium text-[color:var(--admin-text)]">{label}</div>
+      <div className="mt-1 text-sm text-[color:var(--admin-text-muted)]">{detail}</div>
+    </div>
+  );
+}
+
+function ContentMetricRow({
+  label,
+  metric,
+}: {
+  label: string;
+  metric: { count: number | string; views: number | string; comments: number | string };
+}) {
+  return (
+    <tr className="border-t border-[color:var(--admin-border)]/70">
+      <td className="px-4 py-3 text-sm text-[color:var(--admin-text)]">{label}</td>
+      <td className="px-4 py-3 text-sm text-[color:var(--admin-text-muted)]">{metric.count}</td>
+      <td className="px-4 py-3 text-sm text-[color:var(--admin-text-muted)]">{metric.views}</td>
+      <td className="px-4 py-3 text-sm text-[color:var(--admin-text-muted)]">{metric.comments}</td>
+    </tr>
   );
 }

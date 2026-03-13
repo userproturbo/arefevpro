@@ -17,8 +17,8 @@ export default function AdminContentWorkspace({
   const meta = getAdminCharacterSectionMeta(activeSection);
 
   return (
-    <section className="flex min-h-full min-w-0 flex-col bg-transparent">
-      <div className="min-w-0 p-4 md:p-5">
+    <section className="min-w-0 bg-transparent">
+      <div className="min-w-0">
         <AdminFrame>
           <div className="space-y-4">
             <AdminSystemBar mode={activeSection.toUpperCase()} />

@@ -54,11 +54,11 @@ export default async function AdminPage({
   });
 
   return (
-    <main className="grid min-h-[100dvh] w-full grid-cols-1 bg-[color:var(--admin-bg)] md:h-[100dvh] md:grid-cols-[360px_minmax(0,1fr)] md:overflow-hidden">
-      <div className="min-h-0 border-b border-[color:var(--admin-border)] md:overflow-y-auto md:border-b-0 md:border-r">
+    <main className="grid w-full grid-cols-1 bg-[color:var(--admin-bg)] md:grid-cols-[320px_minmax(0,1fr)]">
+      <div className="border-b border-[color:var(--admin-border)] md:sticky md:top-0 md:h-screen md:self-start md:border-b-0 md:border-r">
         <AdminCharacterSidebar activeSection={activeSection} />
       </div>
-      <div className="min-w-0 min-h-0 overflow-y-auto">
+      <div className="min-w-0 p-4 md:p-10">
         <AdminContentWorkspace activeSection={activeSection}>{sectionContent}</AdminContentWorkspace>
       </div>
     </main>

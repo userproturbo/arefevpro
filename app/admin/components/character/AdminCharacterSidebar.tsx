@@ -67,8 +67,16 @@ export default function AdminCharacterSidebar({ activeSection }: AdminCharacterS
     router.push(`/admin?${params.toString()}`);
   };
 
+  const pushAvatarEditor = (target: "idle" | "action") => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.set("section", "photo");
+    params.set("avatar", target);
+    params.delete("edit");
+    router.push(`/admin?${params.toString()}`);
+  };
+
   return (
-    <aside className="relative flex w-full flex-none flex-col gap-4 border-b border-[color:var(--admin-border)] bg-[linear-gradient(180deg,rgba(17,12,12,0.98),rgba(8,8,8,0.98)_55%)] p-4 md:h-full md:w-[320px] md:border-b-0 md:border-r md:p-5 lg:w-[380px] xl:w-[420px]">
+    <aside className="relative flex w-full flex-none flex-col gap-4 bg-[linear-gradient(180deg,rgba(17,12,12,0.98),rgba(8,8,8,0.98)_55%)] p-4 md:h-screen md:w-full md:p-5">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(0,255,156,0.14),transparent_40%)]" />
 
       <div className="relative z-10 flex items-center justify-between">
@@ -87,29 +95,53 @@ export default function AdminCharacterSidebar({ activeSection }: AdminCharacterS
         </button>
       </div>
 
-      <div className="relative z-10 flex min-h-0 flex-col gap-4 md:flex-1">
-        <div
-          onMouseEnter={() => {
-            if (!section) return;
-            setHover(true);
-            stopAllSounds();
-            playForSection();
-          }}
-          onMouseLeave={() => {
-            if (!hover) return;
-            setHover(false);
-            stopAllSounds();
-          }}
-          className="rounded-[28px] border border-[color:var(--admin-border)] bg-[linear-gradient(180deg,rgba(16,18,18,0.94),rgba(7,10,9,0.98))] p-3 shadow-[0_0_0_1px_rgba(0,255,156,0.04),0_0_36px_rgba(0,255,156,0.05)]"
-        >
-          <CharacterWindow>
-            <LayeredNavCharacter />
-          </CharacterWindow>
+      <div className="relative z-10 flex flex-col gap-4">
+        <div className="rounded-[28px] border border-[color:var(--admin-border)] bg-[linear-gradient(180deg,rgba(16,18,18,0.94),rgba(7,10,9,0.98))] p-3 shadow-[0_0_0_1px_rgba(0,255,156,0.04),0_0_36px_rgba(0,255,156,0.05)]">
+          <div
+            onMouseEnter={() => {
+              if (!section) return;
+              setHover(true);
+              stopAllSounds();
+              playForSection();
+            }}
+            onMouseLeave={() => {
+              if (!hover) return;
+              setHover(false);
+              stopAllSounds();
+            }}
+          >
+            <CharacterWindow>
+              <LayeredNavCharacter />
+            </CharacterWindow>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => pushAvatarEditor("idle")}
+              className="rounded-2xl border border-[color:var(--admin-border)] bg-[color:var(--admin-panel-alt)]/70 px-3 py-3 text-left transition hover:bg-[color:var(--admin-glow)]/10"
+            >
+              <div className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">
+                Avatar
+              </div>
+              <div className="mt-1 text-sm font-medium text-[color:var(--admin-text)]">+ Photo 1</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => pushAvatarEditor("action")}
+              className="rounded-2xl border border-[color:var(--admin-border)] bg-[color:var(--admin-panel-alt)]/70 px-3 py-3 text-left transition hover:bg-[color:var(--admin-glow)]/10"
+            >
+              <div className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--admin-text-muted)]">
+                Action
+              </div>
+              <div className="mt-1 text-sm font-medium text-[color:var(--admin-text)]">+ Photo 2</div>
+            </button>
+          </div>
         </div>
 
         <div className="rounded-[28px] border border-[color:var(--admin-border)] bg-[linear-gradient(180deg,rgba(12,16,14,0.92),rgba(5,8,7,0.96))] p-4">
           <div className="mb-3 text-[11px] uppercase tracking-[0.22em] text-[color:var(--admin-text-muted)]">
-            Section Switching
+            Section Navigation
           </div>
           <nav className="grid grid-cols-3 gap-3" aria-label="Admin CMS sections">
             {ADMIN_CHARACTER_SECTIONS.map((item) => {
@@ -144,7 +176,7 @@ export default function AdminCharacterSidebar({ activeSection }: AdminCharacterS
                         }`}
                       />
                     </span>
-                    <span className="mt-2 text-[11px] uppercase tracking-[0.14em]">{item.label}</span>
+                    <span className="mt-2 text-[10px] uppercase tracking-[0.18em]">{item.label}</span>
                   </button>
                 </motion.div>
               );
