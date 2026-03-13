@@ -51,7 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: "Projects",
     href: "/projects",
-    iconSrc: "/icons/Grid.svg",
+    iconSrc: "/icons/RocketTwotone.svg",
     activeMatch: (pathname) => pathname === "/projects" || pathname.startsWith("/projects/"),
   },
 ];

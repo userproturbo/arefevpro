@@ -13,7 +13,7 @@ export const SECTION_NAV_ITEMS: SectionNavItem[] = [
   { id: "music", label: "Music", title: "Music Deck", iconSrc: "/icons/audio.svg", soundSrc: "/audio/Music.mp3" },
   { id: "video", label: "Video", title: "Video Feed", iconSrc: "/icons/video.svg", soundSrc: "/audio/Phew-action.mp3" },
   { id: "blog", label: "Blog", title: "Blog Stream", iconSrc: "/icons/blog.svg", soundSrc: "/audio/drawing.mp3" },
-  { id: "projects", label: "Projects", title: "Projects Grid", iconSrc: "/icons/Grid.svg", soundSrc: "/audio/Drone.mp3" },
+  { id: "projects", label: "Projects", title: "Projects Grid", iconSrc: "/icons/RocketTwotone.svg", soundSrc: "/audio/Drone.mp3" },
 ];
 
 export function isCharacterNavSection(section: SiteSection | null): section is SiteSection {

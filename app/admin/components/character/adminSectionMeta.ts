@@ -47,7 +47,7 @@ export const ADMIN_CHARACTER_SECTIONS: Array<{
     label: "Projects",
     title: "Projects Editor",
     description: "Manage project and about entries.",
-    iconSrc: "/icons/Grid.svg",
+    iconSrc: "/icons/RocketTwotone.svg",
   },
 ];
 
