@@ -261,7 +261,7 @@ export default function DrawerContent({ section }: { section: SiteSection }) {
 
   return (
     <DrawerPlaceholderSection
-      title={title}
+      title={title ?? ""}
       items={items}
       hrefBase={`/${section ?? "home"}`}
     />
