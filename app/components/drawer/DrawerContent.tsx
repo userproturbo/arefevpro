@@ -259,5 +259,11 @@ export default function DrawerContent({ section }: { section: SiteSection }) {
     }
   })();
 
-  return <DrawerPlaceholderSection title={title} items={items} hrefBase={`/${section}`} />;
+  return (
+    <DrawerPlaceholderSection
+      title={title}
+      items={items}
+      hrefBase={`/${section ?? "home"}`}
+    />
+  );
 }
