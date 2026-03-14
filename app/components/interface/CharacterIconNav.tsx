@@ -1,23 +1,21 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AudioIcon, BlogIcon, HomeIcon, PhotoIcon, RocketIcon, VideoIcon, type AppIcon } from "@/app/components/icons";
+import type { AppIcon } from "@/app/components/icons";
+import { sectionRegistry } from "@/app/components/section/sectionRegistry";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
-import type { SiteSection } from "@/app/types/siteSections";
+import { SITE_SECTIONS, type SiteSection } from "@/app/types/siteSections";
 
 type CharacterIconNavProps = {
   onSelect: (section: SiteSection) => void;
   className?: string;
 };
 
-const ICON_ITEMS: { id: SiteSection; label: string; Icon: AppIcon }[] = [
-  { id: "home", label: "Home", Icon: HomeIcon },
-  { id: "photo", label: "Photo", Icon: PhotoIcon },
-  { id: "music", label: "Music", Icon: AudioIcon },
-  { id: "video", label: "Video", Icon: VideoIcon },
-  { id: "blog", label: "Blog", Icon: BlogIcon },
-  { id: "projects", label: "Projects", Icon: RocketIcon },
-];
+const ICON_ITEMS: { id: SiteSection; label: string; Icon: AppIcon }[] = SITE_SECTIONS.map((id) => ({
+  id,
+  label: sectionRegistry[id].label,
+  Icon: sectionRegistry[id].icon,
+}));
 
 function NavIconButton({ Icon, label, isActive, onClick }: { Icon: AppIcon; label: string; isActive: boolean; onClick: () => void }) {
   return (

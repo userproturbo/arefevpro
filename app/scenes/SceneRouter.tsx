@@ -2,10 +2,10 @@
 
 import { memo } from "react";
 import { motion } from "framer-motion";
+import { sectionRegistry } from "@/app/components/section/sectionRegistry";
 import SectionContentReveal from "@/app/components/section/SectionContentReveal";
 import type { SectionViewer } from "@/app/components/interface/viewerTypes";
 import type { SiteSection } from "./types";
-import { scenes } from "./sceneRegistry";
 
 type SceneRouterProps = {
   section: SiteSection;
@@ -14,10 +14,8 @@ type SceneRouterProps = {
 };
 
 function SceneRouter({ section, viewer, setViewer }: SceneRouterProps) {
-  const scene = scenes[section];
-  if (!scene) return null;
-
-  const SceneComponent = scene.component;
+  const SceneComponent = sectionRegistry[section]?.component;
+  if (!SceneComponent) return null;
 
   return (
     <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0b]">

@@ -1,20 +1,9 @@
-export type SiteSection =
-  | "home"
-  | "photo"
-  | "music"
-  | "video"
-  | "blog"
-  | "projects";
+import { sectionRegistry } from "@/app/components/section/sectionRegistry";
 
-export const SITE_SECTIONS: SiteSection[] = [
-  "home",
-  "photo",
-  "music",
-  "video",
-  "blog",
-  "projects",
-];
+export type SiteSection = keyof typeof sectionRegistry;
+
+export const SITE_SECTIONS = Object.keys(sectionRegistry) as SiteSection[];
 
 export function isValidSection(value: string): value is SiteSection {
-  return SITE_SECTIONS.includes(value as SiteSection);
+  return value in sectionRegistry;
 }

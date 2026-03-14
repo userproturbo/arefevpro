@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { sectionRegistry } from "@/app/components/section/sectionRegistry";
 import CharacterIconNav from "./CharacterIconNav";
 import CharacterWindow from "./CharacterWindow";
 import { useHoverSound } from "@/app/hooks/useHoverSound";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
 import type { SiteSection } from "@/app/types/siteSections";
 import CharacterRenderer from "./CharacterRenderer";
-import { scenes } from "@/app/scenes/sceneRegistry";
 
 type CharacterPanelProps = {
   activeSection: SiteSection | null;
@@ -19,8 +19,8 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
   const hover = useCharacterConsole((state) => state.hover);
   const setSection = useCharacterConsole((state) => state.setSection);
   const setHover = useCharacterConsole((state) => state.setHover);
-  const activeScene = section ? scenes[section] : null;
-  const hoverSound = useHoverSound({ src: activeScene?.sound ?? "/audio/Drone.mp3", volume: 0.3 });
+  const activeSection = section ? sectionRegistry[section] : null;
+  const hoverSound = useHoverSound({ src: activeSection?.soundSrc ?? "/audio/Drone.mp3", volume: 0.3 });
 
   useEffect(() => {
     if (_activeSection === null) {
@@ -28,16 +28,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
       return;
     }
 
-    if (
-      _activeSection === "home" ||
-      _activeSection === "photo" ||
-      _activeSection === "music" ||
-      _activeSection === "video" ||
-      _activeSection === "blog" ||
-      _activeSection === "projects"
-    ) {
-      setSection(_activeSection);
-    }
+    setSection(_activeSection);
   }, [_activeSection, setSection]);
 
   return (
