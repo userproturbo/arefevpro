@@ -13,7 +13,7 @@ type CharacterInterfaceLayoutProps = {
 };
 
 export default function CharacterInterfaceLayout({ viewer, setViewer }: CharacterInterfaceLayoutProps) {
-  const [activeSection, setActiveSection] = useState<SiteSection>("photo");
+  const [activeSection, setActiveSection] = useState<SiteSection>("home");
 
   const handleSectionChange = useCallback(
     (nextSection: SiteSection) => {

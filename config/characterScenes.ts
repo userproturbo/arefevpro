@@ -33,6 +33,16 @@ const droneScene: CharacterSceneConfig = {
 };
 
 export const characterScenes: CharacterSceneMap = {
+  home: {
+    idleImage: "/img/Home.png",
+    actionImage: "/img/Home.png",
+    sound: "/audio/Drone.mp3",
+    soundVolume: 0.25,
+    animationType: "drone",
+    baseScale: 1,
+    hoverScale: 1.18,
+    microAnimation: { y: [0, -4, 0] },
+  },
   music: {
     idleImage: "/img/Music-idle.png",
     actionImage: "/img/Music-action.png",

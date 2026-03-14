@@ -1,4 +1,4 @@
-import { AudioIcon, BlogIcon, PhotoIcon, RocketIcon, VideoIcon, type AppIcon } from "@/app/components/icons";
+import { AudioIcon, BlogIcon, HomeIcon, PhotoIcon, RocketIcon, VideoIcon, type AppIcon } from "@/app/components/icons";
 import type { SiteSection } from "@/app/types/siteSections";
 
 export type SectionNavItem = {
@@ -10,6 +10,7 @@ export type SectionNavItem = {
 };
 
 export const SECTION_NAV_ITEMS: SectionNavItem[] = [
+  { id: "home", label: "Home", title: "Home Base", icon: HomeIcon, soundSrc: "/audio/Drone.mp3" },
   { id: "photo", label: "Photo", title: "Photo Archive", icon: PhotoIcon, soundSrc: "/audio/camera.mp3" },
   { id: "music", label: "Music", title: "Music Deck", icon: AudioIcon, soundSrc: "/audio/Music.mp3" },
   { id: "video", label: "Video", title: "Video Feed", icon: VideoIcon, soundSrc: "/audio/Phew-action.mp3" },
@@ -19,6 +20,7 @@ export const SECTION_NAV_ITEMS: SectionNavItem[] = [
 
 export function isCharacterNavSection(section: SiteSection | null): section is SiteSection {
   return (
+    section === "home" ||
     section === "photo" ||
     section === "music" ||
     section === "video" ||
@@ -32,11 +34,11 @@ export function getSectionMeta(section: SiteSection | null) {
     return SECTION_NAV_ITEMS.find((item) => item.id === section) ?? SECTION_NAV_ITEMS[0];
   }
 
-    return {
-      id: null,
-      label: "Home",
-      title: "Home",
-      icon: undefined,
-      soundSrc: "",
-    };
+  return {
+    id: "home" as const,
+    label: "Home",
+    title: "Home Base",
+    icon: HomeIcon,
+    soundSrc: "/audio/Drone.mp3",
+  };
 }

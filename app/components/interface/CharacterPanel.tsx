@@ -29,6 +29,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
     }
 
     if (
+      _activeSection === "home" ||
       _activeSection === "photo" ||
       _activeSection === "music" ||
       _activeSection === "video" ||
@@ -63,7 +64,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
         </div>
 
         <CharacterIconNav
-          className="mt-2 hidden md:flex"
+          className="mt-2 hidden md:grid"
           onSelect={(nextSection) => {
             setHover(false);
             hoverSound.stopAndReset();
@@ -74,7 +75,7 @@ export default function CharacterPanel({ activeSection: _activeSection, onSectio
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-[#120c0c]/92 px-4 py-3 backdrop-blur md:hidden">
         <CharacterIconNav
-          className="mx-auto max-w-md justify-between gap-3"
+          className="mx-auto max-w-md"
           onSelect={(nextSection) => {
             setHover(false);
             hoverSound.stopAndReset();

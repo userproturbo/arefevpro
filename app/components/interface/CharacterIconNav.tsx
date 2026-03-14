@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AudioIcon, BlogIcon, PhotoIcon, RocketIcon, VideoIcon, type AppIcon } from "@/app/components/icons";
+import { AudioIcon, BlogIcon, HomeIcon, PhotoIcon, RocketIcon, VideoIcon, type AppIcon } from "@/app/components/icons";
 import { useCharacterConsole } from "@/store/characterConsoleStore";
 import type { SiteSection } from "@/app/types/siteSections";
 
@@ -11,6 +11,7 @@ type CharacterIconNavProps = {
 };
 
 const ICON_ITEMS: { id: SiteSection; label: string; Icon: AppIcon }[] = [
+  { id: "home", label: "Home", Icon: HomeIcon },
   { id: "photo", label: "Photo", Icon: PhotoIcon },
   { id: "music", label: "Music", Icon: AudioIcon },
   { id: "video", label: "Video", Icon: VideoIcon },
@@ -53,7 +54,7 @@ export default function CharacterIconNav({ onSelect, className }: CharacterIconN
 
   return (
     <nav
-      className={["flex w-full items-center justify-center gap-3 md:gap-5", className ?? ""].join(" ")}
+      className={["grid w-full grid-cols-3 justify-items-center gap-3 md:gap-5", className ?? ""].join(" ")}
       aria-label="Character sections"
     >
       {ICON_ITEMS.map((item) => (

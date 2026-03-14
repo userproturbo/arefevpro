@@ -1,4 +1,5 @@
 import BlogSection from "@/app/components/section/BlogSection";
+import HomeSection from "@/app/components/section/HomeSection";
 import MusicSection from "@/app/components/section/MusicSection";
 import PhotoSection from "@/app/components/section/PhotoSection";
 import ProjectsSection from "@/app/components/section/ProjectsSection";
@@ -7,6 +8,12 @@ import { characterScenes } from "@/config/characterScenes";
 import type { SceneDefinition, SiteSection } from "./types";
 
 export const scenes: Record<SiteSection, SceneDefinition> = {
+  home: {
+    character: characterScenes.home.idleImage,
+    characterHover: characterScenes.home.actionImage,
+    sound: characterScenes.home.sound,
+    component: HomeSection,
+  },
   photo: {
     character: characterScenes.photo.idleImage,
     characterHover: characterScenes.photo.actionImage,

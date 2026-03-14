@@ -1,4 +1,5 @@
 export type SiteSection =
+  | "home"
   | "photo"
   | "music"
   | "video"
@@ -6,6 +7,7 @@ export type SiteSection =
   | "projects";
 
 export const SITE_SECTIONS: SiteSection[] = [
+  "home",
   "photo",
   "music",
   "video",

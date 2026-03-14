@@ -66,7 +66,17 @@ export type LayeredNavCharacterBaseProps = {
 export default function LayeredNavCharacter(
   props: Partial<LayeredNavCharacterProps & LayeredNavCharacterBaseProps> = {}
 ) {
-  const { idleSrc, actionSrc, audioSrc, audioVolume, motionConfig, getMotionStyle, onSelect } = props;
+  const {
+    idleSrc,
+    actionSrc,
+    audioSrc,
+    audioVolume,
+    motionConfig,
+    getMotionStyle,
+    onSelect,
+    idleImageClassName,
+    actionImageClassName,
+  } = props;
   const section = useCharacterConsole((state) => state.section);
   const hover = useCharacterConsole((state) => state.hover);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -95,6 +105,8 @@ export default function LayeredNavCharacter(
   void audioVolume;
   void motionConfig;
   void getMotionStyle;
+  const baseImageClassName =
+    "pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom";
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
@@ -194,7 +206,7 @@ export default function LayeredNavCharacter(
                     width={1200}
                     height={1200}
                     priority
-                    className="pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
+                    className={[baseImageClassName, idleImageClassName].filter(Boolean).join(" ")}
                     sizes="(max-width: 768px) 80vw, 360px"
                     ref={onSelect}
                   />
@@ -214,7 +226,7 @@ export default function LayeredNavCharacter(
                       width={1200}
                       height={1200}
                       priority
-                      className="pointer-events-none absolute bottom-0 left-1/2 h-[90%] w-auto max-w-none -translate-x-1/2 object-contain object-bottom"
+                      className={[baseImageClassName, actionImageClassName].filter(Boolean).join(" ")}
                       sizes="(max-width: 768px) 80vw, 360px"
                     />
                   </motion.div>
