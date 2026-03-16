@@ -4,10 +4,6 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useEffect, useRef, type ReactNode } from "react";
 import useCharacterMotion from "@/app/components/character/useCharacterMotion";
-import {
-  consumePendingParticleReform,
-  triggerParticleReform,
-} from "@/app/components/home/ParticleTransition";
 import useHeroTransition from "@/hooks/useHeroTransition";
 
 type DroneSceneHeroProps = {
@@ -34,13 +30,8 @@ export default function DroneSceneHero({ children, isActivated = false }: DroneS
   } = useHeroTransition("drone", isActivated);
 
   useEffect(() => {
-    const shouldReform = consumePendingParticleReform("/img/Drone-action.png");
     const character = characterRef.current;
     startIdle({ withEntry: true });
-
-    if (shouldReform && imageRef.current) {
-      void triggerParticleReform(imageRef.current);
-    }
 
     return () => {
       if (character) {

@@ -4,10 +4,6 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import {
-  consumePendingParticleReform,
-  triggerParticleReform,
-} from "@/app/components/home/ParticleTransition";
 
 type SectionHeroLayoutProps = {
   imageSrc: string;
@@ -27,18 +23,12 @@ export default function SectionHeroLayout({
   const [contentVisible, setContentVisible] = useState(false);
 
   useEffect(() => {
-    const shouldReform = consumePendingParticleReform(imageSrc);
-    const imageElement = imageShellRef.current?.querySelector("img");
     frameRef.current = window.requestAnimationFrame(() => {
       setHeroVisible(true);
 
-      if (shouldReform && imageElement) {
-        void triggerParticleReform(imageElement);
-      }
-
       contentTimerRef.current = window.setTimeout(() => {
         setContentVisible(true);
-      }, shouldReform ? 120 : 80);
+      }, 80);
     });
 
     return () => {
@@ -49,7 +39,7 @@ export default function SectionHeroLayout({
         window.clearTimeout(contentTimerRef.current);
       }
     };
-  }, [imageSrc]);
+  }, []);
 
   return (
     <section className="min-h-[calc(100vh-4rem)] bg-black">

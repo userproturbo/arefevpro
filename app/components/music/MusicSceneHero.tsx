@@ -4,10 +4,6 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import useCharacterMotion from "@/app/components/character/useCharacterMotion";
-import {
-  consumePendingParticleReform,
-  triggerParticleReform,
-} from "@/app/components/home/ParticleTransition";
 import useHeroTransition from "@/hooks/useHeroTransition";
 
 type MusicSceneHeroProps = {
@@ -36,14 +32,9 @@ export default function MusicSceneHero({ children, isActivated = false }: MusicS
   } = useHeroTransition("music", isActivated);
 
   useEffect(() => {
-    const shouldReform = consumePendingParticleReform("/img/Music-action.png");
     const character = characterRef.current;
 
     startIdle({ withEntry: true });
-
-    if (shouldReform && imageRef.current) {
-      void triggerParticleReform(imageRef.current);
-    }
 
     return () => {
       if (character) {
