@@ -1,7 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion, useScroll, useTransform, type PanInfo } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { motion, useScroll, useTransform, type PanInfo } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type HeroVideoItem = {
   id: number;
@@ -15,14 +15,46 @@ type VideosResponse = {
   videos?: HeroVideoItem[];
 };
 
+type VideoSlotState = {
+  key: string;
+  src: string | null;
+  poster: string | null;
+};
+
 const SWIPE_THRESHOLD = 80;
+
+function playVideoElement(element: HTMLVideoElement | null) {
+  if (!element) return;
+
+  const playPromise = element.play();
+  if (playPromise && typeof playPromise.catch === "function") {
+    playPromise.catch(() => {});
+  }
+}
+
+function preloadVideo(src: string | null) {
+  if (!src) return;
+
+  const video = document.createElement("video");
+  video.src = src;
+  video.preload = "auto";
+  video.muted = true;
+  video.playsInline = true;
+  video.load();
+}
 
 export default function HeroVideoSlider() {
   const [videos, setVideos] = useState<HeroVideoItem[]>([]);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [activeIndex, setActiveIndex] = useState(0);
-  const [direction, setDirection] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<0 | 1>(0);
+  const [slots, setSlots] = useState<[VideoSlotState, VideoSlotState]>([
+    { key: "slot-0-empty", src: null, poster: null },
+    { key: "slot-1-empty", src: null, poster: null },
+  ]);
+  const videoRefs = useRef<[HTMLVideoElement | null, HTMLVideoElement | null]>([null, null]);
+  const pendingSwapRef = useRef<number | null>(null);
   const { scrollYProgress } = useScroll();
   const scale = useTransform(scrollYProgress, [0, 0.6], [1.04, 1.12]);
 
@@ -68,7 +100,6 @@ export default function HeroVideoSlider() {
     (nextDirection: number) => {
       if (videos.length <= 1) return;
 
-      setDirection(nextDirection);
       setActiveIndex((currentIndex) => {
         const nextIndex = currentIndex + nextDirection;
         return (nextIndex + videos.length) % videos.length;
@@ -106,18 +137,96 @@ export default function HeroVideoSlider() {
 
   const setVideoIndex = useCallback(
     (nextIndex: number) => {
-      if (videos.length === 0) return;
+      if (videos.length === 0 || nextIndex === activeIndex) return;
 
       const normalizedIndex = ((nextIndex % videos.length) + videos.length) % videos.length;
-      setDirection(normalizedIndex > activeIndex ? 1 : -1);
       setActiveIndex(normalizedIndex);
     },
     [activeIndex, videos.length]
   );
 
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setIsDragging(false);
+  useEffect(() => {
+    if (videos.length === 0) return;
 
+    const firstVideo = videos[0];
+    const bufferedVideo = videos[1] ?? videos[0];
+
+    setSlots([
+      {
+        key: `${firstVideo.id}:${firstVideo.videoUrl}`,
+        src: firstVideo.videoUrl,
+        poster: firstVideo.thumbnailUrl ?? null,
+      },
+      {
+        key: `${bufferedVideo.id}:${bufferedVideo.videoUrl}`,
+        src: bufferedVideo.videoUrl,
+        poster: bufferedVideo.thumbnailUrl ?? null,
+      },
+    ]);
+    setActiveSlot(0);
+  }, [videos]);
+
+  useEffect(() => {
+    if (!activeVideo?.videoUrl) return;
+
+    if (pendingSwapRef.current !== null) {
+      window.clearTimeout(pendingSwapRef.current);
+      pendingSwapRef.current = null;
+    }
+
+    const targetKey = `${activeVideo.id}:${activeVideo.videoUrl}`;
+    if (slots[activeSlot].key === targetKey) {
+      playVideoElement(videoRefs.current[activeSlot]);
+      return;
+    }
+
+    const targetSlot = activeSlot === 0 ? 1 : 0;
+    const targetVideoRef = videoRefs.current[targetSlot];
+
+    setSlots((currentSlots) => {
+      if (currentSlots[targetSlot].key === targetKey) {
+        return currentSlots;
+      }
+
+      const nextSlots = [...currentSlots] as [VideoSlotState, VideoSlotState];
+      nextSlots[targetSlot] = {
+        key: targetKey,
+        src: activeVideo.videoUrl,
+        poster: activeVideo.thumbnailUrl ?? null,
+      };
+      return nextSlots;
+    });
+
+    const finalizeSwap = () => {
+      playVideoElement(targetVideoRef);
+      setActiveSlot(targetSlot);
+    };
+
+    if (targetVideoRef && targetVideoRef.currentSrc === activeVideo.videoUrl && targetVideoRef.readyState >= 2) {
+      finalizeSwap();
+      return;
+    }
+
+    pendingSwapRef.current = window.setTimeout(finalizeSwap, 90);
+
+    return () => {
+      if (pendingSwapRef.current !== null) {
+        window.clearTimeout(pendingSwapRef.current);
+        pendingSwapRef.current = null;
+      }
+    };
+  }, [activeSlot, activeVideo, slots]);
+
+  useEffect(() => {
+    const visibleVideo = videoRefs.current[activeSlot];
+    playVideoElement(visibleVideo);
+  }, [activeSlot, slots]);
+
+  useEffect(() => {
+    preloadVideo(nextVideo?.videoUrl ?? null);
+  }, [nextVideo]);
+
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (info.offset.x <= -SWIPE_THRESHOLD) {
       paginate(1);
       return;
@@ -142,51 +251,46 @@ export default function HeroVideoSlider() {
         }`}
         drag={videos.length > 1 ? "x" : false}
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
+        dragElastic={0.25}
+        dragMomentum
         onDragStart={() => setIsDragging(true)}
         onDragEnd={(event, info) => {
           setIsDragging(false);
           handleDragEnd(event, info);
         }}
       >
-        <AnimatePresence initial={false} custom={direction} mode="wait">
-          <motion.div
-            key={activeVideo.id}
-            custom={direction}
-            className="absolute inset-0"
-            variants={{
-              enter: (customDirection: number) => ({
-                opacity: 0,
-                x: customDirection > 0 ? 72 : -72,
-              }),
-              center: {
-                opacity: 1,
-                x: 0,
-              },
-              exit: (customDirection: number) => ({
-                opacity: 0,
-                x: customDirection > 0 ? -72 : 72,
-              }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <motion.div style={{ scale }} className="h-full w-full">
-              <video
-                className="h-full w-full object-cover"
-                src={activeVideo.videoUrl}
-                poster={activeVideo.thumbnailUrl ?? undefined}
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-              />
+        {slots.map((slot, index) => {
+          const isVisible = index === activeSlot && Boolean(slot.src);
+
+          return (
+            <motion.div
+              key={index}
+              className="absolute inset-0"
+              initial={false}
+              animate={{
+                opacity: isVisible ? 1 : 0,
+                filter: isVisible && !isDragging ? "blur(0px)" : "blur(8px)",
+              }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <motion.div style={{ scale }} className="h-full w-full">
+                <video
+                  ref={(element) => {
+                    videoRefs.current[index as 0 | 1] = element;
+                  }}
+                  className="h-full w-full object-cover"
+                  src={slot.src ?? undefined}
+                  poster={slot.poster ?? undefined}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                />
+              </motion.div>
             </motion.div>
-          </motion.div>
-        </AnimatePresence>
+          );
+        })}
       </motion.div>
 
       {videos.length > 1 ? (
@@ -206,18 +310,6 @@ export default function HeroVideoSlider() {
             ))}
           </div>
         </div>
-      ) : null}
-
-      {nextVideo?.videoUrl ? (
-        <video
-          key={`preload-${nextVideo.id}`}
-          className="hidden"
-          src={nextVideo.videoUrl}
-          preload="metadata"
-          muted
-          playsInline
-          aria-hidden="true"
-        />
       ) : null}
     </div>
   );
