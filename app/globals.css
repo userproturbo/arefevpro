@@ -242,6 +242,10 @@ body {
   cursor: grabbing;
 }
 
+.hero-video-gesture-layer:hover .hero-video-nav-hint {
+  opacity: 1;
+}
+
 /* скрывает скроллбар, но сохраняет скролл */
 .hide-scrollbar {
   -ms-overflow-style: none;

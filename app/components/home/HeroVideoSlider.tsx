@@ -2,6 +2,7 @@
 
 import { motion, useScroll, useTransform, type PanInfo } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 
 type HeroVideoItem = {
   id: number;
@@ -48,6 +49,7 @@ export default function HeroVideoSlider() {
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
   const [activeSlot, setActiveSlot] = useState<0 | 1>(0);
   const [slots, setSlots] = useState<[VideoSlotState, VideoSlotState]>([
     { key: "slot-0-empty", src: null, poster: null },
@@ -55,8 +57,19 @@ export default function HeroVideoSlider() {
   ]);
   const videoRefs = useRef<[HTMLVideoElement | null, HTMLVideoElement | null]>([null, null]);
   const pendingSwapRef = useRef<number | null>(null);
+  const suppressClickRef = useRef(false);
   const { scrollYProgress } = useScroll();
   const scale = useTransform(scrollYProgress, [0, 0.6], [1.04, 1.12]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIntroComplete(true);
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,6 +240,13 @@ export default function HeroVideoSlider() {
   }, [nextVideo]);
 
   const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (Math.abs(info.offset.x) > 8) {
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 180);
+    }
+
     if (info.offset.x <= -SWIPE_THRESHOLD) {
       paginate(1);
       return;
@@ -235,6 +255,20 @@ export default function HeroVideoSlider() {
     if (info.offset.x >= SWIPE_THRESHOLD) {
       paginate(-1);
     }
+  };
+
+  const handleClickNavigation = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (isDragging || suppressClickRef.current || videos.length <= 1) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+
+    if (clickX < rect.width / 2) {
+      paginate(-1);
+      return;
+    }
+
+    paginate(1);
   };
 
   if (status === "error" || !activeVideo?.videoUrl) {
@@ -249,6 +283,7 @@ export default function HeroVideoSlider() {
         className={`hero-video-gesture-layer absolute inset-0 touch-pan-y ${
           isDragging ? "is-dragging" : ""
         }`}
+        onClick={handleClickNavigation}
         drag={videos.length > 1 ? "x" : false}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.25}
@@ -269,11 +304,28 @@ export default function HeroVideoSlider() {
               initial={false}
               animate={{
                 opacity: isVisible ? 1 : 0,
-                filter: isVisible && !isDragging ? "blur(0px)" : "blur(8px)",
+                filter: isVisible
+                  ? introComplete && !isDragging
+                    ? "blur(0px)"
+                    : "blur(12px)"
+                  : "blur(8px)",
               }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             >
-              <motion.div style={{ scale }} className="h-full w-full">
+              <motion.div
+                style={{ scale }}
+                className="h-full w-full"
+                initial={false}
+                animate={{
+                  filter: isVisible
+                    ? introComplete && !isDragging
+                      ? "blur(0px)"
+                      : "blur(12px)"
+                    : "blur(8px)",
+                  opacity: isVisible ? (introComplete ? 1 : 0.85) : 0,
+                }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
                 <video
                   ref={(element) => {
                     videoRefs.current[index as 0 | 1] = element;
@@ -291,6 +343,17 @@ export default function HeroVideoSlider() {
             </motion.div>
           );
         })}
+
+        {videos.length > 1 ? (
+          <div className="pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-300 hero-video-nav-hint">
+            <div className="absolute inset-y-0 left-0 flex w-1/2 items-center justify-start px-6 text-white/20">
+              <span className="text-3xl font-light tracking-[0.2em]">&lt;</span>
+            </div>
+            <div className="absolute inset-y-0 right-0 flex w-1/2 items-center justify-end px-6 text-white/20">
+              <span className="text-3xl font-light tracking-[0.2em]">&gt;</span>
+            </div>
+          </div>
+        ) : null}
       </motion.div>
 
       {videos.length > 1 ? (
