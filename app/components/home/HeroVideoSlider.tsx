@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform, type PanInfo } from "framer-motion";
+import { motion, type PanInfo } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
@@ -22,7 +22,12 @@ type VideoSlotState = {
   poster: string | null;
 };
 
+type PaginateOptions = {
+  manual?: boolean;
+};
+
 const SWIPE_THRESHOLD = 80;
+const FLYBY_VOLUME = 0.15;
 
 function playVideoElement(element: HTMLVideoElement | null) {
   if (!element) return;
@@ -38,10 +43,32 @@ function preloadVideo(src: string | null) {
 
   const video = document.createElement("video");
   video.src = src;
-  video.preload = "auto";
+  video.preload = "metadata";
   video.muted = true;
   video.playsInline = true;
   video.load();
+}
+
+function fadeOutSound(audio: HTMLAudioElement, duration = 200) {
+  const startingVolume = audio.volume;
+  if (startingVolume <= 0) {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = FLYBY_VOLUME;
+    return;
+  }
+
+  const step = startingVolume / Math.max(1, duration / 16);
+  const fade = window.setInterval(() => {
+    audio.volume = Math.max(0, audio.volume - step);
+
+    if (audio.volume <= 0) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = FLYBY_VOLUME;
+      window.clearInterval(fade);
+    }
+  }, 16);
 }
 
 export default function HeroVideoSlider() {
@@ -50,16 +77,20 @@ export default function HeroVideoSlider() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [introComplete, setIntroComplete] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [activeSlot, setActiveSlot] = useState<0 | 1>(0);
   const [slots, setSlots] = useState<[VideoSlotState, VideoSlotState]>([
     { key: "slot-0-empty", src: null, poster: null },
     { key: "slot-1-empty", src: null, poster: null },
   ]);
   const videoRefs = useRef<[HTMLVideoElement | null, HTMLVideoElement | null]>([null, null]);
+  const flybySound = useRef<HTMLAudioElement | null>(null);
+  const windSound = useRef<HTMLAudioElement | null>(null);
+  const targetTilt = useRef({ x: 0, y: 0 });
   const pendingSwapRef = useRef<number | null>(null);
   const suppressClickRef = useRef(false);
-  const { scrollYProgress } = useScroll();
-  const scale = useTransform(scrollYProgress, [0, 0.6], [1.04, 1.12]);
+  const windFadeRef = useRef<number | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -70,6 +101,97 @@ export default function HeroVideoSlider() {
       window.clearTimeout(timer);
     };
   }, []);
+
+  useEffect(() => {
+    flybySound.current = new Audio("/audio/drone-lyby.mp3");
+    windSound.current = new Audio("/audio/wind.mp3");
+
+    if (flybySound.current) {
+      flybySound.current.volume = FLYBY_VOLUME;
+      flybySound.current.preload = "auto";
+    }
+
+    if (windSound.current) {
+      windSound.current.volume = 0;
+      windSound.current.loop = true;
+      windSound.current.preload = "auto";
+    }
+
+    return () => {
+      if (windFadeRef.current !== null) {
+        window.clearInterval(windFadeRef.current);
+        windFadeRef.current = null;
+      }
+      flybySound.current?.pause();
+      windSound.current?.pause();
+      flybySound.current = null;
+      windSound.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const unlock = () => {
+      setAudioUnlocked(true);
+    };
+
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  useEffect(() => {
+    let frame = 0;
+
+    const update = () => {
+      setTilt((prev) => ({
+        x: prev.x + (targetTilt.current.x - prev.x) * 0.08,
+        y: prev.y + (targetTilt.current.y - prev.y) * 0.08,
+      }));
+
+      frame = window.requestAnimationFrame(update);
+    };
+
+    frame = window.requestAnimationFrame(update);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!audioUnlocked || !windSound.current) return;
+
+    const wind = windSound.current;
+    if (windFadeRef.current !== null) {
+      window.clearInterval(windFadeRef.current);
+      windFadeRef.current = null;
+    }
+
+    wind.volume = 0;
+    wind.play().catch(() => {});
+
+    let volume = 0;
+    windFadeRef.current = window.setInterval(() => {
+      volume += 0.01;
+      wind.volume = Math.min(volume, 0.035);
+
+      if (volume >= 0.035 && windFadeRef.current !== null) {
+        window.clearInterval(windFadeRef.current);
+        windFadeRef.current = null;
+      }
+    }, 40);
+
+    return () => {
+      if (windFadeRef.current !== null) {
+        window.clearInterval(windFadeRef.current);
+        windFadeRef.current = null;
+      }
+    };
+  }, [audioUnlocked]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,8 +232,21 @@ export default function HeroVideoSlider() {
   }, []);
 
   const paginate = useCallback(
-    (nextDirection: number) => {
+    (nextDirection: number, options?: PaginateOptions) => {
       if (videos.length <= 1) return;
+
+      const isManual = options?.manual === true;
+
+      if (isManual && flybySound.current) {
+        flybySound.current.pause();
+        flybySound.current.currentTime = 0;
+        flybySound.current.volume = FLYBY_VOLUME;
+        flybySound.current.play().catch(() => {});
+      }
+
+      if (!isManual && flybySound.current) {
+        fadeOutSound(flybySound.current);
+      }
 
       setActiveIndex((currentIndex) => {
         const nextIndex = currentIndex + nextDirection;
@@ -127,12 +262,12 @@ export default function HeroVideoSlider() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        paginate(1);
+        paginate(1, { manual: true });
       }
 
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        paginate(-1);
+        paginate(-1, { manual: true });
       }
     };
 
@@ -147,16 +282,6 @@ export default function HeroVideoSlider() {
     if (videos.length <= 1) return null;
     return videos[(activeIndex + 1) % videos.length] ?? null;
   }, [activeIndex, videos]);
-
-  const setVideoIndex = useCallback(
-    (nextIndex: number) => {
-      if (videos.length === 0 || nextIndex === activeIndex) return;
-
-      const normalizedIndex = ((nextIndex % videos.length) + videos.length) % videos.length;
-      setActiveIndex(normalizedIndex);
-    },
-    [activeIndex, videos.length]
-  );
 
   useEffect(() => {
     if (videos.length === 0) return;
@@ -248,12 +373,12 @@ export default function HeroVideoSlider() {
     }
 
     if (info.offset.x <= -SWIPE_THRESHOLD) {
-      paginate(1);
+      paginate(1, { manual: true });
       return;
     }
 
     if (info.offset.x >= SWIPE_THRESHOLD) {
-      paginate(-1);
+      paginate(-1, { manual: true });
     }
   };
 
@@ -264,11 +389,29 @@ export default function HeroVideoSlider() {
     const clickX = event.clientX - rect.left;
 
     if (clickX < rect.width / 2) {
-      paginate(-1);
+      paginate(-1, { manual: true });
       return;
     }
 
-    paginate(1);
+    paginate(1, { manual: true });
+  };
+
+  const handleMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+
+    targetTilt.current = {
+      x: x * 8,
+      y: y * 8,
+    };
+  };
+
+  const getSlotPreloadStrategy = (slot: VideoSlotState, isVisible: boolean) => {
+    if (!slot.src) return "none";
+    if (isVisible) return "auto";
+    if (slot.src === nextVideo?.videoUrl) return "metadata";
+    return "none";
   };
 
   if (status === "error" || !activeVideo?.videoUrl) {
@@ -284,6 +427,10 @@ export default function HeroVideoSlider() {
           isDragging ? "is-dragging" : ""
         }`}
         onClick={handleClickNavigation}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => {
+          targetTilt.current = { x: 0, y: 0 };
+        }}
         drag={videos.length > 1 ? "x" : false}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.25}
@@ -313,7 +460,7 @@ export default function HeroVideoSlider() {
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             >
               <motion.div
-                style={{ scale }}
+                style={{ scale: 1.04, transformPerspective: 1200 }}
                 className="h-full w-full"
                 initial={false}
                 animate={{
@@ -323,8 +470,10 @@ export default function HeroVideoSlider() {
                       : "blur(12px)"
                     : "blur(8px)",
                   opacity: isVisible ? (introComplete ? 1 : 0.85) : 0,
+                  rotateX: -tilt.y,
+                  rotateY: tilt.x,
                 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 <video
                   ref={(element) => {
@@ -337,7 +486,7 @@ export default function HeroVideoSlider() {
                   loop
                   muted
                   playsInline
-                  preload="auto"
+                  preload={getSlotPreloadStrategy(slot, isVisible)}
                 />
               </motion.div>
             </motion.div>
@@ -365,7 +514,16 @@ export default function HeroVideoSlider() {
                 type="button"
                 aria-label={`Go to video ${index + 1}`}
                 aria-pressed={index === activeIndex}
-                onClick={() => setVideoIndex(index)}
+                onClick={() => {
+                  if (index === activeIndex) return;
+
+                  if (index > activeIndex) {
+                    paginate(index - activeIndex, { manual: true });
+                    return;
+                  }
+
+                  paginate(index - activeIndex, { manual: true });
+                }}
                 className={`h-2.5 w-2.5 rounded-full transition ${
                   index === activeIndex ? "bg-white shadow-[0_0_10px_rgba(255,255,255,0.6)]" : "bg-white/35"
                 }`}
