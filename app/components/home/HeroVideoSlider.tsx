@@ -4,7 +4,7 @@ import { motion, type PanInfo } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
-type HeroVideoItem = {
+export type HeroVideoMetadata = {
   id: number;
   title: string;
   description: string | null;
@@ -13,7 +13,7 @@ type HeroVideoItem = {
 };
 
 type VideosResponse = {
-  videos?: HeroVideoItem[];
+  videos?: HeroVideoMetadata[];
 };
 
 type VideoSlotState = {
@@ -24,6 +24,10 @@ type VideoSlotState = {
 
 type PaginateOptions = {
   manual?: boolean;
+};
+
+type HeroVideoSliderProps = {
+  onVideoChange?: (video: HeroVideoMetadata | null) => void;
 };
 
 const SWIPE_THRESHOLD = 80;
@@ -71,8 +75,8 @@ function fadeOutSound(audio: HTMLAudioElement, duration = 200) {
   }, 16);
 }
 
-export default function HeroVideoSlider() {
-  const [videos, setVideos] = useState<HeroVideoItem[]>([]);
+export default function HeroVideoSlider({ onVideoChange }: HeroVideoSliderProps) {
+  const [videos, setVideos] = useState<HeroVideoMetadata[]>([]);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -207,7 +211,7 @@ export default function HeroVideoSlider() {
 
         const data = (await response.json()) as VideosResponse;
         const playableVideos = Array.isArray(data.videos)
-          ? data.videos.filter((video): video is HeroVideoItem => Boolean(video.videoUrl))
+          ? data.videos.filter((video): video is HeroVideoMetadata => Boolean(video.videoUrl))
           : [];
 
         if (!cancelled) {
@@ -413,6 +417,10 @@ export default function HeroVideoSlider() {
     if (slot.src === nextVideo?.videoUrl) return "metadata";
     return "none";
   };
+
+  useEffect(() => {
+    onVideoChange?.(activeVideo);
+  }, [activeVideo, onVideoChange]);
 
   if (status === "error" || !activeVideo?.videoUrl) {
     return (
