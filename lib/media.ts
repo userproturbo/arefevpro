@@ -45,6 +45,32 @@ export function toMediaDTO(media: MediaLike | null | undefined): MediaDTO | null
   };
 }
 
+type ResolveMediaUrlOptions = {
+  fallbackFolder?: string;
+};
+
+export function resolveMediaUrl(
+  url: string | null | undefined,
+  options: ResolveMediaUrlOptions = {}
+): string | null {
+  const trimmed = url?.trim();
+  if (!trimmed) return null;
+
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  if (trimmed.startsWith("/")) return trimmed;
+
+  const normalized = trimmed.replace(/^\.?\/*/, "");
+  if (!normalized) return null;
+
+  if (normalized.startsWith("uploads/")) {
+    return `/${normalized}`;
+  }
+
+  const fallbackFolder = options.fallbackFolder?.replace(/^\/+|\/+$/g, "");
+  return fallbackFolder ? `/${fallbackFolder}/${normalized}` : `/${normalized}`;
+}
+
 export function getStorageKeyFromUrl(url: string, fallbackPrefix: string): string {
   const trimmed = url.trim();
   if (!trimmed) return `${fallbackPrefix}/unknown`;

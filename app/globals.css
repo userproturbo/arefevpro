@@ -232,6 +232,16 @@ body {
   box-shadow: 0 0 10px rgba(123, 255, 107, 0.6);
 }
 
+.hero-video-gesture-layer {
+  cursor: -webkit-grab;
+  cursor: grab;
+}
+
+.hero-video-gesture-layer.is-dragging {
+  cursor: -webkit-grabbing;
+  cursor: grabbing;
+}
+
 /* скрывает скроллбар, но сохраняет скролл */
 .hide-scrollbar {
   -ms-overflow-style: none;

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { toMediaDTO } from "@/lib/media";
+import { resolveMediaUrl, toMediaDTO } from "@/lib/media";
 import {
   getDatabaseUnavailableMessage,
   isDatabaseUnavailableError,
@@ -11,7 +11,7 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const authUser = await getCurrentUser();
 
@@ -48,8 +48,12 @@ export async function GET(_req: NextRequest) {
         description: video.description,
         media: toMediaDTO(video.media),
         thumbnailMedia: toMediaDTO(video.thumbnailMedia),
-        thumbnailUrl: video.thumbnailMedia?.url ?? video.thumbnailUrl,
-        videoUrl: video.media?.url ?? video.videoUrl,
+        thumbnailUrl: resolveMediaUrl(video.thumbnailMedia?.url ?? video.thumbnailUrl, {
+          fallbackFolder: "uploads/video-thumbnails",
+        }),
+        videoUrl: resolveMediaUrl(video.media?.url ?? video.videoUrl, {
+          fallbackFolder: "uploads/videos",
+        }),
         embedUrl: video.embedUrl,
         likesCount: video._count.likes,
         isLikedByMe: authUser ? likedByMeSet.has(video.id) : false,
